@@ -1,0 +1,20 @@
+.options 
+{
+
+}
+.historyButtons
+{
+    float: right;
+
+}
+
+#history table
+{
+    border-collapse: collapse;
+    width: 30em;
+}
+#history table td
+{
+    border: sienna dotted 1px;
+    padding: 0 0.4em 0 0.4em;
+}

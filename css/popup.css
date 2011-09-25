@@ -1,0 +1,12 @@
+body
+{
+    max-height: 40em;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    padding: 0.4em;
+    margin: 0;
+}
+.languageSelectorContainer
+{
+    padding-bottom: 0.4em;
+}
