@@ -1,6 +1,7 @@
 
 function getTranslation() {
     var word = $('#word').val();
+    word = $.trim(word);
     if (!word || word == '') {
         return;
     }

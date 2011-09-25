@@ -1,6 +1,10 @@
+// Local storage key
 var storageKey = "history";
+
+// Translation parsing regular expression
 var translationRegex = /^<p><div><b>(.+?)<\/b>.*<\/div><div><b>(.+?)<\/b>&nbsp;&nbsp;.*<\/div>.*<\/p><br\/><br\/>.?$/igm;
 
+// The list of available languages
 var languages = [
     { value: "swe_alb", text: "Albania" },
     { value: "swe_ara", text: "Arabic" },
@@ -20,38 +24,33 @@ var languages = [
 // ----------------------------------------------------------------------------
 // Public section
 // ----------------------------------------------------------------------------
-function getTranslation(/* String */word, /* Function */ callback) {
+
+function getTranslation(/* String */word, /* Function */callback) {
+    //  Summary
+    //      Returns a translation for the specified word
+    word = $.trim(word);
+    if (!word) {
+        console.error('word is required');
+        return;
+    }
+    
     var langDirection = localStorage["defaultLanguage"];
     if (!langDirection) {
         langDirection = 'swe_swe';
         localStorage["defaultLanguage"] = langDirection;
     }
+    console.log('Translation search for word ' + word + ', langugae ' + langDirection);
     var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo=to,' + langDirection + ',' + encodeURIComponent(word);
-    var translation = "Translation error.";
     $.get(query, function (data) {
         callback(data);
-        addToHistory(langDirection, word, data);
+        _addToHistory(langDirection, data);
     });
-    console.log(translation);
 }
 
-function addToHistory(/* String */langDirection, /* String */word, /* String */translation) {
-    if (!langDirection) {
-        console.error('langDirection is required');
-    }
-    if (!word) {
-        console.error('word is required');
-    }
+function getHistory(/* String */langDirection, /* bool */compress) {
+    //  Summary
+    //      Returns translation history for the specified language direction. If compress is true - all duplicate translations will be merged
     
-    var history = getHistory(langDirection, false);
-    if (!history) {
-        history = new Array();
-    }
-    _addTranslationToHistory(history, translation);
-    window.localStorage.setItem(storageKey + langDirection, JSON.stringify(history));
-}
-
-function getHistory(/* String */ langDirection, /* bool */ compress) {
     var history = JSON.parse(window.localStorage.getItem(storageKey + langDirection));
     if (history && compress) {
         // remove duplicates. We do it only on history request since we don't want to do it on every translation operation
@@ -62,15 +61,37 @@ function getHistory(/* String */ langDirection, /* bool */ compress) {
     return history;
 }
 
-function clearHistory(/* String */ langDirection) {
+function clearHistory(/* String */langDirection) {
+    //  Summary
+    //      Clears translation history for the specified langueage direction
     window.localStorage.removeItem(storageKey + langDirection);
 }
 
 // ----------------------------------------------------------------------------
 // Private section
 // ----------------------------------------------------------------------------
-function _addTranslationToHistory(/* Array */ history, /*String*/ translation) {
-    var match = null;
+
+function _addToHistory(/* String */langDirection, /* String */translation) {
+    //  Summary
+    //      Adds a new word and translation to the translation history
+
+    if (!langDirection) {
+        console.error('langDirection is required');
+    }
+    var history = getHistory(langDirection, false);
+    if (!history) {
+        history = new Array();
+    }
+    var newTranslations = _parseTranslation(translation);
+    history = history.concat(newTranslations);
+    window.localStorage.setItem(storageKey + langDirection, JSON.stringify(history));
+}
+
+function _parseTranslation(/*String*/translation) {
+    //  Summary
+    //      Returns an array of a words parsed from specified translation
+    var result = [];
+    var match;
     while (match = translationRegex.exec(translation)) {
         var wordHistory = match[1];
         var translationHistory = match[2];
@@ -78,16 +99,19 @@ function _addTranslationToHistory(/* Array */ history, /*String*/ translation) {
             wordHistory = wordHistory.replace('|', ''); // removing vertical bars from the word
             var d = new Date();
             var historyItem = { word: wordHistory, translation: translationHistory, added: d.getTime() };
-            history.push(historyItem);
+            result.push(historyItem);
             console.log('Found word ' + wordHistory + ' -> ' + translationHistory);
         }
         else {
             console.error('Error parsing translation');
         }
     }
+    return result;
 }
 
-function _removeDuplicates(/*Array*/ history) {
+function _removeDuplicates(/*Array*/history) {
+    //  Summary
+    //      Removes duplicate entries from the specified hitory array
     for (var i = history.length - 1; i >= 0; i--) {
         for (var j = i - 1; j >= 0; j--) {
             if (history[i].word == history[j].word) {
@@ -113,6 +137,8 @@ function _removeDuplicates(/*Array*/ history) {
 }
 
 function _combineTranslations(/* Array of Strings */translations1, /* Array of Strings */translations2) {
+    //  Summary
+    //      Combines two translation arrays in a single array and removes duplicate entries
     var result = $.merge([], translations1);
     for (var i = 0; i < translations2.length; i++) {
         if ($.inArray(translations2[i], result) == -1) {
@@ -122,7 +148,9 @@ function _combineTranslations(/* Array of Strings */translations1, /* Array of S
     return result;
 }
 
-function sort_by(/* String */ field, /* bool */ reverse, /* Func */ primer) {
+function sort_by(/* String */field, /* bool */reverse, /* Func */primer) {
+    //  Summary
+    //      Sorting rutine
     reverse = (reverse) ? -1 : 1;
     return function (a, b) {
 

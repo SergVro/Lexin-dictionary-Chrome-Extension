@@ -9,6 +9,7 @@ chrome.extension.onRequest.addListener(function (request, sender, sendResponse) 
 $(document).click(function (evt) {
     $(".lexinTranslationContainer").remove();
     var selection = window.getSelection().toString();
+    selection = $.trim(selection);
     if (selection && evt.altKey) {
 
         chrome.extension.sendRequest({ method: "getTranslation", word: selection }, function (response) {
