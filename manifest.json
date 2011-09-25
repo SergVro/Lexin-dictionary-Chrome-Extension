@@ -1,6 +1,6 @@
 {
   "name": "Lexin dictionary",
-  "version": "1.0.1.0",
+  "version": "1.0.1.1",
   "description": "Swedish to other languages dictionary. Powered by Lexin http://lexin2.nada.kth.se/lexin/",
   "icons": { "16": "icons/icon16.png",
            "48": "icons/icon48.png",
