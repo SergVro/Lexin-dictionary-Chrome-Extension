@@ -11,3 +11,5 @@ obj/*.*
 obj/*.*
 obj/Debug/*.*
 Properties/*.*
+LexinChromeExtension.csproj.user
+LexinChromeExtension.csproj
