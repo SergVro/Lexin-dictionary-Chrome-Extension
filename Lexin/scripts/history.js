@@ -48,18 +48,19 @@ function fillLanguages(callback) {
 
 $(function () {
 
-    fillLanguages(function() {
+    fillLanguages(function () {
         restore_language();
         showHistory();
     });
-    
+
     $("#language").change(function (e) {
         showHistory();
     });
 
     $('#clearHistory').click(function (e) {
         var langDirection = $("#language").val();
-        if (confirm('Are you sure you want to clear history for language ' + langDirection)) {
+        var langName = $("#language option[value='"+langDirection+"']").text();
+        if (confirm('Are you sure you want to clear history for language ' + langName)) {
             chrome.extension.sendRequest({ method: "clearHistory", langDirection: langDirection }, function () {
                 showHistory();
             });
