@@ -1,43 +1,38 @@
 <html>
 <head>
     <title>Lexin dictionary Options</title>
-
     <link href="../css/common.css" rel="stylesheet" type="text/css" />
     <link href="../css/options.css" rel="stylesheet" type="text/css" />
-    
+    <link href="../css/chrome_shared.css" rel="stylesheet" type="text/css" />
     <script src="../lib/jquery-1.6.2.min.js" type="text/javascript"></script>
     <script src="../lib/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
     <script src="../scripts/options.js" type="text/javascript"></script>
 </head>
-<body>
-    <div class="contentContainer">
-        <h3>
-            Lexin dictionary Options</h3>
-
-        <div class="help">
-            Translation could be achieved in three ways:
-            <ol>
-                <li>Alt + double click a word</li>
-                <li>Select a word and Alt + left click on a word</li>
-                <li>Select a word and press Lexin toolbar icon</li>
-            </ol>
-            <span>Lexin Dictionary site: <a href="http://lexin2.nada.kth.se/lexin/">http://lexin2.nada.kth.se/lexin/</a></span>
-        </div>
-        <div class="historyLink">
-            <a href="history.html">View translations History</a>
-        </div>
-        <div class="options">
-            Default translation language:
-            <select id="language">
-                
-            </select>
-        </div>
-        <hr />
-        <div >
-            <div class="statusContainer" id="status">
-            </div>
-            <div class="buttonsContainer">
-                <button id="buttonSave">Save</button>
+<body >
+    <div id="navbar-container">
+        <h1 id="navbar-content-title">Lexin</h1>
+        <ul id="navbar">
+            <li id="HistoryMenu" class="navbar-item"><a href="history.html">History</a></li>
+            <li id="OptionsMenu" class="navbar-item navbar-item-selected"><a href="options.html">Options</a></li>
+            <li id="HelpMenu" class="navbar-item"><a href="help.html">Help</a></li>
+        </ul>
+    </div>
+    <div id="mainview">
+        <div id="mainview-content">
+            <div id="page-container">
+                <div class="page">
+                    <h1>Options</h1>
+                    <div class="displaytable">
+                        <section>
+                            <h3>Default language</h3>
+                            <div>
+                                <ul id="languageButtons">
+                                </ul>
+                            </div>
+                        </section>
+                        <div class="statusContainer" id="status"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

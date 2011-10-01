@@ -4,26 +4,10 @@
     float: left;
     color: Gray;
 }
-div
-{
-}
-.help
-{
-    background-color: #ffc;
-    color: black;
-    padding: 0.5em;
-    border: solid 1px #e0e0b4;
-    -webkit-border-radius: 10px;
-    padding: 0.5em;
-}
-.options, .lexinLink, .historyLink
-{
-    padding: 0.5em;
-}
 
-.buttonsContainer
+#languageButtons 
 {
-    text-align: right;
+    list-style-type: none;
 }
 
 

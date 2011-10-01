@@ -1,7 +1,7 @@
 
 // Saves options to localStorage.
 function save_options() {
-    localStorage["defaultLanguage"] = $("#language").val();
+    localStorage["defaultLanguage"] = $("input[name='langs']:checked").val();
 
     // Update status to let user know options were saved.
     $("#status").html("Options saved");
@@ -17,15 +17,21 @@ function restore_options() {
     if (!language) {
         language = 'swe_swe';
     }
-    $("#language").val(language);
+    $("input[name='langs']").val([language]);
 }
 
 function fillLanguages(callback) {
     chrome.extension.sendRequest({ method: "getLanguages" }, function (response) {
+
         $.each(response, function (i, lang) {
-            var option = $('<option></option>').attr('value', lang.value).append(lang.text);
-            $('#language').append(option);
+            var li = $('<li></li>');
+            var input = $('<input></input>').attr('type', 'radio').attr('name', 'langs').attr('value', lang.value).attr('id', lang.value);
+            var span = $('<label></label>').attr('for', lang.value).text(lang.text);
+            li.append(input);
+            li.append(span);
+            $('#languageButtons').append(li);
         });
+        $("input[name='langs']").change(save_options);
         callback();
     });
 }
