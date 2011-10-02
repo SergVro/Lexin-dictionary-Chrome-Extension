@@ -18,7 +18,7 @@ $(document).click(function (evt) {
             $('<div></div>').attr('id', 'translation').addClass('lexinTranslationContent').html(response.translation).appendTo(container);
 
             adaptLinks($('#translation'));
-
+            
             container.position({
                 of: evt,
                 my: "left bottom",

@@ -33,8 +33,9 @@ function getTranslation(/* String */word, /* Function */callback) {
         console.error('word is required');
         return;
     }
-    
+
     var langDirection = localStorage["defaultLanguage"];
+    _gaq.push(['_trackEvent', 'Translation', langDirection, word]);
     if (!langDirection) {
         langDirection = 'swe_swe';
         localStorage["defaultLanguage"] = langDirection;
