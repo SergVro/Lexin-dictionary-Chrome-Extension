@@ -2,16 +2,18 @@
 var storageKey = "history";
 
 // Translation parsing regular expression
-var translationRegex = /^<p><div><b>(.+?)<\/b>.*<\/div><div><b>(.+?)<\/b>&nbsp;&nbsp;.*<\/div>.*<\/p><br\/><br\/>.?$/igm;
+var translationRegexLexin = /^<p><div><b>(.+?)<\/b>.*<\/div><div><b>(.+?)<\/b>&nbsp;&nbsp;.*<\/div>.*<\/p><br\/><br\/>.?$/igm;
+var translationRegexFolkets = /<p><img.*\(S\).*\/>.*<b>(.+?)<\/b>.*<img.*\(E\).*\/>.*<b>(.+?)<\/b>.*<\/p>$/igm;
 
 // The list of available languages
 var languages = [
     { value: "swe_alb", text: "Albania" },
     { value: "swe_ara", text: "Arabic" },
     { value: "swe_bos", text: "Bosnian" },
+    { value: "swe_hrv", text: "Croatian" },
+    { value: "swe_eng", text: "English" }, // English reqruies folkets lexikon
     { value: "swe_fin", text: "Finnish" },
     { value: "swe_gre", text: "Greek" },
-    { value: "swe_hrv", text: "Croatian" },
     { value: "swe_kmr", text: "Northern Kurdish" },
     { value: "swe_per", text: "Persian" },
     { value: "swe_rus", text: "Russian" },
@@ -42,6 +44,9 @@ function getTranslation(/* String */word, /* Function */callback) {
     }
     console.log('Translation search for word ' + word + ', langugae ' + langDirection);
     var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo=to,' + langDirection + ',' + encodeURIComponent(word);
+    if (langDirection == 'swe_eng') {
+        query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=' + encodeURIComponent(word);
+    }
     $.get(query, function (data) {
         callback(data);
         _addToHistory(langDirection, data);
@@ -83,17 +88,21 @@ function _addToHistory(/* String */langDirection, /* String */translation) {
     if (!history) {
         history = new Array();
     }
-    var newTranslations = _parseTranslation(translation);
+    var newTranslations = _parseTranslation(translation, langDirection);
     history = history.concat(newTranslations);
     window.localStorage.setItem(storageKey + langDirection, JSON.stringify(history));
 }
 
-function _parseTranslation(/*String*/translation) {
+function _parseTranslation(/*String*/translation, /* String */langDirection) {
     //  Summary
     //      Returns an array of a words parsed from specified translation
     var result = [];
     var match;
-    while (match = translationRegex.exec(translation)) {
+    var currentRegex = translationRegexLexin;
+    if (langDirection == 'swe_eng') {
+        currentRegex = translationRegexFolkets;
+    }
+    while (match = currentRegex.exec(translation)) {
         var wordHistory = match[1];
         var translationHistory = match[2];
         if (wordHistory && translationHistory) {
