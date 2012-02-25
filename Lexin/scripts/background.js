@@ -2,7 +2,7 @@
 var storageKey = "history";
 
 // Translation parsing regular expression
-var translationRegexLexin = /^<p><div><b>(.+?)<\/b>.*<\/div><div><b>(.+?)<\/b>&nbsp;&nbsp;.*<\/div>.*<\/p><br\/><br\/>.?$/igm;
+var translationRegexLexin = /^<p><div><b><span lang=sv_SE>(.+?)<\/span><\/b>.*<\/div><div><b><span lang=.+>(.+?)<\/span><\/b>&nbsp;&nbsp;.*?$/igm;
 var translationRegexFolkets = /<p><img.*\(S\).*\/>.*<b>(.+?)<\/b>.*<img.*\(E\).*\/>.*<b>(.+?)<\/b>.*<\/p>$/igm;
 
 // The list of available languages
