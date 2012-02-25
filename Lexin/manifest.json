@@ -12,6 +12,7 @@
   },
   "permissions": [ "http://lexin.nada.kth.se/","http://folkets-lexikon.csc.kth.se/", "tabs" ],
   "content_scripts": [{
+	  "all_frames": true,
       "matches": ["http://*/*","https://*/*"],
       "js": [ "lib/jquery-1.6.2.min.js", "lib/jquery-ui-1.8.16.custom.min.js","lib/jquery.flash.js", "scripts/common.js", "scripts/content.js"],
 	  "css": [ "css/content.css"]
