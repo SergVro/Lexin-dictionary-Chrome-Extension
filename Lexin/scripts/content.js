@@ -1,13 +1,14 @@
 chrome.extension.onRequest.addListener(function (request, sender, sendResponse) {
     if (request.method == "getSelection") {
         var selectedText = window.getSelection().toString();
-        if (selectedText == '') {
-            // getSelection doesn't work for iframes so we have to get a previously soted selection value
-            var savedSelection = window.localStorage.getItem('savedSelection');
-            selectedText = savedSelection;
+        if (selectedText !== '') {
+            // send response only is there is a selected text 
+            // since content script is loaded for all frames on a page
+            // this prevents empty callbacks to popup 
+            sendResponse({ data: selectedText });
         }
-        sendResponse({ data: selectedText });
-    } else {
+    }
+    else {
         sendResponse({});
     }
 });
@@ -35,13 +36,5 @@ $(document).click(function (evt) {
                 collision: "flip"
             });
         });
-    }
-});
-
-$(document).mouseup(function (evt) {
-    // saving selected text since window.getSelection doesn't work if selection is in iframe
-    var selectedText = window.getSelection().toString();
-    if (selectedText != '') {
-        window.localStorage.setItem('savedSelection', selectedText);
     }
 });
