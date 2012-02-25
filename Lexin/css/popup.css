@@ -20,3 +20,35 @@ A:visited
 {
     color: #426DC9;
 }
+.quickTipContainer
+{
+    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+    background-color: #ffff71;
+    color: black;
+    border: solid 1px #e0e0b4;
+    text-align: left;
+    padding: 0.2em;
+    -webkit-border-radius: 6px;
+    width: 25em;
+    margin-bottom: 0.5em;
+    cursor: pointer;
+    display: none; 
+}
+.quickTipContainer:hover
+{
+   background-color: #ffff71;
+}
+
+.closeMe 
+{
+    font-size: 10px;
+    color: gray;
+    opacity: 0;
+    float: right;
+    padding-right: 6px;
+    padding-top: 3px;
+}
+
+.quickTipContainer:hover .closeMe {
+    opacity: 1;
+}
