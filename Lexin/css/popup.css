@@ -52,3 +52,7 @@ A:visited
 .quickTipContainer:hover .closeMe {
     opacity: 1;
 }
+
+.customInputContainer {
+    padding-bottom: 0.4em;
+}
