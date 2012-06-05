@@ -8,19 +8,24 @@
 
     // The list of available languages
     var languages = [
-    { value: "swe_alb", text: "Albania" },
+    { value: "swe_alb", text: "Albanian" },
+    { value: "swe_amh", text: "Amharic" },
     { value: "swe_ara", text: "Arabic" },
+    { value: "swe_azj", text: "Azerbaijani" },
     { value: "swe_bos", text: "Bosnian" },
     { value: "swe_hrv", text: "Croatian" },
     { value: "swe_eng", text: "English" }, // English reqruies folkets lexikon
     { value: "swe_fin", text: "Finnish" },
     { value: "swe_gre", text: "Greek" },
     { value: "swe_kmr", text: "Northern Kurdish" },
+    { value: "swe_pus", text: "Pashto" },
     { value: "swe_per", text: "Persian" },
     { value: "swe_rus", text: "Russian" },
-    { value: "swe_srp", text: "Serbian" },
+    { value: "swe_srp", text: "Serbian (Latin)" },
+    { value: "swe_srp_cyrillic", text: "Serbian (Cyrillic)" },
     { value: "swe_som", text: "Somali" },
     { value: "swe_sdh", text: "South Kurdish" },
+    { value: "swe_spa", text: "Spanish" },
     { value: "swe_swe", text: "Swedish" },
     { value: "swe_tur", text: "Turkish"}];
 
