@@ -29,6 +29,16 @@
     { value: "swe_swe", text: "Swedish" },
     { value: "swe_tur", text: "Turkish"}];
 
+
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-26063974-1']);
+
+    (function () {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = 'https://ssl.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+
     // ----------------------------------------------------------------------------
     // Public section
     // ----------------------------------------------------------------------------
@@ -59,7 +69,7 @@
         });
     }
 
-    function getHistory(/* String */langDirection, /* bool */compress) {
+    function getHistory(/* String */langDirection, /* Boolean */compress) {
         //  Summary
         //      Returns translation history for the specified language direction. If compress is true - all duplicate translations will be merged
 
@@ -145,7 +155,7 @@
 
                     history[j].translation = allTranslations.join(separator);
                     history.splice(i, 1);                               // remove it
-                    console.log('Combination resutl ' + history[j].translation);
+                    console.log('Combination result ' + history[j].translation);
                     break;
                 }
             }

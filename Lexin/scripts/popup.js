@@ -93,8 +93,9 @@
         $('#wordInput').focus();
 
         $(document).keyup(function (e) {
-            if (e.altKey) {
+            if (e.ctrlKey) {
                 if (e.which == 37) { // left arrow
+                    e.preventDefault();
                     if (historyIndex < 0) {
                         historyIndex = history.length - 1;
                     }
@@ -106,6 +107,7 @@
                     getTranslation();
                 }
                 if (e.which == 39) { // right arrow
+                    e.preventDefault();
                     if (historyIndex == history.length - 1) {
                         historyIndex = -1;
                     }

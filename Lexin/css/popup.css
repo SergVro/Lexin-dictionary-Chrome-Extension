@@ -1,8 +1,6 @@
 body
 {
-    max-height: 40em;
-    overflow-y: hidden;
-    overflow-x: hidden;
+    overflow: hidden;
     padding: 0.4em;
     margin: 0;
 }

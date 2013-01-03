@@ -11,7 +11,47 @@
     width: 25em;
 }
 
-.lexinTranslationContent
+.lexinTranslationContainer h1,
+.lexinTranslationContainer h2,
+.lexinTranslationContainer h3
+{
+    font: normal 15px Verdana, Arial, Helvetica, sans-serif;
+    text-decoration:underline;
+}
+
+.lexinTranslationContainer p,
+.lexinTranslationContainer div
+{
+    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+    padding: 0;
+    display: block;
+}
+.lexinTranslationContainer b
+{
+    font-weight: bold;
+}
+
+.lexinTranslationContainer a,
+.lexinTranslationContainer a:visited,
+.lexinTranslationContainer a:hover
+{
+    text-decoration: none;
+    color: #00008b;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.lexinTranslationContainer a:hover
+{
+    color: blue;
+}
+
+.lexinTranslationContainer a small
+{
+    font: normal 10px Verdana, Arial, Helvetica, sans-serif;
+}
+
+div.lexinTranslationContent
 {
     overflow-y: auto;
     overflow-x: hidden;
@@ -33,9 +73,19 @@
 {
     display: block;
     list-style-type: disc;
+    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+
     -webkit-margin-before: 1em;
     -webkit-margin-after: 1em;
     -webkit-margin-start: 0px;
     -webkit-margin-end: 0px;
     -webkit-padding-start: 40px;
+}
+.lexinTranslationContainer li
+{
+    display: list-item;
+    text-align: -webkit-match-parent;
+    list-style-type: disc;
+    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+
 }
