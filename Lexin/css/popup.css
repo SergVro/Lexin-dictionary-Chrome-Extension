@@ -54,3 +54,19 @@ A:visited
 .customInputContainer {
     padding-bottom: 0.4em;
 }
+.customInputContainer input {
+    width: 180px;
+    border-radius: 5px;
+}
+.inputLabel {
+    display: inline-block;
+    width: 106px;
+}
+
+
+.historyIcon {
+    display: inline-block;
+    height: 24px;
+    width: 24px;
+    background: url("./images/clock-history-frame-icon.png") no-repeat;
+}

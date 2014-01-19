@@ -43,7 +43,7 @@
     // Public section
     // ----------------------------------------------------------------------------
 
-    function getTranslation(/* String */word, /* Function */callback) {
+    function getTranslation(/* String */word, /* String */ direction, /* Function */callback) {
         //  Summary
         //      Returns a translation for the specified word
         word = $.trim(word);
@@ -59,7 +59,7 @@
             localStorage["defaultLanguage"] = langDirection;
         }
         console.log('Translation search for word ' + word + ', langugae ' + langDirection);
-        var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo=to,' + langDirection + ',' + encodeURIComponent(word);
+        var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo='+(direction || 'to')+',' + langDirection + ',' + encodeURIComponent(word);
         if (langDirection == 'swe_eng') {
             query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=' + encodeURIComponent(word);
         }
@@ -199,7 +199,7 @@
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
         if (request.method == "getTranslation") {
-            getTranslation(request.word, function(data) {
+            getTranslation(request.word, request.direction || 'to', function(data) {
                 sendResponse({ translation: data });
             });
         } else if (request.method == "getHistory") {

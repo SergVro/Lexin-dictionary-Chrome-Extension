@@ -25,17 +25,20 @@
 </head>
 <body>
     <input type="hidden" id="word" />
-    <div class="languageSelectorContainer">
-        <label for="language">
-            Target language:</label>
-        <select id="language" title="Select a language of transalation">
-           
-        </select>
-        <a id="historyLink" href="history.html" title="Open translations history">History</a>
+
+    <div class="customInputContainer">
+        <label for="wordInput" class="inputLabel">From Swedish:</label>
+        <input id="wordInput" autofocus="autofocus" type="text" title="Enter a word to get its translation from Swedish to the language selected above" />
     </div>
     <div class="customInputContainer">
-        <label for="wordInput">Enter a word:</label>
-        <input id="wordInput" type="text" title="Enter a word to get its translation" />
+        <label for="fromWordInput" class="inputLabel">To Swedish:</label>
+        <input id="fromWordInput" type="text" title="Enter a word to get its translation to Swedish from the language selected above " />
+    </div>
+    <div class="languageSelectorContainer">
+        <label for="language" class="inputLabel">Language:</label>
+        <select id="language" title="Select a language of translation">
+        </select>
+        <a id="historyLink" href="history.html" class="historyIcon" title="Open translations history">&nbsp;</a>
     </div>
     <div class="quickTipContainer">
         <div id="quickTip">

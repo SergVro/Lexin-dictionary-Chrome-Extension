@@ -2,13 +2,13 @@
     var history = [];
     var historyIndex = -1;
 
-    function getTranslation() {
+    function getTranslation(direction) {
         var word = $('#word').val();
         word = $.trim(word);
         if (!word || word == '') {
             return;
         }
-        chrome.extension.sendRequest({ method: "getTranslation", word: word }, function (transData) {
+        chrome.extension.sendRequest({ method: "getTranslation", word: word, direction: direction}, function (transData) {
             $('#translation').html(transData.translation);
             LexinExtensionCommon.adaptLinks($('#translation'));
 
@@ -41,7 +41,7 @@
 
     chrome.tabs.getSelected(null, function (tab) {
         chrome.tabs.sendRequest(tab.id, { method: "getSelection" }, function (response) {
-            if (response.data) {
+            if (response && response.data) {
                 setCurrentWord(response.data);
                 getTranslation();
             }
@@ -86,11 +86,28 @@
             if (word.length >= 2) {
                 timer = setTimeout(function () {
                     setCurrentWord(word, false, true);
-                    getTranslation();
+                    getTranslation('to');
                 }, 500);
             }
         });
-        $('#wordInput').focus();
+        debugger;
+        $('#wordInput')[0].focus();
+
+        var timerFrom = null;
+        $('#fromWordInput').keyup(function (e) {
+            if (e.altKey) {
+                return;
+            }
+            clearTimeout(timerFrom);
+            var word = $(this).val();
+            if (word.length >= 2) {
+                timerFrom = setTimeout(function () {
+                    setCurrentWord(word, false, true);
+                    getTranslation('from');
+                }, 500);
+            }
+        });
+
 
         $(document).keyup(function (e) {
             if (e.ctrlKey) {
