@@ -14,7 +14,7 @@
     { value: "swe_azj", text: "Azerbaijani" },
     { value: "swe_bos", text: "Bosnian" },
     { value: "swe_hrv", text: "Croatian" },
-    { value: "swe_eng", text: "English" }, // English reqruies folkets lexikon
+    { value: "swe_eng", text: "English" }, // English requires folkets lexikon
     { value: "swe_fin", text: "Finnish" },
     { value: "swe_gre", text: "Greek" },
     { value: "swe_kmr", text: "Northern Kurdish" },
@@ -43,13 +43,15 @@
     // Public section
     // ----------------------------------------------------------------------------
 
-    function getTranslation(/* String */word, /* String */ direction, /* Function */callback) {
+    function getTranslation(/* String */word, /* String */ direction) {
         //  Summary
         //      Returns a translation for the specified word
+        var deferred = $.Deferred();
         word = $.trim(word);
         if (!word) {
             console.error('word is required');
-            return;
+            deferred.reject('word is required');
+            return deferred;
         }
 
         var langDirection = localStorage["defaultLanguage"];
@@ -60,13 +62,16 @@
         }
         console.log('Translation search for word ' + word + ', langugae ' + langDirection);
         var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo='+(direction || 'to')+',' + langDirection + ',' + encodeURIComponent(word);
-        if (langDirection == 'swe_eng') {
+        if (langDirection === 'swe_eng') {
             query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=' + encodeURIComponent(word);
         }
-        $.get(query, function (data) {
-            callback(data);
+        $.get(query).done(function (data) {
+            deferred.resolve(data);
             _addToHistory(langDirection, data);
+        }).fail(function(error) {
+            deferred.reject(error);
         });
+        return deferred;
     }
 
     function getHistory(/* String */langDirection, /* Boolean */compress) {
@@ -102,7 +107,7 @@
         }
         var history = getHistory(langDirection, false);
         if (!history) {
-            history = new Array();
+            history = [];
         }
         var newTranslations = _parseTranslation(translation, langDirection);
         history = history.concat(newTranslations);
@@ -115,7 +120,7 @@
         var result = [];
         var match;
         var currentRegex = translationRegexLexin;
-        if (langDirection == 'swe_eng') {
+        if (langDirection === 'swe_eng') {
             currentRegex = translationRegexFolkets;
         }
         while (match = currentRegex.exec(translation)) {
@@ -140,8 +145,8 @@
         //      Removes duplicate entries from the specified hitory array
         for (var i = history.length - 1; i >= 0; i--) {
             for (var j = i - 1; j >= 0; j--) {
-                if (history[i].word == history[j].word) {
-                    if (history[i].translation == history[j].translation) { // if we already have the same word with the same translation
+                if (history[i].word === history[j].word) {
+                    if (history[i].translation === history[j].translation) { // if we already have the same word with the same translation
                         console.log('Duplicate translation found for word ' + history[i].word + '. Translation ' + history[i].translation + '. Indexes ' + i + ' and ' + j);
                         history.splice(i, 1);                               // remove it
                         break;
@@ -167,7 +172,7 @@
         //      Combines two translation arrays in a single array and removes duplicate entries
         var result = $.merge([], translations1);
         for (var i = 0; i < translations2.length; i++) {
-            if ($.inArray(translations2[i], result) == -1) {
+            if ($.inArray(translations2[i], result) === -1) {
                 result.push(translations2[i]);
             }
         }
@@ -183,13 +188,13 @@
             a = a[field];
             b = b[field];
 
-            if (typeof (primer) != 'undefined') {
+            if (typeof (primer) !== 'undefined') {
                 a = primer(a);
                 b = primer(b);
             }
 
-            if (a < b) return reverse * -1;
-            if (a > b) return reverse * 1;
+            if (a < b) {return reverse * -1;}
+            if (a > b) {return reverse;}
             return 0;
         };
     }
@@ -198,16 +203,20 @@
     // ----------------------------------------------------------------------------
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
-        if (request.method == "getTranslation") {
-            getTranslation(request.word, request.direction || 'to', function(data) {
+        if (request.method === "getTranslation") {
+            getTranslation(request.word, request.direction || 'to').done(function(data) {
                 sendResponse({ translation: data });
+            }).fail(function(error) {
+                var errorMessage = "Error connecting to the dictionary service: "+
+                    (error ? error.status : "Unknown");
+                sendResponse({ translation: null, error: errorMessage });
             });
-        } else if (request.method == "getHistory") {
+        } else if (request.method === "getHistory") {
             sendResponse(getHistory(request.langDirection, true));
-        } else if (request.method == "clearHistory") {
+        } else if (request.method === "clearHistory") {
             clearHistory(request.langDirection);
             sendResponse();
-        } else if (request.method == "getLanguages") {
+        } else if (request.method === "getLanguages") {
             sendResponse(languages);
         } else {
             sendResponse({ });
