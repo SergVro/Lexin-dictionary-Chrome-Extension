@@ -1,22 +1,27 @@
 (function () {
     var history = [];
     var historyIndex = -1;
+    var currentWord;
 
     function getTranslation(direction) {
         var word = $('#word').val();
         word = $.trim(word);
-        if (!word || word == '') {
+        if (!word || word === '') {
             return;
         }
-        chrome.extension.sendRequest({ method: "getTranslation", word: word, direction: direction}, function (transData) {
-            $('#translation').html(transData.translation);
-            LexinExtensionCommon.adaptLinks($('#translation'));
+        var translationBox = $('#translation');
+        translationBox.html("Searching for '"+word+"'...");
+        chrome.extension.sendRequest({ method: "getTranslation", word: word, direction: direction}, function (response) {
+            if (word === currentWord) {
+                translationBox.html(response.translation || response.error);
+                LexinExtensionCommon.adaptLinks(translationBox);
+            }
 
         });
     }
 
     function setCurrentWord(word, skipHistory, skipInput) {
-        word = $.trim(word);
+        currentWord = word = $.trim(word);
         $('#word').val(word);
 
         if (!skipInput) {
@@ -56,19 +61,19 @@
         fillLanguages(function () {
             $('#language').val(localStorage["defaultLanguage"]);
         });
-        $('#language').change(function (evt) {
+        $('#language').change(function () {
             localStorage["defaultLanguage"] = $('#language').val();
             getTranslation();
         });
 
-        $('a#historyLink').click(function (e) {
+        $('a#historyLink').click(function () {
             chrome.tabs.create({ 'url': 'html/history.html' }, function (tab) {
 
             });
             return false;
         });
 
-        $(document).click(function (evt) {
+        $(document).click(function () {
             var selection = window.getSelection().toString();
             if (selection !== '') {
                 setCurrentWord(selection);
@@ -77,7 +82,8 @@
         });
 
         var timer = null;
-        $('#wordInput').keyup(function (e) {
+        var wordInput=$('#wordInput');
+        wordInput.keyup(function (e) {
             if (e.altKey) {
                 return;
             }
@@ -90,18 +96,17 @@
                 }, 500);
             }
         });
-        debugger;
-        $('#wordInput')[0].focus();
 
-        var timerFrom = null;
+        wordInput[0].focus();
+
         $('#fromWordInput').keyup(function (e) {
             if (e.altKey) {
                 return;
             }
-            clearTimeout(timerFrom);
+            clearTimeout(timer);
             var word = $(this).val();
             if (word.length >= 2) {
-                timerFrom = setTimeout(function () {
+                timer = setTimeout(function () {
                     setCurrentWord(word, false, true);
                     getTranslation('from');
                 }, 500);
@@ -111,21 +116,21 @@
 
         $(document).keyup(function (e) {
             if (e.ctrlKey) {
-                if (e.which == 37) { // left arrow
+                if (e.which === 37) { // left arrow
                     e.preventDefault();
                     if (historyIndex < 0) {
                         historyIndex = history.length - 1;
                     }
-                    if (historyIndex == 0) {
+                    if (historyIndex === 0) {
                         return;
                     }
                     historyIndex--;
                     setCurrentWord(history[historyIndex], true);
                     getTranslation();
                 }
-                if (e.which == 39) { // right arrow
+                if (e.which === 39) { // right arrow
                     e.preventDefault();
-                    if (historyIndex == history.length - 1) {
+                    if (historyIndex === history.length - 1) {
                         historyIndex = -1;
                     }
                     if (historyIndex < 0) {
@@ -141,10 +146,10 @@
         //window.localStorage.setItem('showQuickTip', 'Yes');
         var showQuickTip = window.localStorage.getItem('showQuickTip');
         console.log(showQuickTip);
-        if (showQuickTip != 'No') {
-            console.log('show quick tip');
-            $('.quickTipContainer').css('display', 'block');
-            $('.quickTipContainer').click(function (e) {
+        if (showQuickTip !== 'No') {
+            var tipContainer = $('.quickTipContainer');
+            tipContainer.css('display', 'block');
+            tipContainer.click(function () {
                 $('.quickTipContainer').fadeOut('fast', function () {
                     $('.quickTipContainer').css('display', 'none');
                 });
