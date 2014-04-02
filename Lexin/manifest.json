@@ -21,7 +21,7 @@
 	  "all_frames": true,
       "matches": ["http://*/*","https://*/*"],
       "js": [ "lib/jquery-1.6.2.min.js", "lib/jquery-ui-1.8.16.custom.min.js","lib/jquery.flash.js", "scripts/common.js", "scripts/content.js"],
-	  "css": [ "css/content.css"]
+	  "css": ["css/cssreset-context-min.css", "css/content.css"]
     }],
   "options_page": "html/options.html"
 }

@@ -28,7 +28,7 @@
 }
 .lexinTranslationContainer b
 {
-    font-weight: bold;
+    font: bold 12px Verdana, Arial, Helvetica, sans-serif;
 }
 
 .lexinTranslationContainer a,
@@ -37,7 +37,7 @@
 {
     text-decoration: none;
     color: #00008b;
-    font-weight: normal;
+    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
     cursor: pointer;
 }
 

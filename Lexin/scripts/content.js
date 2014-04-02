@@ -22,9 +22,13 @@
         var selection = window.getSelection().toString();
         selection = $.trim(selection);
         if (selection && evt.altKey) {
-            var absolutContainer = $('<div></div>').css('position', 'absolute').insertAfter('body');
-            var container = $('<div></div>').addClass("lexinTranslationContainer").appendTo(absolutContainer);
-            var translationBlock = $('<div></div>').attr('id', 'translation').addClass('lexinTranslationContent')
+            var absolutContainer = $('<div></div>').addClass("yui3-cssreset")
+                .css('position', 'absolute').insertAfter('body');
+            var container = $('<div></div>')
+                .addClass("yui3-cssreset").addClass("lexinTranslationContainer")
+                .appendTo(absolutContainer);
+            var translationBlock = $('<div></div>').attr('id', 'translation')
+                .addClass("yui3-cssreset").addClass('lexinTranslationContent')
                 .html("Searching for '"+selection+"'...").appendTo(container);
 
             container.position({
