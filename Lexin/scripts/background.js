@@ -4,7 +4,7 @@
 
     // Translation parsing regular expression
     var translationRegexLexin = /^<p><div><b><span lang=sv_SE>(.+?)<\/span><\/b>.*<\/div><div><b><span lang=.+>(.+?)<\/span><\/b>&nbsp;&nbsp;.*?$/igm;
-    var translationRegexFolkets = /<p><img.*\(S\).*\/>.*<b>(.+?)<\/b>.*<img.*\(E\).*\/>.*<b>(.+?)<\/b>.*<\/p>$/igm;
+    var translationRegexFolkets = /<p><img.*\(S.+?\).*\/>\s*<b>(.+?)<\/b>.*<img.*\(E.+?\).*\/>\s*<b>(.+?)<\/b>.*<\/p>$/igm;
 
     // The list of available languages
     var languages = [
@@ -63,7 +63,8 @@
         console.log('Translation search for word ' + word + ', langugae ' + langDirection);
         var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo='+(direction || 'to')+',' + langDirection + ',' + encodeURIComponent(word);
         if (langDirection === 'swe_eng') {
-            query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=' + encodeURIComponent(word);
+            query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang='+
+                (direction==='from' ? 'en' : 'sv')+'&interface=en&word=' + encodeURIComponent(word);
         }
         $.get(query).done(function (data) {
             deferred.resolve(data);
