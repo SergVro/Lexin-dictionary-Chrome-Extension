@@ -1,4 +1,4 @@
-This project is a simple Google Chrome Extension allowing a user 
+This project is a simple Google Chrome Extension allowing users 
 to translate a word selected on a page from Swedish to a bunch of other languages.
 
 The extension can be installed from Chrome Web Store
