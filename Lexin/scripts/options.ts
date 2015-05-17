@@ -1,3 +1,6 @@
+/// <reference path="..\lib\chrome\chrome.d.ts" />
+/// <reference path="..\lib\jquery\jquery.d.ts" />
+
 (function () {
     // Saves options to localStorage.
     function save_options() {
@@ -21,11 +24,11 @@
     }
 
     function fillLanguages(callback) {
-        chrome.extension.sendRequest({ method: "getLanguages" }, function (response) {
+        chrome.runtime.sendMessage({ method: "getLanguages" }, function (response) {
 
             $.each(response, function (i, lang) {
                 var li = $('<li></li>');
-                var input = $('<input></input>').attr('type', 'radio').attr('name', 'langs').attr('value', lang.value).attr('id', lang.value);
+                var input = $('<input />').attr('type', 'radio').attr('name', 'langs').attr('value', lang.value).attr('id', lang.value);
                 var span = $('<label></label>').attr('for', lang.value).text(lang.text);
                 li.append(input);
                 li.append(span);
