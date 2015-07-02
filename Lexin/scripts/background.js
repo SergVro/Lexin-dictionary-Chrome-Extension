@@ -60,7 +60,6 @@
             langDirection = 'swe_swe';
             localStorage["defaultLanguage"] = langDirection;
         }
-        console.log('Translation search for word ' + word + ', langugae ' + langDirection);
         var query = 'http://lexin.nada.kth.se/lexin/service?searchinfo='+(direction || 'to')+',' + langDirection + ',' + encodeURIComponent(word);
         if (langDirection === 'swe_eng') {
             query = 'http://folkets-lexikon.csc.kth.se/folkets/service?lang='+
@@ -146,7 +145,6 @@
                 var d = new Date();
                 var historyItem = { word: wordHistory, translation: translationHistory, added: d.getTime() };
                 result.push(historyItem);
-                console.log('Found word ' + wordHistory + ' -> ' + translationHistory);
             }
             else {
                 console.error('Error parsing translation');
@@ -162,12 +160,10 @@
             for (var j = i - 1; j >= 0; j--) {
                 if (history[i].word === history[j].word) {
                     if (history[i].translation === history[j].translation) { // if we already have the same word with the same translation
-                        console.log('Duplicate translation found for word ' + history[i].word + '. Translation ' + history[i].translation + '. Indexes ' + i + ' and ' + j);
                         history.splice(i, 1);                               // remove it
                         break;
                     }
                     // try to combine different translations in the list
-                    console.log('Combining translation for word: ' + history[i].word + '. Translation 1 ' + history[i].translation + ' and Translation 2 ' + history[j].translation);
                     var separator = '; ';
                     var iTranslations = history[i].translation.split(separator);
                     var jTranslations = history[j].translation.split(separator);
@@ -175,7 +171,6 @@
 
                     history[j].translation = allTranslations.join(separator);
                     history.splice(i, 1);                               // remove it
-                    console.log('Combination result ' + history[j].translation);
                     break;
                 }
             }
