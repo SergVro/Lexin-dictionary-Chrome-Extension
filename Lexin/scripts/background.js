@@ -67,12 +67,26 @@
                 (direction==='from' ? 'en' : 'sv')+'&interface=en&word=' + encodeURIComponent(word);
         }
         $.get(query).done(function (data) {
-            deferred.resolve(data);
-            _addToHistory(langDirection, data);
+            if (!isWordFound(word, data) && word.toLowerCase() !== word) {
+                // retry with word in lowercase if no hit
+                getTranslation(word.toLowerCase(), direction).done(function(dataLower) {
+                    deferred.resolve(dataLower);
+                });
+            }
+            else {
+                deferred.resolve(data);
+                _addToHistory(langDirection, data);
+            }
         }).fail(function(error) {
             deferred.reject(error);
         });
         return deferred;
+    }
+
+    function isWordFound(word, data) {
+        return !(data.indexOf(word + " - Ingen unik tr&auml;ff") > -1
+                || data.indexOf(word + " - Ingen tr&auml;ff") > -1
+                || data.indexOf(word + " - No hit") > -1);
     }
 
     function getHistory(/* String */langDirection, /* Boolean */compress) {
