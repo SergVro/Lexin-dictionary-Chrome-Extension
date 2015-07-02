@@ -2,11 +2,15 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="common.ts" />
 
-(function () {
+module LexinExtension.Popup {
 
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-26063974-1']);
     _gaq.push(['_trackPageview']);
+
+    var history = [];
+    var historyIndex = -1;
+    var currentWord;
 
 
     function getTranslation(direction?:string) {
@@ -16,11 +20,15 @@
             return;
         }
         var translationBox = $('#translation');
-        translationBox.html("Searching for '"+word+"'...");
-        chrome.runtime.sendMessage({ method: "getTranslation", word: word, direction: direction}, function (response) {
+        translationBox.html("Searching for '" + word + "'...");
+        chrome.runtime.sendMessage({
+            method: "getTranslation",
+            word: word,
+            direction: direction
+        }, function (response) {
             if (word === currentWord) {
                 translationBox.html(response.translation || response.error);
-                LexinExtensionCommon.adaptLinks(translationBox);
+                LexinExtension.Common.adaptLinks(translationBox);
             }
 
         });
@@ -41,7 +49,7 @@
 
 
     function fillLanguages(callback) {
-        chrome.runtime.sendMessage({ method: "getLanguages" }, function (response) {
+        chrome.runtime.sendMessage({method: "getLanguages"}, function (response) {
             $.each(response, function (i, lang) {
                 var option = $('<option></option>').attr('value', lang.value).append(lang.text);
                 $('#language').append(option);
@@ -50,8 +58,8 @@
         });
     }
 
-    chrome.tabs.query({active:true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { method: "getSelection" }, function (response) {
+    chrome.tabs.query({active: true}, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {method: "getSelection"}, function (response) {
             if (response && response.data) {
                 setCurrentWord(response.data);
                 getTranslation();
@@ -73,8 +81,7 @@
         });
 
         $('a#historyLink').click(function () {
-            chrome.tabs.create({ 'url': 'html/history.html' }, function (tab) {
-
+            chrome.tabs.create({'url': 'html/history.html'}, function () {
             });
             return false;
         });
@@ -88,7 +95,7 @@
         });
 
         var timer = null;
-        var wordInput=$('#wordInput');
+        var wordInput = $('#wordInput');
         wordInput.keyup(function (e) {
             if (e.altKey) {
                 return;
@@ -163,5 +170,4 @@
         }
 
     });
-
-})();
+}

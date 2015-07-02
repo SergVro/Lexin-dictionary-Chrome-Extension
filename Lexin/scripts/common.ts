@@ -1,6 +1,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="..\lib\jquery.flash.d.ts" />
-module LexinExtensionCommon {
+module LexinExtension.Common {
     var playerTemplate:string = '<audio><source src="MP3_FILE_URL" type="audio/mp3" /></audio>';
 
     export function adaptLinks(translationContainer: JQuery) {
