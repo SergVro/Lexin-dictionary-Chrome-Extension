@@ -1,9 +1,6 @@
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
-var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-26063974-1']);
-_gaq.push(['_trackPageview']);
 
 
 (function () {

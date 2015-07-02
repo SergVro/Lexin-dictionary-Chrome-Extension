@@ -8,9 +8,6 @@
     _gaq.push(['_setAccount', 'UA-26063974-1']);
     _gaq.push(['_trackPageview']);
 
-    var history = [];
-    var historyIndex = -1;
-    var currentWord;
 
     function getTranslation(direction?:string) {
         var word = $('#word').val();
@@ -154,7 +151,6 @@
 
         //window.localStorage.setItem('showQuickTip', 'Yes');
         var showQuickTip = window.localStorage.getItem('showQuickTip');
-        console.log(showQuickTip);
         if (showQuickTip !== 'No') {
             var tipContainer = $('.quickTipContainer');
             tipContainer.css('display', 'block');
