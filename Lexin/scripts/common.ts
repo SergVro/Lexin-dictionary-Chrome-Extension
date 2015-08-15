@@ -33,4 +33,19 @@ module LexinExtension.Common {
             }
         });
     }
+
+    export interface Language {
+        value: string;
+        text: string;
+    }
+
+    export interface SettingsStorage {
+        [key: string]: any;
+    }
+
+    export interface HistoryItem {
+        word:string;
+        translation:string;
+        added: number
+    }
 }

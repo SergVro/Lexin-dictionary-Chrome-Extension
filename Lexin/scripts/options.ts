@@ -1,7 +1,8 @@
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
-(function () {
+module LexinExtension.Options {
+
     // Saves options to localStorage.
     function save_options() {
         localStorage["defaultLanguage"] = $("input[name='langs']:checked").val();
@@ -24,7 +25,7 @@
     }
 
     function fillLanguages(callback) {
-        chrome.runtime.sendMessage({ method: "getLanguages" }, function (response) {
+        chrome.runtime.sendMessage({method: "getLanguages"}, function (response) {
 
             $.each(response, function (i, lang) {
                 var li = $('<li></li>');
@@ -39,12 +40,12 @@
         });
     }
 
-    $(function() {
-        fillLanguages(function() {
+    $(function () {
+        fillLanguages(function () {
             restore_options();
         });
-        $("#buttonSave").click(function(e) {
+        $("#buttonSave").click(function (e) {
             save_options();
         });
     });
-})();
+}

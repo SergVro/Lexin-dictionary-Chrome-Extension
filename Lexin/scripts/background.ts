@@ -1,12 +1,9 @@
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="..\lib\google.analytics\ga.d.ts" />
+/// <reference path="common.ts" />
 
-interface HistoryItem {
-    word:string;
-    translation:string;
-    added: number
-}
+
 module LexinExtension.Background {
     class HistoryManager {
         storageKey:string = "history";
@@ -16,7 +13,7 @@ module LexinExtension.Background {
             this.translationParser = new TranslationParser();
         }
 
-        getHistory(/* String */langDirection, /* Boolean */compress):HistoryItem[] {
+        getHistory(/* String */langDirection, /* Boolean */compress):Common.HistoryItem[] {
             //  Summary
             //      Returns translation history for the specified language direction. If compress is true - all duplicate translations will be merged
 
@@ -52,7 +49,7 @@ module LexinExtension.Background {
             window.localStorage.setItem(this.storageKey + langDirection, JSON.stringify(history));
         }
 
-        private _removeDuplicates(history:HistoryItem[]) {
+        private _removeDuplicates(history:Common.HistoryItem[]) {
             //  Summary
             //      Removes duplicate entries from the specified history array
             for (var i = history.length - 1; i >= 0; i--) {
@@ -118,7 +115,7 @@ module LexinExtension.Background {
         translationRegexLexin = /^<p><div><b><span lang=sv_SE>(.+?)<\/span><\/b>.*<\/div><div><b><span lang=.+>(.+?)<\/span><\/b>&nbsp;&nbsp;.*?$/igm;
         translationRegexFolkets = /<p><img.*\(S.+?\).*\/>\s*<b>(.+?)<\/b>.*<img.*\(E.+?\).*\/>\s*<b>(.+?)<\/b>.*<\/p>$/igm;
 
-        parseTranslation(translation:string, langDirection:string):HistoryItem[] {
+        parseTranslation(translation:string, langDirection:string):Common.HistoryItem[] {
             //  Summary
             //      Returns an array of a words parsed from specified translation
             var result = [],
@@ -134,7 +131,7 @@ module LexinExtension.Background {
                 if (wordHistory && translationHistory) {
                     wordHistory = wordHistory.replace('|', ''); // removing vertical bars from the word
                     var d = new Date();
-                    var historyItem:HistoryItem = {
+                    var historyItem:Common.HistoryItem = {
                         word: wordHistory,
                         translation: translationHistory,
                         added: d.getTime()
