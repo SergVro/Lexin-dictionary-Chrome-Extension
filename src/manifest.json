@@ -13,16 +13,41 @@
   },
   "browser_action": {
     "default_icon": "icons/icon19.png",
-	"default_popup": "html/popup.html"
+    "default_popup": "html/popup.html"
   },
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self';",
 
-  "permissions": [ "http://lexin.nada.kth.se/","http://folkets-lexikon.csc.kth.se/", "tabs" ],
+  "permissions": [
+    "http://lexin.nada.kth.se/",
+    "http://folkets-lexikon.csc.kth.se/",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "web_accessible_resources": [
+    "scripts/common.js",
+    "scripts/content.js"
+  ],
   "content_scripts": [{
-	  "all_frames": true,
-      "matches": ["http://*/*","https://*/*"],
-      "js": [ "lib/jquery.min.js", "lib/jquery-ui.min.js","lib/jquery.flash.js", "scripts/common.js", "scripts/content.js"],
-	  "css": ["css/cssreset-context-min.css", "css/content.css"]
-    }],
+    "run_at": "document_end",
+    "all_frames": true,
+    "matches": [
+      "http://*/*",
+      "https://*/*"
+    ],
+    "js": [
+      "lib/jquery.min.js",
+      "lib/jquery-ui.min.js",
+      "lib/jquery.flash.js",
+
+      "lib/require.js",
+      "lib/require-cs.js",
+      "scripts/content-main.js"
+    ],
+    "css": [
+      "css/cssreset-context-min.css",
+      "css/content.css"
+    ]
+  }],
   "options_page": "html/options.html"
 }

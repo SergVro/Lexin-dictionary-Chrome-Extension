@@ -6,7 +6,7 @@
 
 module LexinExtension.Background {
     interface IHistoryManager {
-        getHistory(/* String */langDirection, /* Boolean */compress):Common.HistoryItem[]
+        getHistory(/* String */langDirection, /* Boolean */compress):common.HistoryItem[]
         clearHistory(/* String */langDirection):void
         addToHistory(/* String */langDirection, /* String */translation):void
     }
@@ -19,7 +19,7 @@ module LexinExtension.Background {
             this.translationParser = translationParser;
         }
 
-        getHistory(/* String */langDirection, /* Boolean */compress):Common.HistoryItem[] {
+        getHistory(/* String */langDirection, /* Boolean */compress):common.HistoryItem[] {
             //  Summary
             //      Returns translation history for the specified language direction. If compress is true - all duplicate translations will be merged
 
@@ -55,7 +55,7 @@ module LexinExtension.Background {
             window.localStorage.setItem(this.storageKey + langDirection, JSON.stringify(history));
         }
 
-        private _removeDuplicates(history:Common.HistoryItem[]) {
+        private _removeDuplicates(history:common.HistoryItem[]) {
             //  Summary
             //      Removes duplicate entries from the specified history array
             for (var i = history.length - 1; i >= 0; i--) {
@@ -117,7 +117,7 @@ module LexinExtension.Background {
     }
 
     interface ITranslationParser {
-        parseTranslation(translation:string, langDirection:string):Common.HistoryItem[]
+        parseTranslation(translation:string, langDirection:string):common.HistoryItem[]
     }
 
     class TranslationParser implements ITranslationParser{
@@ -125,7 +125,7 @@ module LexinExtension.Background {
         translationRegexLexin = /^<p><div><b><span lang=sv_SE>(.+?)<\/span><\/b>.*<\/div><div><b><span lang=.+>(.+?)<\/span><\/b>&nbsp;&nbsp;.*?$/igm;
         translationRegexFolkets = /<p><img.*\(S.+?\).*\/>\s*<b>(.+?)<\/b>.*<img.*\(E.+?\).*\/>\s*<b>(.+?)<\/b>.*<\/p>$/igm;
 
-        parseTranslation(translation:string, langDirection:string):Common.HistoryItem[] {
+        parseTranslation(translation:string, langDirection:string):common.HistoryItem[] {
             //  Summary
             //      Returns an array of a words parsed from specified translation
             var result = [],
@@ -141,7 +141,7 @@ module LexinExtension.Background {
                 if (wordHistory && translationHistory) {
                     wordHistory = wordHistory.replace('|', ''); // removing vertical bars from the word
                     var d = new Date();
-                    var historyItem:Common.HistoryItem = {
+                    var historyItem:common.HistoryItem = {
                         word: wordHistory,
                         translation: translationHistory,
                         added: d.getTime()

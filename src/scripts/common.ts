@@ -2,7 +2,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="..\lib\jquery.flash.d.ts" />
 
-module LexinExtension.Common {
     var playerTemplate:string = '<audio><source src="MP3_FILE_URL" type="audio/mp3" /></audio>';
 
     export function adaptLinks(translationContainer: JQuery) {
@@ -44,7 +43,7 @@ module LexinExtension.Common {
         text: string;
     }
 
-    export interface SettingsStorage {
+    export interface ISettingsStorage {
         [key: string]: any;
     }
 
@@ -60,18 +59,24 @@ module LexinExtension.Common {
         clearHistory
     }
 
-    export class BackendService {
-        getLanguages() : JQueryPromise<Common.Language[]> {
+    export interface IBackendService {
+        getLanguages() : JQueryPromise<Language[]>
+        loadHistory(language: string) : JQueryPromise<HistoryItem[]>
+        clearHistory(language: string) : JQueryPromise<{}>
+    }
+
+    export class BackendService implements IBackendService{
+        getLanguages() : JQueryPromise<Language[]> {
             var result  = $.Deferred();
-            chrome.runtime.sendMessage({ method: "getLanguages" }, function (languages: Common.Language[]) {
+            chrome.runtime.sendMessage({ method: "getLanguages" }, function (languages: Language[]) {
                 result.resolve(languages);
             });
             return result.promise();
         }
 
-        loadHistory(language: string) : JQueryPromise<Common.HistoryItem[]> {
+        loadHistory(language: string) : JQueryPromise<HistoryItem[]> {
             var result = $.Deferred();
-            chrome.runtime.sendMessage({ method: "getHistory", langDirection: language }, function (history: Common.HistoryItem[]) {
+            chrome.runtime.sendMessage({ method: "getHistory", langDirection: language }, function (history: HistoryItem[]) {
                 result.resolve(history);
             });
             return result.promise();
@@ -85,4 +90,3 @@ module LexinExtension.Common {
             return result.promise();
         }
     }
-}
