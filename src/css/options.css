@@ -10,4 +10,10 @@
     list-style-type: none;
 }
 
+#languageButtons li label {
+    padding-left: 1em;
+    width: 150px;
+    display: inline-block;
+}
+
 

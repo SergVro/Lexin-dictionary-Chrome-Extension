@@ -25,8 +25,10 @@
     "webRequestBlocking"
   ],
   "web_accessible_resources": [
-    "scripts/common.js",
-    "scripts/content.js"
+    "scripts/LinkAdapter.js",
+    "scripts/content.js",
+    "scripts/BackendMethods.js",
+    "scripts/BackendService.js"
   ],
   "content_scripts": [{
     "run_at": "document_end",
@@ -38,8 +40,6 @@
     "js": [
       "lib/jquery.min.js",
       "lib/jquery-ui.min.js",
-      "lib/jquery.flash.js",
-
       "lib/require.js",
       "lib/require-cs.js",
       "scripts/content-main.js"

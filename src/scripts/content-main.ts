@@ -1,5 +1,5 @@
 /// <reference path="..\lib\requirejs\require.d.ts" />
-requirejs.config({
+require.config({
     baseUrl: "scripts"
 });
-requirejs(["content"], function() {});
+require(["content"], function() {});

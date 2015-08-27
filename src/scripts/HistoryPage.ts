@@ -1,28 +1,27 @@
-import common = require("common")
-import model = require("models")
-import $ = require("jquery")
+import HistoryModel = require("./HistoryModel");
+import interfaces = require("./Interfaces");
+import IHistoryItem = interfaces.IHistoryItem;
+import ILanguage = interfaces.ILanguage;
+import $ = require("jquery");
 
-export class HistoryPage {
+class HistoryPage {
 
-    private languages : common.Language[];
-    private model : model.HistoryModel;
+    private languages : ILanguage[];
+    private model : HistoryModel;
 
-    constructor(model: model.HistoryModel) {
-        model.loadLanguages().then((languages:common.Language[])=> {
-            this.languages = languages;
-            this.model = model;
-            this.renderLanguageSelector();
-            this.currentLanguage = model.language;
-            this.showDate = model.showDate;
-            this.subscribeOnEvents();
-            this.updateHistory();
-        });
+    constructor(model: HistoryModel) {
+        this.model = model;
+        this.languages =  model.loadLanguages();
+        this.renderLanguageSelector();
+        this.currentLanguage = model.language;
+        this.showDate = model.showDate;
+        this.subscribeOnEvents();
+        this.updateHistory();
     }
 
     private subscribeOnEvents() {
         var self = this;
         $("#language").change(function () {
-            self.model.language = self.currentLanguage;
             self.updateHistory();
         });
 
@@ -35,7 +34,7 @@ export class HistoryPage {
             var langDirection = self.currentLanguage;
             var langName = $("#language option[value='${langDirection}']").text();
             if (confirm("Are you sure you want to clear history for language " + langName)) {
-                self.model.clearHistory(langDirection).then(()=>self.updateHistory());
+                self.model.clearHistory(langDirection).then(() => self.updateHistory());
             }
         });
     }
@@ -48,19 +47,19 @@ export class HistoryPage {
     }
 
     get showDate() : boolean {
-        return $("#showDate").prop("checked")
+        return $("#showDate").prop("checked");
     }
     set showDate(value : boolean) {
-        $("#showDate").prop("checked", value)
+        $("#showDate").prop("checked", value);
     }
 
-    updateHistory () {
+    updateHistory() {
         this.renderHistory(this.currentLanguage, this.showDate);
     }
 
     renderHistory(langDirection: string, showDate: boolean) {
         $("#history").empty();
-        this.model.loadHistory(langDirection).then((history: common.HistoryItem[])=> {
+        this.model.loadHistory(langDirection).then((history: IHistoryItem[]) => {
 
             var table = $("<table></table>");
             var thead = $("<thead></thead>");
@@ -70,7 +69,7 @@ export class HistoryPage {
             var wordHead = $("<th>Word</th>");
             var translationHead = $("<th>Translation</th>");
 
-            if (showDate){
+            if (showDate) {
                 thead.append(dateHead);
             }
             thead.append(wordHead);
@@ -84,23 +83,20 @@ export class HistoryPage {
                     var tr = $("<tr></tr>");
                     var tdWord = $("<td></td>");
                     var tdTrans = $("<td></td>");
-                    var tdAdded =$("<td></td>");
+                    var tdAdded = $("<td></td>");
 
                     tdWord.html(item.word);
                     tdTrans.html(item.translation);
                     var addedDateStr = new Date(item.added).toDateString();
-                    if (addedDateStr == prevAddedDateStr)
-                    {
+                    if (addedDateStr === prevAddedDateStr) {
                         addedDateStr = "";
-                        tdAdded.addClass("noBottomBorder")
-                    }
-                    else
-                    {
+                        tdAdded.addClass("noBottomBorder");
+                    } else {
                         prevAddedDateStr = addedDateStr;
                     }
                     tdAdded.html(addedDateStr);
 
-                    if (showDate){
+                    if (showDate) {
                         tr.append(tdAdded);
                     }
                     tr.append(tdWord);
@@ -109,27 +105,35 @@ export class HistoryPage {
                     table.append(tr);
 
                 });
-            }
-            else {
+                $("#clearHistory").removeAttr("disabled");
+                $("#showDate").removeAttr("disabled");
+            } else {
                 var noTranslationsTd = $("<td>No translations in history</td>");
                 if (showDate) {
-                    noTranslationsTd.attr("colspan",3);
-                }
-                else {
-                    noTranslationsTd.attr("colspan",2);
+                    noTranslationsTd.attr("colspan", 3);
+                } else {
+                    noTranslationsTd.attr("colspan", 2);
                 }
                 table.append( $("<tr></tr>").append(noTranslationsTd));
+                $("#clearHistory").attr("disabled", "disabled");
+                $("#showDate").attr("disabled", "disabled");
             }
 
         });
 
     }
 
-    renderLanguageSelector() : void{
+    renderLanguageSelector() : void {
         $("#language").empty();
-        for (var lang of this.languages) {
-            var option = $("<option></option>").attr("value", lang.value).append(lang.text);
-            $("#language").append(option);
+        if (this.languages.length > 0) {
+            for (var lang of this.languages) {
+                var option = $("<option></option>").attr("value", lang.value).append(lang.text);
+                $("#language").append(option);
+            }
+        } else {
+            $("#language").attr("disabled", "disabled");
         }
     }
 }
+
+export = HistoryPage

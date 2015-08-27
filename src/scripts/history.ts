@@ -1,13 +1,16 @@
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="common.ts" />
-import common = require("common")
-import model = require("models")
-import page = require("history-page")
-import $ = require("jquery")
+
+import BackendService = require("./BackendService");
+import LanguageManager = require("./LanguageManager");
+import HistoryModel = require("./HistoryModel");
+import HistoryPage = require("./HistoryPage");
+import $ = require("jquery");
+
 
 $(function() {
-    var backendService = new common.BackendService();
-    var historyModel = new model.HistoryModel(backendService);
-    new page.HistoryPage(historyModel);
+    var backendService = new BackendService();
+    var languageManager = new LanguageManager(localStorage);
+    var historyModel = new HistoryModel(backendService, languageManager, localStorage);
+    new HistoryPage(historyModel);
 });

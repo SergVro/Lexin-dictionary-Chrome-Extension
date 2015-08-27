@@ -2,28 +2,28 @@
 /// <reference path="..\lib\jqueryui\jqueryui.d.ts" />
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\requirejs\require.d.ts" />
-/// <reference path="common.ts" />
 
-import Common = require("common")
+import LinkAdapter = require("./LinkAdapter");
+import BackendService = require("./BackendService");
 
 var subscribeOnGetSelection = function () {
     chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (request.method === "getSelection") {
             var selectedText = window.getSelection().toString();
-            if (selectedText !== '') {
+            if (selectedText !== "") {
                 // send response only is there is a selected text
                 // since content script is loaded for all frames on a page
                 // this prevents empty callbacks to popup
                 sendResponse({data: selectedText});
             }
-        }
-        else {
+        } else {
             sendResponse({});
         }
     });
 };
 
-var handleClicks = function () {
+var subscribeOnClicks = function () {
+    var backendService = new BackendService();
     $(document).click(function (evt) {
         var translationContainer = $(".lexinTranslationContainer");
         if (translationContainer.length > 0) {
@@ -32,13 +32,13 @@ var handleClicks = function () {
         var selection = window.getSelection().toString();
         selection = $.trim(selection);
         if (selection && evt.altKey) {
-            var absoluteContainer = $('<div></div>').addClass("yui3-cssreset")
-                .css('position', 'absolute').insertAfter('body');
-            var container = $('<div></div>')
+            var absoluteContainer = $("<div></div>").addClass("yui3-cssreset")
+                .css("position", "absolute").insertAfter("body");
+            var container = $("<div></div>")
                 .addClass("yui3-cssreset").addClass("lexinTranslationContainer")
                 .appendTo(absoluteContainer);
-            var translationBlock = $('<div></div>').attr('id', 'translation')
-                .addClass("yui3-cssreset").addClass('lexinTranslationContent')
+            var translationBlock = $("<div></div>").attr("id", "translation")
+                .addClass("yui3-cssreset").addClass("lexinTranslationContent")
                 .html("Searching for '" + selection + "'...").appendTo(container);
 
             container.position({
@@ -49,19 +49,18 @@ var handleClicks = function () {
                 collision: "flip"
             });
 
-            chrome.runtime.sendMessage({method: "getTranslation", word: selection}, function (response) {
-
+            backendService.getTranslation(selection).then((response) => {
                 translationBlock.html(response.translation || response.error);
-                Common.adaptLinks($('#translation'));
+                LinkAdapter.AdaptLinks($("#translation"));
             });
+
         }
     });
 };
 
-function initialize()
-{
+function initialize() {
     subscribeOnGetSelection();
-    handleClicks();
+    subscribeOnClicks();
 }
 
 initialize();

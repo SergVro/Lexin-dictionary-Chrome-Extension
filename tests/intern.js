@@ -35,23 +35,21 @@ define({
     // If you want to use a different loader than the default loader, see
     // <https://theintern.github.io/intern/#option-useLoader> for instruction
     loaderOptions: {
-        baseUrl: "src/scripts",
         // Packages that should be registered with the loader in each testing environment
         paths: {
-            "jquery": "../lib/jquery.min"
-        },
-
-        packages: [
-            { name: 'tests', location: '../../tests' },
-        ]
+            "jquery": "src/lib/jquery.min",
+            //"src": "dist"
+        }
     },
 
     // Non-functional test suite(s) to run in each browser
-    suites: [ 'tests/unit/historyModel'  /* 'myPackage/tests/foo', 'myPackage/tests/bar' */ ],
+    suites: [
+        'tests/unit/all'
+      ],
 
     // Functional test suite(s) to execute against each browser once non-functional tests are completed
     functionalSuites: [  /* 'myPackage/tests/functional' */ ],
 
     // A regular expression matching URLs to files that should not be included in code coverage analysis
-    excludeInstrumentation: /^(?:tests|node_modules)\//
+    excludeInstrumentation: /^(?:tests|node_modules|bower_components|src\/lib)\//
 });

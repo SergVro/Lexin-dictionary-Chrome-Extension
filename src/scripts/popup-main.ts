@@ -5,4 +5,4 @@ require.config({
         "jquery": "../lib/jquery.min"
     }
 });
-require(["history"], function() {});
+require(["popup"], function() {});
