@@ -1,36 +1,19 @@
+import DictionaryFactory = require("./DictionaryFactory");
 import interfaces = require("./Interfaces");
 import ILanguage = interfaces.ILanguage;
 import ISettingsStorage = interfaces.ISettingsStorage;
 
 class LanguageManager {
-    private languages: ILanguage[] = [
-        {value: "swe_alb", text: "Albanian"},
-        {value: "swe_amh", text: "Amharic"},
-        {value: "swe_ara", text: "Arabic"},
-        {value: "swe_azj", text: "Azerbaijani"},
-        {value: "swe_bos", text: "Bosnian"},
-        {value: "swe_hrv", text: "Croatian"},
-        {value: "swe_eng", text: "English"}, // English requires Folkets lexikon
-        {value: "swe_fin", text: "Finnish"},
-        {value: "swe_gre", text: "Greek"},
-        {value: "swe_kmr", text: "Northern Kurdish"},
-        {value: "swe_pus", text: "Pashto"},
-        {value: "swe_per", text: "Persian"},
-        {value: "swe_rus", text: "Russian"},
-        {value: "swe_srp", text: "Serbian (Latin)"},
-        {value: "swe_srp_cyrillic", text: "Serbian (Cyrillic)"},
-        {value: "swe_som", text: "Somali"},
-        {value: "swe_sdh", text: "South Kurdish"},
-        {value: "swe_spa", text: "Spanish"},
-        {value: "swe_swe", text: "Swedish"},
-        {value: "swe_tur", text: "Turkish"}];
+    private languages: ILanguage[];
 
     private settingsStorage: ISettingsStorage;
     enabledKey: string = "enabledLanguages";
     languageKey: string = "defaultLanguage";
 
-    constructor(settingsStorage: ISettingsStorage) {
+    constructor(settingsStorage: ISettingsStorage, dictionaryFactory: DictionaryFactory) {
         this.settingsStorage = settingsStorage;
+        this.languages = dictionaryFactory.getAllSupportedLanguages();
+
         // enable all languages by default
         if (!this.settingsStorage[this.enabledKey]) {
             this.setEnabledLanguages(this.languages);

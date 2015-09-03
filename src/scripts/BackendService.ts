@@ -8,6 +8,7 @@ import IHistoryItem = interfaces.IHistoryItem;
 import ITranslation = interfaces.ITranslation;
 
 import BackendMethods = require("./BackendMethods");
+import TranslationDirection = require("./TranslationDirection");
 
 class BackendService implements IBackendService{
 
@@ -27,9 +28,13 @@ class BackendService implements IBackendService{
         return result.promise();
     }
 
-    getTranslation(word: string, direction?: string): JQueryPromise<ITranslation> {
+    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
         var result = $.Deferred();
-        chrome.runtime.sendMessage({ method: BackendMethods.getTranslation, word: word, direction: direction}, function (response) {
+        chrome.runtime.sendMessage({
+            method: BackendMethods.getTranslation,
+            word: word,
+            direction: direction || TranslationDirection.to
+        }, function (response) {
             result.resolve(response);
         });
         return result.promise();

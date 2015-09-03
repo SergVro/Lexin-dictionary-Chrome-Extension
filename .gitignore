@@ -163,6 +163,6 @@ pip-log.txt
 .DS_Store
 .idea/
 *.map
-src/scripts/*.js
+src/scripts/**/*.js
 node_modules/
-tests/unit/*.js
+tests/unit/**/*.js

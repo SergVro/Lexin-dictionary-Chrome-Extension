@@ -5,6 +5,7 @@ import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
 import HistoryModel = require("src/scripts/HistoryModel");
+import DictionaryFactory = require("src/scripts/DictionaryFactory");
 import LanguageManager = require("src/scripts/LanguageManager");
 import interfaces = require("src/scripts/Interfaces");
 
@@ -13,12 +14,14 @@ import IBackendService  = interfaces.IBackendService;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
 import ISettingsStorage = interfaces.ISettingsStorage;
+import TranslationDirection = require("src/scripts/TranslationDirection");
 
 import jquery = require("jquery");
 
 class TestBackendService implements IBackendService {
     loadHistoryCalls = 0;
     clearHistoryCalls = 0;
+
 
     loadHistory(language: string): JQueryPromise<IHistoryItem[]> {
         this.loadHistoryCalls++;
@@ -30,13 +33,14 @@ class TestBackendService implements IBackendService {
         return jquery.Deferred();
     }
 
-    getTranslation(word: string, direction?: string): JQueryPromise<ITranslation> {
+    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
         return jquery.Deferred();
     }
 }
 
 var mockBackendService: TestBackendService,
     mockSettingsStorage: ISettingsStorage,
+    dictionaryFactory: DictionaryFactory,
     languageManager: LanguageManager,
     historyModel: HistoryModel;
 
@@ -46,7 +50,8 @@ registerSuite({
     beforeEach() {
         mockBackendService = new TestBackendService();
         mockSettingsStorage = {};
-        languageManager = new LanguageManager(mockSettingsStorage);
+        dictionaryFactory = new DictionaryFactory();
+        languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
         historyModel = new HistoryModel(mockBackendService, languageManager, mockSettingsStorage);
     },
     // Assume we have a promises interface defined

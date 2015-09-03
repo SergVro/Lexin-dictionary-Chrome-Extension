@@ -2,6 +2,7 @@
 
 import LinkAdapter = require("./LinkAdapter");
 import LanguageManager = require("./LanguageManager");
+import TranslationDirection = require("./TranslationDirection");
 import interfaces = require("./Interfaces");
 import IBackendService = interfaces.IBackendService;
 import ITranslation = interfaces.ITranslation;
@@ -33,7 +34,7 @@ class PopupPage {
         return $("#language").val();
     }
 
-    getTranslation(direction?: string): void {
+    getTranslation(direction?: TranslationDirection): void {
         var word = $("#word").val();
         word = $.trim(word);
         if (!word || word === "") {
@@ -120,7 +121,7 @@ class PopupPage {
             if (word.length >= 2) {
                 timer = setTimeout(() => {
                     self.setCurrentWord(word, false, true);
-                    self.getTranslation("to");
+                    self.getTranslation(TranslationDirection.to);
                 }, 500);
             }
         });
@@ -136,7 +137,7 @@ class PopupPage {
             if (word.length >= 2) {
                 timer = setTimeout(() => {
                     self.setCurrentWord(word, false, true);
-                    self.getTranslation("from");
+                    self.getTranslation(TranslationDirection.from);
                 }, 500);
             }
         });

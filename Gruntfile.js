@@ -2,13 +2,16 @@ module.exports = function(grunt) {
     // Project configuration.
     grunt.initConfig({
 
-        clean: [
-            "dist",
-            "tests/unit/**/*.js",
-            "tests/unit/**/*.map",
-            "src/scripts/**/*.js",
-            "src/scripts/**/*.map"
-        ],
+        clean: {
+            build: [
+                "dist",
+                "tests/unit/**/*.js",
+                "tests/unit/**/*.map",
+                "src/scripts/**/*.js",
+                "src/scripts/**/*.map"
+            ],
+            temp: ['dist/temp']
+        },
 
         tslint: {
             options: {
@@ -22,8 +25,21 @@ module.exports = function(grunt) {
             }
         },
 
+
+        watch: {
+            sources: {
+                files: ['<%= tslint.sources.src %>'],
+                tasks: ['tslint:sources', 'typescript:sources'],
+            },
+            tests: {
+                files: ['<%= tslint.tests.src %>'],
+                tasks: ['tslint:tests', 'typescript:tests'],
+
+            },
+        },
+
         typescript: {
-            base: {
+            sources: {
                 src: ['src/scripts/**/*.ts'],
                 options: {
                     module: 'amd', //or commonjs
@@ -44,10 +60,29 @@ module.exports = function(grunt) {
             }
         },
 
+        copy: {
+            main: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'src',
+                        src: [
+                            '**/*.*',
+                            '!**/*.ts',
+                            "!**/*.map",
+                            "!lib/*/*.*"
+                        ],
+                        dest: 'dist/temp',
+                        filter: 'isFile'
+                    }
+                ]
+            }
+        },
+
         requirejs: {
             compile: {
                 options: {
-                    appDir: "src",
+                    appDir: "dist/temp",
                     //baseUrl: "src/scripts",
                     baseUrl: "scripts",
                     modules: [
@@ -58,12 +93,24 @@ module.exports = function(grunt) {
                         { name: "background-main"}
                     ],
                     //optimize: "none",
-                    dir: "dist",
+                    dir: "dist/min",
+                    removeCombined: true,
                     paths: {
                         //jquery: "../lib/jquery.min"
                         jquery: "empty:"
                     }
                 }
+            }
+        },
+
+        compress: {
+            main: {
+                options: {
+                    archive: 'dist/lexin-extension.zip'
+                },
+                files: [
+                    {expand: true, cwd: 'dist/min', src: ['**/*', '!build.txt']},
+                ]
             }
         },
 
@@ -110,10 +157,14 @@ module.exports = function(grunt) {
                 }
 
             }
-        }
+        },
+
     });
 
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-contrib-compress');
+    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-tslint');
     grunt.loadNpmTasks('grunt-typescript');
     grunt.loadNpmTasks('grunt-contrib-requirejs');
@@ -121,7 +172,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('intern');
 
     // Default task(s).
-    grunt.registerTask('build', ['clean', 'typescript', 'tslint', 'requirejs']);
+    grunt.registerTask('build', ['clean', 'typescript', 'tslint', 'copy', 'requirejs', 'clean:temp', 'compress']);
     grunt.registerTask('test',  ['typescript:tests', 'run:webdriver','intern:main','stop:webdriver']);
     grunt.registerTask('travis',  ['build', 'run:selenium','intern:travis','stop:selenium']);
 

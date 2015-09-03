@@ -3,7 +3,7 @@ import ITranslationParser = interfaces.ITranslationParser;
 import IHistoryManager = interfaces.IHistoryManager;
 import IHistoryItem = interfaces.IHistoryItem;
 import ISettingsStorage = interfaces.ISettingsStorage;
-import TranslationParser = require("./TranslationParser");
+import TranslationParser = require("./Dictionaries/TranslationParser");
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
@@ -36,7 +36,7 @@ class HistoryManager implements IHistoryManager {
         this.storage.removeItem(this.storageKey + langDirection);
     }
 
-    addToHistory(langDirection: string, translation: string): void {
+    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
         //  Summary
         //      Adds a new word and translation to the translation history
 
@@ -47,8 +47,7 @@ class HistoryManager implements IHistoryManager {
         if (!history) {
             history = [];
         }
-        var newTranslations = this.translationParser.parseTranslation(translation, langDirection);
-        history = history.concat(newTranslations);
+        history = history.concat(translations);
         this.storage.setItem(this.storageKey + langDirection, JSON.stringify(history));
     }
 

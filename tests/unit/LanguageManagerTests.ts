@@ -3,6 +3,7 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
+import DictionaryFactory = require("src/scripts/DictionaryFactory");
 import LanguageManager = require("src/scripts/LanguageManager");
 
 import interfaces = require("src/scripts/Interfaces");
@@ -10,6 +11,7 @@ import ILanguage = interfaces.ILanguage;
 import ISettingsStorage = interfaces.ISettingsStorage;
 
 var mockSettingsStorage: ISettingsStorage,
+    dictionaryFactory: DictionaryFactory,
     languageManager: LanguageManager;
 
 registerSuite({
@@ -17,7 +19,8 @@ registerSuite({
 
     beforeEach() {
         mockSettingsStorage = {};
-        languageManager = new LanguageManager(mockSettingsStorage);
+        dictionaryFactory = new DictionaryFactory();
+        languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
     },
     // Assume we have a promises interface defined
     "getLanguages"() {
@@ -28,10 +31,14 @@ registerSuite({
     "enabled languages": {
         "setEnabledLanguages"() {
             var languages = languageManager.getLanguages(),
-                enabledLanguages = languages.filter((lang, index) => index % 2 === 0);
+                enabledLanguages = [
+                    languageManager.getLanguage("swe_rus"),
+                    languageManager.getLanguage("swe_eng"),
+                    languageManager.getLanguage("swe_swe")
+                ];
 
             languageManager.setEnabledLanguages(enabledLanguages);
-            assert.deepEqual(enabledLanguages, languageManager.getEnabledLanguages(),
+            assert.sameMembers(enabledLanguages, languageManager.getEnabledLanguages(),
                 "setEnabledLanguages should set the list of enabled languages");
         },
 
