@@ -3,12 +3,15 @@ module.exports = function(grunt) {
     grunt.initConfig({
 
         clean: [
-            "dist"
+            "dist",
+            "tests/unit/**/*.js",
+            "tests/unit/**/*.map",
+            "src/scripts/**/*.js",
+            "src/scripts/**/*.map"
         ],
 
         tslint: {
             options: {
-                //configuration: grunt.file.readJSON("tslint.js")
                 configuration: grunt.file.readJSON("tslint.json")
             },
             sources: {
@@ -22,13 +25,22 @@ module.exports = function(grunt) {
         typescript: {
             base: {
                 src: ['src/scripts/**/*.ts'],
-                dest: 'src/scripts',
                 options: {
                     module: 'amd', //or commonjs
                     target: 'es5', //or es3
                     sourceMap: true,
                     declaration: false
                 }
+            },
+            tests: {
+                src: ['tests/unit/**/*.ts'],
+                options: {
+                    module: 'amd', //or commonjs
+                    target: 'es5', //or es3
+                    sourceMap: true,
+                    declaration: false
+                }
+
             }
         },
 
@@ -65,6 +77,18 @@ module.exports = function(grunt) {
                     '--port=4444',
                     '--url-base=wd/hub'
                 ]
+            },
+            phantomjs: {
+                cmd: 'phantomjs',
+                args: [
+                    '--webdriver=4444'
+                ]
+            },
+            selenium: {
+                cmd: 'node',
+                args:[
+                    'node_modules/selenium-server/bin/selenium'
+                ]
             }
         },
 
@@ -76,6 +100,15 @@ module.exports = function(grunt) {
                     reporters: [ 'Console' ],
                     suites: [ 'tests/unit/all' ]
                 }
+            },
+            travis: {
+                options: {
+                    runType: 'runner', // defaults to 'client'
+                    config: 'tests/intern-travis',
+                    reporters: [ 'Console' ],
+                    suites: [ 'tests/unit/all' ]
+                }
+
             }
         }
     });
@@ -88,7 +121,11 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('intern');
 
     // Default task(s).
-    grunt.registerTask('default', ['clean', 'typescript', 'tslint', 'requirejs']);
-    grunt.registerTask('test',  ['run:webdriver','intern','stop:webdriver']);
+    grunt.registerTask('build', ['clean', 'typescript', 'tslint', 'requirejs']);
+    grunt.registerTask('test',  ['typescript:tests', 'run:webdriver','intern:main','stop:webdriver']);
+    grunt.registerTask('travis',  ['build', 'run:selenium','intern:travis','stop:selenium']);
+
+
+    grunt.registerTask('default', ['build', 'test']);
 
 };

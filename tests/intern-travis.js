@@ -10,17 +10,18 @@ define({
     // Note that the `build` capability will be filled in with the current commit ID or build tag from the CI
     // environment automatically
     capabilities: {
+        'selenium-version': '2.47.1'
     },
 
     // Browsers to run integration testing against. Note that version numbers must be strings if used with Sauce
     // OnDemand. Options that will be permutated are browserName, version, platform, and platformVersion; any other
     // capabilities options specified for an environment will be copied as-is
     environments: [
-        { browserName: 'chrome' }
+        { browserName: 'firefox' }
     ],
 
     // Maximum number of simultaneous integration tests that should be executed on the remote WebDriver service
-    maxConcurrency: 2,
+    maxConcurrency: 1,
 
     // Name of the tunnel class to use for WebDriver tests.
     // See <https://theintern.github.io/intern/#option-tunnel> for built-in options
@@ -38,7 +39,6 @@ define({
         // Packages that should be registered with the loader in each testing environment
         paths: {
             "jquery": "src/lib/jquery.min",
-            //"jquery": "empty:",
             //"src": "dist"
         }
     },
@@ -46,7 +46,7 @@ define({
     // Non-functional test suite(s) to run in each browser
     suites: [
         'tests/unit/all'
-      ],
+    ],
 
     // Functional test suite(s) to execute against each browser once non-functional tests are completed
     functionalSuites: [  /* 'myPackage/tests/functional' */ ],
