@@ -64,23 +64,29 @@ class OptionsPage {
                 .attr("id", "enabled_" + lang.value);
 
             if (this.languageManager.isEnabled(lang.value)) {
-                checkBox.attr("checked", "checked");
+                checkBox.prop("checked", true);
             }
 
             if (lang.value === this.languageManager.currentLanguage) {
-                checkBox.attr("disabled", "disabled");
+                checkBox.prop("disabled", true);
             }
 
             li.append(checkBox);
             $("#languageButtons").append(li);
         }
+
         var self = this;
         $("input[name='langs']").change(function() {
-            $("input[name='enabled']:disabled").removeAttr("disabled").removeAttr("checked");
-            $("#enabled_" + $(this).val()).attr("checked", "checked").attr("disabled", "disabled");
+            $("input[name='enabled']:disabled").prop("disabled", false).prop("checked", false);
+            $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
             self.save_options();
         });
         $("input[name='enabled']").change((e) => this.save_options());
+
+        $("#checkAll").change(function() {
+            $("input[name='enabled']:enabled").prop("checked", this.checked);
+            self.save_options();
+        });
     }
 }
 

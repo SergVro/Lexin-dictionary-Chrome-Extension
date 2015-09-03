@@ -5,15 +5,31 @@
     color: Gray;
 }
 
-#languageButtons 
+.languageButtons
 {
     list-style-type: none;
 }
 
-#languageButtons li label {
+.languageButtons li label {
     padding-left: 1em;
     width: 150px;
     display: inline-block;
 }
 
+.checkAll {
+    padding-left: 40px;
 
+}
+.checkAll label {
+    padding-left: 28px;
+    width: 145px;
+    display: inline-block;
+}
+.checkAll input {
+    padding-left: 20px;
+}
+
+.languageTitle span{
+    padding-left: 48px;
+    font-weight: bold;
+}

@@ -29,6 +29,15 @@ class DictionaryFactory {
     getAllSupportedLanguages(): ILanguage[] {
         var result: ILanguage[] = [];
         this.dictionaries.forEach((d) => result = result.concat(d.getSupportedLanguages()));
+        result.sort((first, second) => {
+            if (first.text < second.text) {
+                return -1;
+            }
+            if (first.text > second.text) {
+                return 1;
+            }
+            return 0;
+        });
         return result;
     }
 }
