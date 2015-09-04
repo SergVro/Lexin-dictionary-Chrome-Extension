@@ -1,4 +1,4 @@
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import interfaces = require("./Interfaces");
 import ILanguage = interfaces.ILanguage;
 import ISettingsStorage = interfaces.ISettingsStorage;

@@ -1,6 +1,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import BackendService = require("./BackendService");
 import LanguageManager = require("./LanguageManager");
 import PopupPage = require("./PopupPage");

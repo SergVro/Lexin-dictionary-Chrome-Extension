@@ -3,7 +3,7 @@ import ITranslationParser = interfaces.ITranslationParser;
 import IHistoryManager = interfaces.IHistoryManager;
 import IHistoryItem = interfaces.IHistoryItem;
 import ISettingsStorage = interfaces.ISettingsStorage;
-import TranslationParser = require("./Dictionaries/TranslationParser");
+import TranslationParser = require("./Dictionary/TranslationParser");
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";

@@ -1,4 +1,4 @@
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import OptionsPage = require("./OptionsPage");
 import LanguageManager = require("./LanguageManager");
 import $ = require("jquery");

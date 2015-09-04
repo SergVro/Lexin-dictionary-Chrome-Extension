@@ -1,7 +1,7 @@
 /// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import BackendService = require("./BackendService");
 import LanguageManager = require("./LanguageManager");
 import HistoryModel = require("./HistoryModel");

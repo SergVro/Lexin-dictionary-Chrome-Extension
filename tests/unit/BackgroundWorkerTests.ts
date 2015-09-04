@@ -3,10 +3,10 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
-import DictionaryFactory = require("src/scripts/DictionaryFactory");
+import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
 import BackgroundWorker = require("src/scripts/BackgroundWorker");
 import HistoryManager = require("src/scripts/HistoryManager");
-import TranslationParser = require("src/scripts/Dictionaries/TranslationParser");
+import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
 
 var backgroundWorker: BackgroundWorker;
 registerSuite({

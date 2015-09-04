@@ -5,7 +5,7 @@ import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
 import HistoryModel = require("src/scripts/HistoryModel");
-import DictionaryFactory = require("src/scripts/DictionaryFactory");
+import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
 import LanguageManager = require("src/scripts/LanguageManager");
 import interfaces = require("src/scripts/Interfaces");
 

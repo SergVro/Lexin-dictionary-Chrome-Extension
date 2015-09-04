@@ -3,7 +3,7 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
-import DictionaryBase = require("src/scripts/Dictionaries/DictionaryBase");
+import DictionaryBase = require("src/scripts/Dictionary/DictionaryBase");
 
 var dictionary: DictionaryBase;
 

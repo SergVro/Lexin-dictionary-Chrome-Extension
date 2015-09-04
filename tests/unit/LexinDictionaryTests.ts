@@ -3,7 +3,7 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
-import LexinDictionary = require("src/scripts/Dictionaries/LexinDictionary");
+import LexinDictionary = require("src/scripts/Dictionary/LexinDictionary");
 import TranslationDirection = require("src/scripts/TranslationDirection");
 
 var dictionary: LexinDictionary;

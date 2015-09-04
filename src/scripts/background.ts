@@ -1,6 +1,6 @@
-import TranslationParser = require("./Dictionaries/TranslationParser");
+import TranslationParser = require("./Dictionary/TranslationParser");
 import HistoryManager = require("./HistoryManager");
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import BackgroundWorker = require("./BackgroundWorker");
 
 //var _gaq = _gaq || [];

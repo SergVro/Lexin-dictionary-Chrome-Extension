@@ -49,8 +49,8 @@ class LexinDictionary extends DictionaryBase {
 
     isWordFound(word: string, translation: string): boolean {
         var decodedTranslation = this.htmlDecode(translation);
-        return !(decodedTranslation.indexOf(word + " - Ingen unik träff") > -1
-            || decodedTranslation.indexOf(word + " - Ingen träff") > -1);
+        return !(decodedTranslation.indexOf(word + " - Ingen unik trÃ¤ff") > -1
+            || decodedTranslation.indexOf(word + " - Ingen trÃ¤ff") > -1);
     }
 }
 

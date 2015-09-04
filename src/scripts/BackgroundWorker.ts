@@ -4,7 +4,7 @@
 
 import $ = require("jquery");
 import interfaces = require("./Interfaces");
-import DictionaryFactory = require("./DictionaryFactory");
+import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import IHistoryManager = interfaces.IHistoryManager;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;

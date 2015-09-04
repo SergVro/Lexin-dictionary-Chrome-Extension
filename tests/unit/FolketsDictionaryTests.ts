@@ -3,7 +3,7 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
-import FolketsDictionary = require("src/scripts/Dictionaries/FolketsDictionary");
+import FolketsDictionary = require("src/scripts/Dictionary/FolketsDictionary");
 import TranslationDirection = require("src/scripts/TranslationDirection");
 
 var dictionary: FolketsDictionary;

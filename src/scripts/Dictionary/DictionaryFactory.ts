@@ -1,10 +1,10 @@
-import interfaces = require("./Interfaces");
+import interfaces = require("./../Interfaces");
 import IDictionary = interfaces.IDictionary;
 import ILanguage = interfaces.ILanguage;
 
 // All dictionaries should be registered within the factory
-import LexinDictionary = require("./Dictionaries/LexinDictionary");
-import FolketsDictionary = require("./Dictionaries/FolketsDictionary");
+import LexinDictionary = require("./LexinDictionary");
+import FolketsDictionary = require("./FolketsDictionary");
 
 
 class DictionaryFactory {
