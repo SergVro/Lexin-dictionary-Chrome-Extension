@@ -1,18 +1,26 @@
 /// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
+/// <reference path="./data/texttemplates.d.ts" />
 
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
+import fakes = require("tests/unit/util/fakes");
+import FakeLoader = fakes.FakeLoader;
+
 import FolketsDictionary = require("src/scripts/Dictionary/FolketsDictionary");
 import TranslationDirection = require("src/scripts/TranslationDirection");
 
-var dictionary: FolketsDictionary;
+import swe_eng_translation_multi = require("intern/dojo/text!tests/unit/data/swe_eng_translation_multi.html");
+
+var dictionary: FolketsDictionary,
+    loader: FakeLoader;
 
 registerSuite({
     name: "FolketsDictionary",
 
     beforeEach() {
-        dictionary = new FolketsDictionary();
+        loader = new FakeLoader();
+        dictionary = new FolketsDictionary(loader);
     },
     // Assume we have a promises interface defined
     "getLanguages"() {
@@ -42,5 +50,24 @@ registerSuite({
         assert.isFalse(dictionary.isWordFound("test", "test - No hit"),
             "isWordFound should return  false if response contains No hit");
     },
+
+    "getTranslation"() {
+        var dfd = this.async(1000);
+        loader.data = [swe_eng_translation_multi];
+        var translation = dictionary.getTranslation("hem", "swe_eng", TranslationDirection.to);
+        return translation.done((data) => {
+            assert.isTrue(data.length > 0, "getTranslation should return html with translation");
+            dfd.resolve();
+        });
+    },
+
+    "parse"() {
+        var history = dictionary.parseTranslation(swe_eng_translation_multi, "swe_eng");
+
+        assert.equal(history.length, 3);
+        assert.equal(history[0].word, "hem");    assert.equal(history[0].translation, "home");
+        assert.equal(history[1].word, "hem");    assert.equal(history[1].translation, "home");
+        assert.equal(history[2].word, "hem");    assert.equal(history[2].translation, "house");
+    }
 
 });

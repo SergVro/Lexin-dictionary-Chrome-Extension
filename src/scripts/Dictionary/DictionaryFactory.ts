@@ -1,3 +1,5 @@
+/// <reference path="..\..\lib\jquery\jquery.d.ts" />
+
 import interfaces = require("./../Interfaces");
 import IDictionary = interfaces.IDictionary;
 import ILanguage = interfaces.ILanguage;
@@ -12,8 +14,8 @@ class DictionaryFactory {
 
     constructor() {
         this.dictionaries = [
-            new LexinDictionary(),
-            new FolketsDictionary()
+            new LexinDictionary($),
+            new FolketsDictionary($)
         ];
     }
 

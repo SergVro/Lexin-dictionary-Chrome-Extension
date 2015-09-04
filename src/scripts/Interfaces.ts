@@ -43,3 +43,7 @@ export interface IDictionary extends ITranslationParser{
     getSupportedLanguages(): ILanguage[];
     parseTranslation(translation: string, langDirection: string): IHistoryItem[];
 }
+
+export interface ILoader {
+    get(url: string): JQueryPromise<any>;
+}

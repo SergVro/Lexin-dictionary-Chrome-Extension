@@ -5,10 +5,18 @@ import interfaces = require("../Interfaces");
 import IDictionary = interfaces.IDictionary;
 import IHistoryItem = interfaces.IHistoryItem;
 import ILanguage = interfaces.ILanguage;
+import ILoader = interfaces.ILoader;
 import TranslationDirection = require("../TranslationDirection");
 import TranslationParser = require("./TranslationParser");
 
 class DictionaryBase extends TranslationParser implements IDictionary{
+
+    loader: ILoader;
+
+    constructor(loader: ILoader) {
+        super();
+        this.loader = loader;
+    }
 
     get tryLowerCase(): boolean {
         return true;
@@ -34,7 +42,7 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         this.checkLanguage(langDirection);
         var queryUrl: string = this.createQueryUrl(word, langDirection, direction);
         var deferred = $.Deferred();
-        $.get(queryUrl).done((data) => {
+        this.loader.get(queryUrl).done((data) => {
             if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {
                 this.getTranslation(word.toLowerCase(), langDirection, direction).done((dataLower) => {
                     deferred.resolve(dataLower);
