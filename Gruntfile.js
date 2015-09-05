@@ -89,7 +89,7 @@ module.exports = function(grunt) {
                         { name: "history-main"},
                         { name: "options-main"},
                         { name: "popup-main"},
-                        { name: "content"},
+                        { name: "content-main"},
                         { name: "background-main"}
                     ],
                     //optimize: "none",

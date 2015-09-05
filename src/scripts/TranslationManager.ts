@@ -1,4 +1,3 @@
-/// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="..\lib\google.analytics\ga.d.ts" />
 

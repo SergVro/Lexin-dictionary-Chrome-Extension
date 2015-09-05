@@ -1,4 +1,3 @@
-/// <reference path="..\lib\chrome\chrome.d.ts" />
 
 import LinkAdapter = require("./LinkAdapter");
 import LanguageManager = require("./LanguageManager");
@@ -73,16 +72,13 @@ class PopupPage {
     }
 
     getSelectedWord(): void {
-        var self = this;
-        chrome.tabs.query({active: true}, function (tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {method: "getSelection"}, function (response) {
-                if (response && response.data) {
-                    self.setCurrentWord(response.data);
-                    self.getTranslation();
-                } else {
-                    $("#translation").html("No word selected");
-                }
-            });
+        this.backendService.getSelectedText().done((response) => {
+            if (response) {
+                this.setCurrentWord(response);
+                this.getTranslation();
+            } else {
+                $("#translation").html("No word selected");
+            }
         });
     }
 
@@ -96,7 +92,7 @@ class PopupPage {
         });
 
         $("a#historyLink").click(() => {
-            chrome.tabs.create({"url": "html/history.html"}, function () {});
+            this.backendService.createNewTab("html/history.html");
             return false;
         });
 
@@ -142,7 +138,7 @@ class PopupPage {
             }
         });
 
-        $(document).keyup((e) => {
+        $(document).keyup((e) => { // TODO: Fix me?
             if (e.ctrlKey) {
                 if (e.which === 37) { // left arrow
                     e.preventDefault();

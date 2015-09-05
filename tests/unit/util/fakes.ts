@@ -26,7 +26,7 @@ export class FakeLoader implements ILoader {
 export class TestBackendService implements IBackendService {
     loadHistoryCalls = 0;
     clearHistoryCalls = 0;
-
+    selectedText: string = "";
 
     loadHistory(language: string): JQueryPromise<IHistoryItem[]> {
         this.loadHistoryCalls++;
@@ -40,6 +40,15 @@ export class TestBackendService implements IBackendService {
 
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
         return jquery.Deferred();
+    }
+
+    getSelectedText(): JQueryPromise<string> {
+        var dfd = $.Deferred<string>();
+        dfd.resolve(this.selectedText);
+        return dfd.promise();
+    }
+
+    createNewTab(url: string) {
     }
 }
 
@@ -77,7 +86,7 @@ export class FakeTranslationManager implements ITranslationManager {
     getTranslation(word: string, direction: TranslationDirection, languageDirection: string, skipHistory: boolean): JQueryPromise<string> {
         var deferred = $.Deferred<string>();
         if (this.reject) {
-            deferred.reject(this.reject)
+            deferred.reject(this.reject);
         } else {
             deferred.resolve(this.translation);
         }

@@ -1,5 +1,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-import TranslationDirection = require("TranslationDirection");
+import TranslationDirection = require("./TranslationDirection");
+import BackendMethods = require("./BackendMethods");
 
 export interface ILanguage {
     value: string;
@@ -31,6 +32,8 @@ export interface IBackendService {
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]>;
     clearHistory(language: string) : JQueryPromise<{}>;
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation>;
+    getSelectedText(): JQueryPromise<string>;
+    createNewTab(url: string): void;
 }
 
 export interface ITranslationManager {
@@ -52,3 +55,15 @@ export interface IDictionary extends ITranslationParser{
 export interface ILoader {
     get(url: string): JQueryPromise<any>;
 }
+
+export interface MessageHandler {
+    (args: any): any;
+}
+
+export interface IMessageBus {
+    registerHandler(method: BackendMethods, handler: MessageHandler);
+    sendMessage(method: BackendMethods, args?: any): JQueryPromise<any>;
+    sendMessageToActiveTab(method: BackendMethods, args?: any): JQueryPromise<any>;
+    createNewTab(url: string): void;
+}
+

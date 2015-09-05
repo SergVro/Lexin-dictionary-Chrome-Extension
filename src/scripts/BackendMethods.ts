@@ -2,7 +2,8 @@
 enum BackendMethods {
     getHistory,
     clearHistory,
-    getTranslation
+    getTranslation,
+    getSelection
 }
 
 export = BackendMethods;

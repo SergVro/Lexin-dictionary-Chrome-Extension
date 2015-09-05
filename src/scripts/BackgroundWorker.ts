@@ -1,4 +1,3 @@
-/// <reference path="..\lib\chrome\chrome.d.ts" />
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 /// <reference path="..\lib\google.analytics\ga.d.ts" />
 
@@ -9,6 +8,7 @@ import IHistoryManager = interfaces.IHistoryManager;
 import ITranslation = interfaces.ITranslation;
 import ITranslationManager = interfaces.ITranslationManager;
 
+import MessageBus = require("./MessageBus");
 import BackendMethods = require("./BackendMethods");
 import TranslationDirection = require("./TranslationDirection");
 
@@ -38,21 +38,17 @@ class BackgroundWorker {
     }
 
     initialize() {
-        var self = this;
-        chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-            if (request.method === BackendMethods.getTranslation) {
-                self.getTranslation(request.word, request.direction).then(function (data) {
-                    sendResponse(data);
-                });
-            } else if (request.method === BackendMethods.getHistory) {
-                sendResponse(self.historyManager.getHistory(request.langDirection, true));
-            } else if (request.method === BackendMethods.clearHistory) {
-                self.historyManager.clearHistory(request.langDirection);
-                sendResponse();
-            } else {
-                sendResponse({});
-            }
-            return true;
+        MessageBus.Instance.registerHandler(BackendMethods.getTranslation, (args) => {
+            return this.getTranslation(args.word, args.direction);
+        });
+
+        MessageBus.Instance.registerHandler(BackendMethods.getHistory, (args) => {
+            return this.historyManager.getHistory(args.langDirection, true);
+        });
+
+        MessageBus.Instance.registerHandler(BackendMethods.clearHistory, (args) => {
+            this.historyManager.clearHistory(args.langDirection);
+            return;
         });
     }
 }

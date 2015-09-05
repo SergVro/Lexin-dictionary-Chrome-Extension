@@ -1,5 +1,5 @@
+//# sourceURL=BackendService.js
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="..\lib\chrome\chrome.d.ts" />
 
 import interfaces = require("./Interfaces");
 import IBackendService = interfaces.IBackendService;
@@ -9,35 +9,29 @@ import ITranslation = interfaces.ITranslation;
 
 import BackendMethods = require("./BackendMethods");
 import TranslationDirection = require("./TranslationDirection");
+import MessageBus = require("./MessageBus");
 
 class BackendService implements IBackendService{
 
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
-        var result = $.Deferred();
-        chrome.runtime.sendMessage({ method: BackendMethods.getHistory, langDirection: language }, function (history: IHistoryItem[]) {
-            result.resolve(history);
-        });
-        return result.promise();
+        return MessageBus.Instance.sendMessage(BackendMethods.getHistory, {langDirection: language});
     }
 
     clearHistory(language: string) : JQueryPromise<{}> {
-        var result = $.Deferred();
-        chrome.runtime.sendMessage({ method: BackendMethods.clearHistory, langDirection: language}, function () {
-            result.resolve();
-        });
-        return result.promise();
+        return MessageBus.Instance.sendMessage(BackendMethods.clearHistory, {langDirection: language});
     }
 
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
-        var result = $.Deferred();
-        chrome.runtime.sendMessage({
-            method: BackendMethods.getTranslation,
-            word: word,
-            direction: direction || TranslationDirection.to
-        }, function (response) {
-            result.resolve(response);
-        });
-        return result.promise();
+        return MessageBus.Instance.sendMessage(BackendMethods.getTranslation,
+            {word: word, direction: direction || TranslationDirection.to });
+    }
+
+    getSelectedText(): JQueryPromise<string> {
+        return MessageBus.Instance.sendMessageToActiveTab(BackendMethods.getSelection);
+    }
+
+    createNewTab(url: string): void {
+        MessageBus.Instance.createNewTab(url);
     }
 }
 

@@ -27,9 +27,12 @@
   "web_accessible_resources": [
     "scripts/LinkAdapter.js",
     "scripts/content.js",
+    "scripts/ContentScript.js",
     "scripts/BackendMethods.js",
     "scripts/BackendService.js",
-    "scripts/TranslationDirection.js"
+    "scripts/TranslationDirection.js",
+    "scripts/MessageBus.js",
+    "scripts/ChromeMessageBus.js"
   ],
   "content_scripts": [{
     "run_at": "document_end",
