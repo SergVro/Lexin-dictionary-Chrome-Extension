@@ -12,8 +12,8 @@ import FolketsDictionary = require("./FolketsDictionary");
 class DictionaryFactory {
     private dictionaries: IDictionary[];
 
-    constructor() {
-        this.dictionaries = [
+    constructor(dictionaries? : IDictionary[]) {
+        this.dictionaries = dictionaries || [
             new LexinDictionary($),
             new FolketsDictionary($)
         ];
@@ -24,7 +24,7 @@ class DictionaryFactory {
         if (compatibleDictionaries.length > 0) {
             return compatibleDictionaries[0];
         } else {
-            throw new Error("There is not dictionary with support of " + langDirection);
+            throw new Error("There is no dictionary with support of " + langDirection);
         }
     }
 

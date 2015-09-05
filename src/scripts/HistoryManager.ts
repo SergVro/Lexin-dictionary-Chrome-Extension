@@ -15,40 +15,44 @@ class HistoryManager implements IHistoryManager {
         this.storage = storage;
     }
 
-    getHistory(/* String */langDirection, /* Boolean */compress): IHistoryItem[] {
+    getHistory(langDirection: string, compress?: boolean): IHistoryItem[] {
         //  Summary
         //      Returns translation history for the specified language direction.
         //      If compress is true - all duplicate translations will be merged
 
-        var history: IHistoryItem[] = JSON.parse(this.storage.getItem(this.storageKey + langDirection));
+        var key = this.getStorageKey(langDirection);
+        var storedHistory = this.storage.getItem(key);
+        var history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
         if (history && compress) {
             // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
             this._removeDuplicates(history);
             history.sort(this.sort_by("added", true));
-            this.storage.setItem(this.storageKey + langDirection, JSON.stringify(history));
+            this.storage.setItem(key, JSON.stringify(history));
         }
         return history;
     }
 
+    private getStorageKey(langDirection: string) {
+        return this.storageKey + langDirection;
+    }
+
     clearHistory(langDirection: string): void {
         //  Summary
-        //      Clears translation history for the specified langueage direction
-        this.storage.removeItem(this.storageKey + langDirection);
+        //      Clears translation history for the specified language direction
+        this.storage.removeItem(this.getStorageKey(langDirection));
     }
 
     addToHistory(langDirection: string, translations: IHistoryItem[]): void {
         //  Summary
         //      Adds a new word and translation to the translation history
 
-        if (!langDirection) {
-            console.error("langDirection is required");
-        }
         var history = this.getHistory(langDirection, false);
         if (!history) {
             history = [];
         }
         history = history.concat(translations);
-        this.storage.setItem(this.storageKey + langDirection, JSON.stringify(history));
+        var serializedHistory = JSON.stringify(history);
+        this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
     }
 
     private _removeDuplicates(history: IHistoryItem[]): void {
@@ -65,7 +69,7 @@ class HistoryManager implements IHistoryManager {
                     var separator = "; ";
                     var iTranslations = history[i].translation.split(separator);
                     var jTranslations = history[j].translation.split(separator);
-                    var allTranslations = this.combineTranslations(iTranslations, jTranslations);
+                    var allTranslations = this.combineTranslations(jTranslations, iTranslations);
 
                     history[j].translation = allTranslations.join(separator);
                     history.splice(i, 1);                               // remove it

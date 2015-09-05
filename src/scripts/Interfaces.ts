@@ -33,6 +33,11 @@ export interface IBackendService {
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation>;
 }
 
+export interface ITranslationManager {
+    getTranslation(word: string, direction: TranslationDirection,
+                   languageDirection?: string, skipHistory? : boolean): JQueryPromise<string>;
+}
+
 export interface ITranslationParser {
     parse(translation: string, parsingRegExp: RegExp): IHistoryItem[];
 }

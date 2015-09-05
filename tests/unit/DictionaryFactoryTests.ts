@@ -32,9 +32,8 @@ registerSuite({
         },
 
         "getUnknown"() {
-            assert.throw(() => factory.getDictionary("swe_bbb"), "There is not dictionary with support of swe_bbb");
+            assert.throw(() => factory.getDictionary("swe_bbb"), "There is no dictionary with support of swe_bbb");
         }
     }
 
 });
-

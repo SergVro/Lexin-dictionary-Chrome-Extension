@@ -7,8 +7,8 @@ import assert = require("intern/chai!assert");
 import HistoryModel = require("src/scripts/HistoryModel");
 import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
 import LanguageManager = require("src/scripts/LanguageManager");
-import interfaces = require("src/scripts/Interfaces");
 
+import interfaces = require("src/scripts/Interfaces");
 import IHistoryItem = interfaces.IHistoryItem;
 import IBackendService  = interfaces.IBackendService;
 import ILanguage = interfaces.ILanguage;
@@ -16,27 +16,8 @@ import ITranslation = interfaces.ITranslation;
 import ISettingsStorage = interfaces.ISettingsStorage;
 import TranslationDirection = require("src/scripts/TranslationDirection");
 
-import jquery = require("jquery");
-
-class TestBackendService implements IBackendService {
-    loadHistoryCalls = 0;
-    clearHistoryCalls = 0;
-
-
-    loadHistory(language: string): JQueryPromise<IHistoryItem[]> {
-        this.loadHistoryCalls++;
-        return jquery.Deferred();
-    }
-
-    clearHistory(language: string): JQueryPromise<{}> {
-        this.clearHistoryCalls++;
-        return jquery.Deferred();
-    }
-
-    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
-        return jquery.Deferred();
-    }
-}
+import fakes = require("tests/unit/util/fakes");
+import TestBackendService = fakes.TestBackendService;
 
 var mockBackendService: TestBackendService,
     mockSettingsStorage: ISettingsStorage,

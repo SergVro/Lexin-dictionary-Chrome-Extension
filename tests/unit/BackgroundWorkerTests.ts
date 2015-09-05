@@ -3,21 +3,50 @@
 import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
-import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
 import BackgroundWorker = require("src/scripts/BackgroundWorker");
-import HistoryManager = require("src/scripts/HistoryManager");
-import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
+import TranslationDirection = require("src/scripts/TranslationDirection");
 
-var backgroundWorker: BackgroundWorker;
+import fakes = require("tests/unit/util/fakes");
+import FakeHistoryManager = fakes.FakeHistoryManager;
+import FakeTranslationManager = fakes.FakeTranslationManager;
+
+
+var backgroundWorker: BackgroundWorker,
+    fakeHistoryManager: FakeHistoryManager,
+    fakeTranslationManager: FakeTranslationManager;
+
 registerSuite({
     name: "BackgroundWorker",
     // Assume we have a promises interface defined
     beforeEach() {
-        var translationParser = new TranslationParser(),
-            historyManager = new HistoryManager(translationParser, localStorage),
-            dictionaryFactory = new DictionaryFactory();
+        fakeHistoryManager = new FakeHistoryManager();
+        fakeTranslationManager = new FakeTranslationManager();
 
-        backgroundWorker = new BackgroundWorker(historyManager, dictionaryFactory);
+        backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager);
     },
+
+    "getTranslation": {
+        "get word translation"() {
+            var dfd = this.async(500);
+            backgroundWorker.getTranslation("aword", TranslationDirection.to).done((translation) => {
+                assert.equal(translation.translation, fakeTranslationManager.translation);
+                assert.isNull(translation.error);
+                dfd.resolve();
+            });
+        },
+
+        "get translation failure"() {
+            var dfd = this.async(500);
+            fakeTranslationManager.reject = {status: 404};
+            backgroundWorker.getTranslation("aword", TranslationDirection.to).done((translation) => {
+                assert.equal(translation.error, "Error connecting to the dictionary service: 404");
+                assert.isNull(translation.translation);
+                dfd.resolve();
+            }).fail((translation) => {
+                dfd.reject(new Error("Should not reject"));
+            });
+
+        }
+    }
 
 });

@@ -1,13 +1,14 @@
 import TranslationParser = require("./Dictionary/TranslationParser");
-import HistoryManager = require("./HistoryManager");
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
+import HistoryManager = require("./HistoryManager");
+import LanguageManager = require("./LanguageManager");
+import TranslationManager = require("./TranslationManager");
 import BackgroundWorker = require("./BackgroundWorker");
-
-//var _gaq = _gaq || [];
-//_gaq.push(['_setAccount', 'UA-26063974-1']);
 
 var translationParser = new TranslationParser();
 var dictionaryFactory = new DictionaryFactory();
+var languageManager = new LanguageManager(localStorage, dictionaryFactory);
 var historyManager = new HistoryManager(translationParser, localStorage);
-var backgroundWorker = new BackgroundWorker(historyManager, dictionaryFactory);
+var translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
+var backgroundWorker = new BackgroundWorker(historyManager, translationManager);
 backgroundWorker.initialize();

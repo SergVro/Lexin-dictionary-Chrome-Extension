@@ -5,3 +5,5 @@ import LexinDictionaryTests = require("tests/unit/LexinDictionaryTests"); LexinD
 import FolketsDictionaryTests = require("tests/unit/FolketsDictionaryTests"); FolketsDictionaryTests;
 import DictionaryFactoryTests = require("tests/unit/DictionaryFactoryTests"); DictionaryFactoryTests;
 import DictionaryBaseTests = require("tests/unit/DictionaryBaseTests"); DictionaryBaseTests;
+import HistoryManagerTests = require("tests/unit/HistoryManagerTests"); HistoryManagerTests;
+import TranslationManagerTests = require("tests/unit/TranslationManagerTests"); TranslationManagerTests;

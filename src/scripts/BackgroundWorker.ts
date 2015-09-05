@@ -6,68 +6,43 @@ import $ = require("jquery");
 import interfaces = require("./Interfaces");
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import IHistoryManager = interfaces.IHistoryManager;
-import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
+import ITranslationManager = interfaces.ITranslationManager;
 
 import BackendMethods = require("./BackendMethods");
 import TranslationDirection = require("./TranslationDirection");
 
+
 class BackgroundWorker {
 
     historyManager: IHistoryManager;
-    dictionaryFactory: DictionaryFactory;
+    translationManager: ITranslationManager;
 
-    constructor(historyManager : IHistoryManager, dictionaryFactory: DictionaryFactory) {
+    constructor(historyManager : IHistoryManager, translationManager: ITranslationManager) {
         this.historyManager = historyManager;
-        this.dictionaryFactory = dictionaryFactory;
+        this.translationManager = translationManager;
     }
 
-    getTranslation(word: string, direction: TranslationDirection): JQueryPromise<string> {
-        //  Summary
-        //      Returns a translation for the specified word
-        var deferred = $.Deferred(), self = this;
-        word = $.trim(word);
-        if (!word) {
-            console.error("word is required");
-            deferred.reject("word is required");
-            return deferred;
-        }
-
-        var langDirection = localStorage["defaultLanguage"];
-        //_gaq.push(["_trackEvent", "Translation", langDirection, word]);
-        if (!langDirection) {
-            langDirection = "swe_swe";
-            localStorage["defaultLanguage"] = langDirection;
-        }
-
-        var dictionary = this.dictionaryFactory.getDictionary(langDirection);
-
-        dictionary.getTranslation(word, langDirection, direction).done(function(data){
-            deferred.resolve(data);
-            var translations = dictionary.parseTranslation(data, langDirection);
-            self.historyManager.addToHistory(langDirection, translations);
-        }).fail((error) => {
-            deferred.reject(error);
+    getTranslation(word: string, direction: TranslationDirection): JQueryPromise<ITranslation> {
+        var result =  $.Deferred<ITranslation>();
+        this.translationManager.getTranslation(word, direction).then(function (data) {
+            var response : ITranslation = {translation: data, error: null};
+            result.resolve(response);
+        }).fail(function (error) {
+            var errorMessage = "Error connecting to the dictionary service: " +
+                (error ? error.status : "Unknown");
+            var response : ITranslation = {translation: null, error: errorMessage};
+            result.resolve(response);
         });
-        return deferred.promise();
+        return result.promise();
     }
-
-    // ----------------------------------------------------------------------------
-    // Initialization
-    // ----------------------------------------------------------------------------
 
     initialize() {
         var self = this;
         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (request.method === BackendMethods.getTranslation) {
                 self.getTranslation(request.word, request.direction).then(function (data) {
-                    var response : ITranslation = {translation: data, error: null};
-                    sendResponse(response);
-                }).fail(function (error) {
-                    var errorMessage = "Error connecting to the dictionary service: " +
-                        (error ? error.status : "Unknown");
-                    var response : ITranslation = {translation: null, error: errorMessage};
-                    sendResponse(response);
+                    sendResponse(data);
                 });
             } else if (request.method === BackendMethods.getHistory) {
                 sendResponse(self.historyManager.getHistory(request.langDirection, true));
