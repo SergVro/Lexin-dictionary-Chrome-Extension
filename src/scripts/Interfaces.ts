@@ -1,6 +1,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 import TranslationDirection = require("./TranslationDirection");
-import BackendMethods = require("./BackendMethods");
+import MessageType = require("./MessageType");
 
 export interface ILanguage {
     value: string;
@@ -28,7 +28,7 @@ export interface IHistoryManager {
     addToHistory(langDirection: string, translations: IHistoryItem[]): void;
 }
 
-export interface IBackendService {
+export interface IMessageService {
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]>;
     clearHistory(language: string) : JQueryPromise<{}>;
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation>;
@@ -61,9 +61,33 @@ export interface MessageHandler {
 }
 
 export interface IMessageBus {
-    registerHandler(method: BackendMethods, handler: MessageHandler);
-    sendMessage(method: BackendMethods, args?: any): JQueryPromise<any>;
-    sendMessageToActiveTab(method: BackendMethods, args?: any): JQueryPromise<any>;
+    registerHandler(method: MessageType, handler: MessageHandler);
+    sendMessage(method: MessageType, args?: any): JQueryPromise<any>;
+    sendMessageToActiveTab(method: MessageType, args?: any): JQueryPromise<any>;
     createNewTab(url: string): void;
 }
+
+export interface GetTranslationHandler {
+    (word: string,  direction: TranslationDirection): JQueryPromise<ITranslation>;
+}
+
+export interface LoadHistoryHandler {
+    (langDirection: string): IHistoryItem[];
+}
+
+export interface ClearHistoryHandler {
+    (langDirection: string): void;
+}
+
+export interface GetSelectionHandler {
+    (): string;
+}
+
+export interface IMessageHandlers {
+    registerGetTranslationHandler(handler: GetTranslationHandler): void ;
+    registerLoadHistoryHandler(handler: LoadHistoryHandler): void;
+    registerClearHistoryHandler(handler: ClearHistoryHandler): void;
+    registerGetSelectionHandler(handler: GetSelectionHandler): void;
+}
+
 

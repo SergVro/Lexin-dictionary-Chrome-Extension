@@ -4,18 +4,21 @@
 /// <reference path="..\lib\jqueryui\jqueryui.d.ts" />
 
 import interfaces = require("./Interfaces");
-import IBackendService = interfaces.IBackendService;
+import IMessageService = interfaces.IMessageService;
+import IMessageHandlers = interfaces.IMessageHandlers;
 import LinkAdapter = require("./LinkAdapter");
-import BackendService = require("./BackendService");
+import MessageService = require("./MessageService");
 import MessageBus = require("./MessageBus");
-import BackendMethods = require("./BackendMethods");
+import MessageType = require("./MessageType");
 
 class ContentScript {
 
-    backendService: IBackendService;
+    messageService: IMessageService;
+    private messageHandlers: IMessageHandlers;
 
-    constructor(backendService: IBackendService) {
-        this.backendService = backendService;
+    constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers) {
+        this.messageService = MessageService;
+        this.messageHandlers = messageHandlers;
     }
 
     getSelection(): string {
@@ -24,8 +27,8 @@ class ContentScript {
         return selection;
     }
 
-    subscribeOnGetSelection() {
-        MessageBus.Instance.registerHandler(BackendMethods.getSelection, (args) => {
+    handleGetSelection() {
+        this.messageHandlers.registerGetSelectionHandler(() => {
             var selectedText = this.getSelection();
             if (selectedText !== "") {
                 // send response only if there is a selected text
@@ -65,7 +68,7 @@ class ContentScript {
                     collision: "flip"
                 });
 
-                self.backendService.getTranslation(selection).then((response) => {
+                self.messageService.getTranslation(selection).then((response) => {
                     translationBlock.html(response.translation || response.error);
                     LinkAdapter.AdaptLinks($("#translation"));
                 });
@@ -75,7 +78,7 @@ class ContentScript {
     }
 
      initialize() {
-        this.subscribeOnGetSelection();
+        this.handleGetSelection();
         this.subscribeOnClicks();
     }
 }

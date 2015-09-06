@@ -1,5 +1,5 @@
 import interfaces = require("./Interfaces");
-import IBackendService = interfaces.IBackendService;
+import IMessageService = interfaces.IMessageService;
 import ISettingsStorage = interfaces.ISettingsStorage;
 import ILanguage = interfaces.ILanguage;
 import IHistoryItem = interfaces.IHistoryItem;
@@ -7,11 +7,11 @@ import LanguageManager = require("./LanguageManager");
 
 class HistoryModel {
     private settingsStorage: ISettingsStorage;
-    private backendService: IBackendService;
+    private messageService: IMessageService;
     private languageManager: LanguageManager;
 
-    constructor(backendService: IBackendService, languageManager: LanguageManager, storage: ISettingsStorage) {
-        this.backendService = backendService;
+    constructor(MessageService: IMessageService, languageManager: LanguageManager, storage: ISettingsStorage) {
+        this.messageService = MessageService;
         this.languageManager = languageManager;
         this.settingsStorage = storage || localStorage;
     }
@@ -38,11 +38,11 @@ class HistoryModel {
     }
 
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
-        return this.backendService.loadHistory(language);
+        return this.messageService.loadHistory(language);
     }
 
     clearHistory(language : string) : JQueryPromise<{}> {
-        return this.backendService.clearHistory(language);
+        return this.messageService.clearHistory(language);
     }
 
     onChange : (settings : HistoryModel) => void;

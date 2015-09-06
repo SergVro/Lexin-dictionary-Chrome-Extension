@@ -7,20 +7,21 @@ import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import IHistoryManager = interfaces.IHistoryManager;
 import ITranslation = interfaces.ITranslation;
 import ITranslationManager = interfaces.ITranslationManager;
+import IMessageHandlers = interfaces.IMessageHandlers;
 
-import MessageBus = require("./MessageBus");
-import BackendMethods = require("./BackendMethods");
 import TranslationDirection = require("./TranslationDirection");
 
 
 class BackgroundWorker {
 
-    historyManager: IHistoryManager;
-    translationManager: ITranslationManager;
+    private historyManager: IHistoryManager;
+    private translationManager: ITranslationManager;
+    private messageHandlers: IMessageHandlers;
 
-    constructor(historyManager : IHistoryManager, translationManager: ITranslationManager) {
+    constructor(historyManager : IHistoryManager, translationManager: ITranslationManager, messageHandlers: IMessageHandlers) {
         this.historyManager = historyManager;
         this.translationManager = translationManager;
+        this.messageHandlers = messageHandlers;
     }
 
     getTranslation(word: string, direction: TranslationDirection): JQueryPromise<ITranslation> {
@@ -38,18 +39,9 @@ class BackgroundWorker {
     }
 
     initialize() {
-        MessageBus.Instance.registerHandler(BackendMethods.getTranslation, (args) => {
-            return this.getTranslation(args.word, args.direction);
-        });
-
-        MessageBus.Instance.registerHandler(BackendMethods.getHistory, (args) => {
-            return this.historyManager.getHistory(args.langDirection, true);
-        });
-
-        MessageBus.Instance.registerHandler(BackendMethods.clearHistory, (args) => {
-            this.historyManager.clearHistory(args.langDirection);
-            return;
-        });
+        this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
+        this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection, true));
+        this.messageHandlers.registerClearHistoryHandler((langDirection) => this.historyManager.clearHistory(langDirection));
     }
 }
 

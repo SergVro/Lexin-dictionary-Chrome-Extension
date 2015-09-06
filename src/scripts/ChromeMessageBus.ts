@@ -6,11 +6,11 @@
 import interfaces = require("./Interfaces");
 import IMessageBus = interfaces.IMessageBus;
 import MessageHandler = interfaces.MessageHandler;
-import BackendMethods = require("./BackendMethods");
+import MessageType = require("./MessageType");
 
 class ChromeMessageBus implements IMessageBus {
 
-    registerHandler(method: BackendMethods, handler: MessageHandler): void {
+    registerHandler(method: MessageType, handler: MessageHandler): void {
         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (request.method === method) {
                 var result = handler(request.args);
@@ -26,7 +26,7 @@ class ChromeMessageBus implements IMessageBus {
         });
     }
 
-    sendMessage(method: BackendMethods, args: any): JQueryPromise<any> {
+    sendMessage(method: MessageType, args: any): JQueryPromise<any> {
         var deferred = $.Deferred();
         chrome.runtime.sendMessage({ method: method, args: args }, function (response: any) {
             deferred.resolve(response);
@@ -35,7 +35,7 @@ class ChromeMessageBus implements IMessageBus {
 
     }
 
-    sendMessageToActiveTab(method: BackendMethods, args: any): JQueryPromise<any> {
+    sendMessageToActiveTab(method: MessageType, args: any): JQueryPromise<any> {
         var deferred = $.Deferred();
         chrome.tabs.query({active: true}, function (tabs) {
             chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {

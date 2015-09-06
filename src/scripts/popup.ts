@@ -1,14 +1,14 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import BackendService = require("./BackendService");
+import MessageService = require("./MessageService");
 import LanguageManager = require("./LanguageManager");
 import PopupPage = require("./PopupPage");
 import $ = require("jquery");
 
 $(() => {
-    var backendService = new BackendService();
+    var messageService = new MessageService();
     var dictionaryFactory = new DictionaryFactory();
     var languageManager = new LanguageManager(localStorage, dictionaryFactory);
-    new PopupPage(backendService, languageManager);
+    new PopupPage(messageService, languageManager);
 });

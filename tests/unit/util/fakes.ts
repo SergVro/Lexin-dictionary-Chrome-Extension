@@ -7,6 +7,14 @@ import ILoader = interfaces.ILoader;
 import IDictionary = interfaces.IDictionary;
 import ITranslationManager = interfaces.ITranslationManager;
 import IHistoryManager = interfaces.IHistoryManager;
+import IMessageHandlers = interfaces.IMessageHandlers;
+
+import GetTranslationHandler = interfaces.GetTranslationHandler;
+import LoadHistoryHandler = interfaces.LoadHistoryHandler;
+import ClearHistoryHandler = interfaces.ClearHistoryHandler;
+import GetSelectionHandler = interfaces.GetSelectionHandler;
+
+
 
 import TranslationDirection = require("src/scripts/TranslationDirection");
 import jquery = require("jquery");
@@ -106,6 +114,30 @@ export class FakeHistoryManager implements IHistoryManager {
 
     addToHistory(langDirection: string, translations: IHistoryItem[]): void {
         this.history = this.history.concat(translations);
+    }
+
+}
+
+export class FakeMessageHandlers implements IMessageHandlers {
+    getTranslationHandler: GetTranslationHandler = null;
+    loadHistoryHandler: LoadHistoryHandler = null;
+    clearHistoryHandler: ClearHistoryHandler = null;
+    getSelectionHandler: GetSelectionHandler = null;
+
+    registerGetTranslationHandler(handler: GetTranslationHandler): void {
+        this.getTranslationHandler = handler;
+    }
+
+    registerLoadHistoryHandler(handler: LoadHistoryHandler): void {
+        this.loadHistoryHandler = handler;
+    }
+
+    registerClearHistoryHandler(handler: ClearHistoryHandler): void {
+        this.clearHistoryHandler = handler;
+    }
+
+    registerGetSelectionHandler(handler: GetSelectionHandler): void {
+        this.getSelectionHandler = handler;
     }
 
 }

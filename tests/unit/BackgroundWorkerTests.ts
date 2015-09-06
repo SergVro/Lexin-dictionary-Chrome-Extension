@@ -9,11 +9,13 @@ import TranslationDirection = require("src/scripts/TranslationDirection");
 import fakes = require("tests/unit/util/fakes");
 import FakeHistoryManager = fakes.FakeHistoryManager;
 import FakeTranslationManager = fakes.FakeTranslationManager;
+import FakeMessageHandlers = fakes.FakeMessageHandlers;
 
 
 var backgroundWorker: BackgroundWorker,
     fakeHistoryManager: FakeHistoryManager,
-    fakeTranslationManager: FakeTranslationManager;
+    fakeTranslationManager: FakeTranslationManager,
+    fakeMessageHandlers: FakeMessageHandlers;
 
 registerSuite({
     name: "BackgroundWorker",
@@ -21,8 +23,8 @@ registerSuite({
     beforeEach() {
         fakeHistoryManager = new FakeHistoryManager();
         fakeTranslationManager = new FakeTranslationManager();
-
-        backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager);
+        fakeMessageHandlers = new FakeMessageHandlers();
+        backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager, fakeMessageHandlers);
     },
 
     "getTranslation": {
@@ -47,6 +49,14 @@ registerSuite({
             });
 
         }
+    },
+
+    "initialize should register handlers"() {
+        backgroundWorker.initialize();
+
+        assert.isNotNull(fakeMessageHandlers.getTranslationHandler);
+        assert.isNotNull(fakeMessageHandlers.clearHistoryHandler);
+        assert.isNotNull(fakeMessageHandlers.loadHistoryHandler);
     }
 
 });

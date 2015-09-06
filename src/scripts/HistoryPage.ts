@@ -1,3 +1,5 @@
+/// <reference path="..\lib\google.analytics\ga.d.ts" />
+
 import HistoryModel = require("./HistoryModel");
 import interfaces = require("./Interfaces");
 import IHistoryItem = interfaces.IHistoryItem;
@@ -22,15 +24,18 @@ class HistoryPage {
     private subscribeOnEvents() {
         var self = this;
         $("#language").change(function () {
+            _gaq.push(["_trackEvent", "language", "changed"]);
             self.updateHistory();
         });
 
         $("#showDate").change(function () {
+            _gaq.push(["_trackEvent", "showDate_" + self.showDate, "changed"]);
             self.model.showDate = self.showDate;
             self.updateHistory();
         });
 
         $("#clearHistory").click(function () {
+            _gaq.push(["_trackEvent", "history_clean", "clicked"]);
             var langDirection = self.currentLanguage;
             var langName = $("#language option[value='${langDirection}']").text();
             if (confirm("Are you sure you want to clear history for language " + langName)) {

@@ -1,33 +1,33 @@
-//# sourceURL=BackendService.js
+//# sourceURL=MessageService.js
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
 import interfaces = require("./Interfaces");
-import IBackendService = interfaces.IBackendService;
+import IMessageService = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import IHistoryItem = interfaces.IHistoryItem;
 import ITranslation = interfaces.ITranslation;
 
-import BackendMethods = require("./BackendMethods");
+import MessageType = require("./MessageType");
 import TranslationDirection = require("./TranslationDirection");
 import MessageBus = require("./MessageBus");
 
-class BackendService implements IBackendService{
+class MessageService implements IMessageService{
 
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
-        return MessageBus.Instance.sendMessage(BackendMethods.getHistory, {langDirection: language});
+        return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});
     }
 
     clearHistory(language: string) : JQueryPromise<{}> {
-        return MessageBus.Instance.sendMessage(BackendMethods.clearHistory, {langDirection: language});
+        return MessageBus.Instance.sendMessage(MessageType.clearHistory, {langDirection: language});
     }
 
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
-        return MessageBus.Instance.sendMessage(BackendMethods.getTranslation,
+        return MessageBus.Instance.sendMessage(MessageType.getTranslation,
             {word: word, direction: direction || TranslationDirection.to });
     }
 
     getSelectedText(): JQueryPromise<string> {
-        return MessageBus.Instance.sendMessageToActiveTab(BackendMethods.getSelection);
+        return MessageBus.Instance.sendMessageToActiveTab(MessageType.getSelection);
     }
 
     createNewTab(url: string): void {
@@ -35,4 +35,4 @@ class BackendService implements IBackendService{
     }
 }
 
-export = BackendService;
+export = MessageService;

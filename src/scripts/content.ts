@@ -1,8 +1,11 @@
 //# sourceURL=content.js
 /// <reference path="..\lib\requirejs\require.d.ts" />
-import BackendService = require("./BackendService");
+
+import MessageService = require("./MessageService");
+import MessageHandlers = require("./MessageHandlers");
 import ContentScript = require("./ContentScript");
 
-var backendService = new BackendService(),
-    contentScript = new ContentScript(backendService);
+var messageService = new MessageService(),
+    messageHandlers = new MessageHandlers(),
+    contentScript = new ContentScript(messageService, messageHandlers);
 contentScript.initialize();

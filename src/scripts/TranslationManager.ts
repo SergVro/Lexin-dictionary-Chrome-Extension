@@ -21,6 +21,7 @@ class TranslationManager {
         this.historyManager = historyManager;
         this.dictionaryFactory = dictionaryFactory;
         this.languageManager = languageManager;
+
     }
 
     getTranslation(word: string, direction: TranslationDirection,
@@ -37,12 +38,20 @@ class TranslationManager {
         var langDirection = languageDirection || this.languageManager.currentLanguage;
         var dictionary = this.dictionaryFactory.getDictionary(langDirection);
         dictionary.getTranslation(word, langDirection, direction).done((data) => {
+            //if (_gaq) {
+            //    _gaq.push(["_trackEvent", "translation", "ok"]);
+            //    _gaq.push(["_trackEvent", "translation_ok_language", langDirection]);
+            //}
             if (!skipHistory) {
                 var translations = dictionary.parseTranslation(data, langDirection);
                 this.historyManager.addToHistory(langDirection, translations);
             }
             deferred.resolve(data);
         }).fail((error) => {
+            //if (_gaq) {
+            //    _gaq.push(["_trackEvent", "translation", "error"]);
+            //    _gaq.push(["_trackEvent", "translation_error_language", langDirection]);
+            //}
             deferred.reject(error);
         });
         return deferred.promise();

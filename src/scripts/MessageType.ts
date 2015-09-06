@@ -1,10 +1,10 @@
 
-enum BackendMethods {
+enum MessageType {
     getHistory,
     clearHistory,
     getTranslation,
     getSelection
 }
 
-export = BackendMethods;
+export = MessageType;
 

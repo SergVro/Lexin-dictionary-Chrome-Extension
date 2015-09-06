@@ -1,11 +1,3 @@
-/// <reference path="..\lib\requirejs\require.d.ts" />
-require.config({
-    baseUrl: "../scripts",
-    paths: {
-        "jquery": "../lib/jquery.min"
-    }
-});
-
 var _gaq = _gaq || [];
 _gaq.push(["_setAccount", "UA-26063974-1"]);
 _gaq.push(["_trackPageview"]);
@@ -16,4 +8,3 @@ _gaq.push(["_trackPageview"]);
     var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ga, s);
 })();
 
-require(["popup"], function() {});

@@ -28,10 +28,11 @@
     "scripts/LinkAdapter.js",
     "scripts/content.js",
     "scripts/ContentScript.js",
-    "scripts/BackendMethods.js",
-    "scripts/BackendService.js",
+    "scripts/MessageTypes.js",
+    "scripts/MessageService.js",
     "scripts/TranslationDirection.js",
     "scripts/MessageBus.js",
+    "scripts/MessageHandlers.js",
     "scripts/ChromeMessageBus.js"
   ],
   "content_scripts": [{

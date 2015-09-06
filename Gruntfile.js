@@ -90,7 +90,8 @@ module.exports = function(grunt) {
                         { name: "options-main"},
                         { name: "popup-main"},
                         { name: "content-main"},
-                        { name: "background-main"}
+                        { name: "background-main"},
+                        { name: "help-main"}
                     ],
                     //optimize: "none",
                     dir: "dist/min",
