@@ -10,16 +10,16 @@ import LanguageManager = require("src/scripts/LanguageManager");
 
 import interfaces = require("src/scripts/Interfaces");
 import IHistoryItem = interfaces.IHistoryItem;
-import IBackendService  = interfaces.IBackendService;
+import IMessageService  = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
 import ISettingsStorage = interfaces.ISettingsStorage;
 import TranslationDirection = require("src/scripts/TranslationDirection");
 
 import fakes = require("tests/unit/util/fakes");
-import TestBackendService = fakes.TestBackendService;
+import TestMessageService = fakes.TestMessageService;
 
-var mockBackendService: TestBackendService,
+var mockMessageService: TestMessageService,
     mockSettingsStorage: ISettingsStorage,
     dictionaryFactory: DictionaryFactory,
     languageManager: LanguageManager,
@@ -29,11 +29,11 @@ var mockBackendService: TestBackendService,
 registerSuite({
     name: "HistoryModel",
     beforeEach() {
-        mockBackendService = new TestBackendService();
+        mockMessageService = new TestMessageService();
         mockSettingsStorage = {};
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
-        historyModel = new HistoryModel(mockBackendService, languageManager, mockSettingsStorage);
+        historyModel = new HistoryModel(mockMessageService, languageManager, mockSettingsStorage);
     },
     // Assume we have a promises interface defined
     "default data"() {
@@ -68,12 +68,12 @@ registerSuite({
 
         "load history"() {
             historyModel.loadHistory("swe_eng");
-            assert.strictEqual(mockBackendService.loadHistoryCalls, 1);
+            assert.strictEqual(mockMessageService.loadHistoryCalls, 1);
         },
 
         "clear history"() {
             historyModel.clearHistory("swe_eng");
-            assert.strictEqual(mockBackendService.clearHistoryCalls, 1);
+            assert.strictEqual(mockMessageService.clearHistoryCalls, 1);
         }
     }
 

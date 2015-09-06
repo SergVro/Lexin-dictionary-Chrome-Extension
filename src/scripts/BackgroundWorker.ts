@@ -1,5 +1,4 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="..\lib\google.analytics\ga.d.ts" />
 
 import $ = require("jquery");
 import interfaces = require("./Interfaces");
@@ -10,7 +9,6 @@ import ITranslationManager = interfaces.ITranslationManager;
 import IMessageHandlers = interfaces.IMessageHandlers;
 
 import TranslationDirection = require("./TranslationDirection");
-
 
 class BackgroundWorker {
 

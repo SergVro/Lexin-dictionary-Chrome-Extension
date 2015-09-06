@@ -7,3 +7,6 @@ import DictionaryFactoryTests = require("tests/unit/DictionaryFactoryTests"); Di
 import DictionaryBaseTests = require("tests/unit/DictionaryBaseTests"); DictionaryBaseTests;
 import HistoryManagerTests = require("tests/unit/HistoryManagerTests"); HistoryManagerTests;
 import TranslationManagerTests = require("tests/unit/TranslationManagerTests"); TranslationManagerTests;
+
+declare var _gaq;
+_gaq = [];

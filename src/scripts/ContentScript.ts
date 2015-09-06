@@ -40,22 +40,29 @@ class ContentScript {
     }
 
     subscribeOnClicks() {
-        var self = this;
+        var self = this, insideTranslation = false, zIndex = 10000;
         $(document).click(function (evt) {
-            var mainContainer = $("#lexinExtensionMainContainer");
-            if (mainContainer.length > 0) {
+            var mainContainer = $(".lexinExtensionMainContainer");
+            if (mainContainer.length > 0 && !insideTranslation) {
                 mainContainer.remove();
+                zIndex = 10000;
             }
+            insideTranslation = false;
             var selection = self.getSelection();
             if (selection && evt.altKey) {
                 var absoluteContainer = $("<div></div>")
                     .addClass("yui3-cssreset")
-                    .attr("id", "lexinExtensionMainContainer")
+                    .addClass("lexinExtensionMainContainer")
                     .css("position", "absolute")
                     .insertAfter("body");
                 var container = $("<div></div>")
                     .addClass("yui3-cssreset").addClass("lexinTranslationContainer")
-                    .appendTo(absoluteContainer);
+                    .css("zIndex", zIndex++)
+                    .appendTo(absoluteContainer).click(function(e) {
+
+                        container.css("zIndex", zIndex++);
+                        insideTranslation = true;
+                    });
                 var translationBlock = $("<div></div>").attr("id", "translation")
                     .addClass("yui3-cssreset").addClass("lexinTranslationContent")
                     .html("Searching for '" + selection + "'...").appendTo(container);

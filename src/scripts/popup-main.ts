@@ -1,19 +1,14 @@
 /// <reference path="..\lib\requirejs\require.d.ts" />
+
 require.config({
     baseUrl: "../scripts",
     paths: {
-        "jquery": "../lib/jquery.min"
+        "jquery": "../lib/jquery.min",
+        "jquery.flash": "../lib/jquery.flash"
+    },
+    shim: {
+        "jquery.flash": ["jquery"]
     }
 });
 
-var _gaq = _gaq || [];
-_gaq.push(["_setAccount", "UA-26063974-1"]);
-_gaq.push(["_trackPageview"]);
-
-(function() {
-    var ga = document.createElement("script"); ga.type = "text/javascript"; ga.async = true;
-    ga.src = "https://ssl.google-analytics.com/ga.js";
-    var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ga, s);
-})();
-
-require(["popup"], function() {});
+require(["popup", "jquery.flash", "ga-config"], function() { });

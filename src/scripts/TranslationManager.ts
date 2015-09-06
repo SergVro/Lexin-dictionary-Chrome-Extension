@@ -1,10 +1,10 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="..\lib\google.analytics\ga.d.ts" />
 
 import $ = require("jquery");
-import interfaces = require("./Interfaces");
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
 import LanguageManager = require("./LanguageManager");
+import Tracker = require("./Tracker");
+import interfaces = require("./Interfaces");
 import IHistoryManager = interfaces.IHistoryManager;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
@@ -38,20 +38,14 @@ class TranslationManager {
         var langDirection = languageDirection || this.languageManager.currentLanguage;
         var dictionary = this.dictionaryFactory.getDictionary(langDirection);
         dictionary.getTranslation(word, langDirection, direction).done((data) => {
-            //if (_gaq) {
-            //    _gaq.push(["_trackEvent", "translation", "ok"]);
-            //    _gaq.push(["_trackEvent", "translation_ok_language", langDirection]);
-            //}
+            Tracker.translation(langDirection);
             if (!skipHistory) {
                 var translations = dictionary.parseTranslation(data, langDirection);
                 this.historyManager.addToHistory(langDirection, translations);
             }
             deferred.resolve(data);
         }).fail((error) => {
-            //if (_gaq) {
-            //    _gaq.push(["_trackEvent", "translation", "error"]);
-            //    _gaq.push(["_trackEvent", "translation_error_language", langDirection]);
-            //}
+            Tracker.translationError(langDirection);
             deferred.reject(error);
         });
         return deferred.promise();

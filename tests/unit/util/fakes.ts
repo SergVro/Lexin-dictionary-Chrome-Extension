@@ -1,6 +1,6 @@
 import interfaces = require("src/scripts/Interfaces");
 import IHistoryItem = interfaces.IHistoryItem;
-import IBackendService  = interfaces.IBackendService;
+import IMessageService  = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
 import ILoader = interfaces.ILoader;
@@ -31,7 +31,7 @@ export class FakeLoader implements ILoader {
     }
 }
 
-export class TestBackendService implements IBackendService {
+export class TestMessageService implements IMessageService {
     loadHistoryCalls = 0;
     clearHistoryCalls = 0;
     selectedText: string = "";

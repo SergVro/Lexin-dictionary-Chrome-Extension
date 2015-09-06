@@ -28,7 +28,7 @@
     "scripts/LinkAdapter.js",
     "scripts/content.js",
     "scripts/ContentScript.js",
-    "scripts/MessageTypes.js",
+    "scripts/MessageType.js",
     "scripts/MessageService.js",
     "scripts/TranslationDirection.js",
     "scripts/MessageBus.js",

@@ -1,4 +1,3 @@
-/// <reference path="..\lib\google.analytics\ga.d.ts" />
 
 import LinkAdapter = require("./LinkAdapter");
 import LanguageManager = require("./LanguageManager");
@@ -6,6 +5,7 @@ import TranslationDirection = require("./TranslationDirection");
 import interfaces = require("./Interfaces");
 import IMessageService = interfaces.IMessageService;
 import ITranslation = interfaces.ITranslation;
+import Tracker = require("./Tracker");
 import $ = require("jquery");
 
 class PopupPage {
@@ -20,7 +20,7 @@ class PopupPage {
         this.languageManager = languageManager;
 
         this.fillLanguages();
-        this.getSelectedWord();
+        this.translateSelectedWord();
         this.currentLanguage = this.languageManager.currentLanguage;
 
         this.subscribeOnEvents();
@@ -72,11 +72,13 @@ class PopupPage {
         }
     }
 
-    getSelectedWord(): void {
+    translateSelectedWord(): void {
         this.messageService.getSelectedText().done((response) => {
             if (response) {
                 this.setCurrentWord(response);
                 this.getTranslation();
+
+                Tracker.track("translation", "popup");
             } else {
                 $("#translation").html("No word selected");
             }
@@ -88,20 +90,20 @@ class PopupPage {
         var self = this;
 
         $("#language").change(() => {
-            _gaq.push(["_trackEvent", "language", "changed"]);
+            Tracker.track("language", "changed", this.currentLanguage);
             this.languageManager.currentLanguage = this.currentLanguage;
             this.getTranslation();
         });
 
         $("a#historyLink").click(() => {
-            _gaq.push(["_trackEvent", "history", "clicked"]);
+            Tracker.track("history", "clicked");
             this.messageService.createNewTab("html/history.html");
             return false;
         });
 
         // if something was clicked inside the translation article
         $("#translation").click(() => {
-            _gaq.push(["_trackEvent", "translation", "clicked"]);
+            Tracker.track("translation", "clicked");
             var selection = window.getSelection().toString();
             if (selection !== "") {
                 this.setCurrentWord(selection);
@@ -120,7 +122,7 @@ class PopupPage {
             var word = $(this).val();
             if (word.length >= 2) {
                 timer = setTimeout(() => {
-                    _gaq.push(["_trackEvent", "word_from_sv", "typed"]);
+                    Tracker.track("word", "typed", "from_sv");
                     self.setCurrentWord(word, false, true);
                     self.getTranslation(TranslationDirection.to);
                 }, 500);
@@ -137,7 +139,7 @@ class PopupPage {
             var word = $(this).val();
             if (word.length >= 2) {
                 timer = setTimeout(() => {
-                    _gaq.push(["_trackEvent", "word_to_sv", "typed"]);
+                    Tracker.track("word", "typed", "to_sv");
                     self.setCurrentWord(word, false, true);
                     self.getTranslation(TranslationDirection.from);
                 }, 500);

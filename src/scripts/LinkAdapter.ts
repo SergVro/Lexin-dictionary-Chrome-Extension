@@ -5,7 +5,7 @@ class LinkAdapter {
 
     static playerTemplate: string = "<audio><source src='MP3_FILE_URL' type='audio/mp3' /></audio>";
 
-    static AdaptLinks(translationContainer: JQuery): void {
+    static AdaptLinks(translationContainer: JQuery, adaptFlash?: boolean): void {
         $("a", translationContainer).attr("target", "_blank");
 
         $.each($("a", translationContainer), function (i, anchor) {
@@ -19,16 +19,16 @@ class LinkAdapter {
                     return false;
                 });
             }
+
             // TODO: This is not working because of content security policy that allows
             // referencing swf only with https
-
-            //if (url.match(/swf$/)) { // embedding Folkets lexikon swf pronunciation files with jquery flash plugin
-            //    var img = $("img", anchor);
-            //    if (img.length > 0) {
-            //        $(img).remove();
-            //        $(anchor).flash({src: url, width: 21, height: 21});
-            //    }
-            //}
+            if (adaptFlash && url.match(/swf$/)) { // embedding Folkets lexikon swf pronunciation files with jquery flash plugin
+                var img = $("img", anchor);
+                if (img.length > 0) {
+                    $(img).remove();
+                    $(anchor).flash({src: url, width: 21, height: 21});
+                }
+            }
         });
 
         $.each($("img", translationContainer), function (i, img) {

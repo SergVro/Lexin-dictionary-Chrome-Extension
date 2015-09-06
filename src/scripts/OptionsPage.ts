@@ -1,11 +1,11 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="..\lib\google.analytics\ga.d.ts" />
 
 import $ = require("jquery");
 import interfaces = require("./Interfaces");
 import ISettingsStorage = interfaces.ISettingsStorage;
 import IMessageService = interfaces.IMessageService;
 import LanguageManager = require("./LanguageManager");
+import Tracker = require("./Tracker");
 
 class OptionsPage {
 
@@ -77,20 +77,20 @@ class OptionsPage {
 
         var self = this;
         $("input[name='langs']").change(function() {
-            _gaq.push(["_trackEvent", "language", "changed"]);
             $("input[name='enabled']:disabled").prop("disabled", false).prop("checked", false);
             $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
             self.save_options();
+            Tracker.track("language", "changed");
         });
-        $("input[name='enabled']").change((e) => {
-            _gaq.push(["_trackEvent", "enabled_language", "changed"]);
-            this.save_options();
+        $("input[name='enabled']").change(function() {
+            self.save_options();
+            Tracker.track("enabled_language", "changed", $(this).val());
         });
 
         $("#checkAll").change(function() {
-            _gaq.push(["_trackEvent", "enabled_language", "changed"]);
             $("input[name='enabled']:enabled").prop("checked", this.checked);
             self.save_options();
+            Tracker.track("enabled_language", "changed_all", this.checked);
         });
     }
 }

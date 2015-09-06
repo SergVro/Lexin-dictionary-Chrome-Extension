@@ -1,10 +1,9 @@
-/// <reference path="..\lib\google.analytics\ga.d.ts" />
 
 import HistoryModel = require("./HistoryModel");
+import Tracker = require("./Tracker");
 import interfaces = require("./Interfaces");
 import IHistoryItem = interfaces.IHistoryItem;
 import ILanguage = interfaces.ILanguage;
-import $ = require("jquery");
 
 class HistoryPage {
 
@@ -24,22 +23,25 @@ class HistoryPage {
     private subscribeOnEvents() {
         var self = this;
         $("#language").change(function () {
-            _gaq.push(["_trackEvent", "language", "changed"]);
             self.updateHistory();
+
+            Tracker.track("language", "changed", $(this).val());
         });
 
         $("#showDate").change(function () {
-            _gaq.push(["_trackEvent", "showDate_" + self.showDate, "changed"]);
             self.model.showDate = self.showDate;
             self.updateHistory();
+
+            Tracker.track("showDate", "changed", self.showDate.toString());
         });
 
         $("#clearHistory").click(function () {
-            _gaq.push(["_trackEvent", "history_clean", "clicked"]);
             var langDirection = self.currentLanguage;
             var langName = $("#language option[value='${langDirection}']").text();
             if (confirm("Are you sure you want to clear history for language " + langName)) {
                 self.model.clearHistory(langDirection).then(() => self.updateHistory());
+
+                Tracker.track("history", "cleared");
             }
         });
     }

@@ -98,7 +98,8 @@ module.exports = function(grunt) {
                     removeCombined: true,
                     paths: {
                         //jquery: "../lib/jquery.min"
-                        jquery: "empty:"
+                        "jquery": "empty:",
+                        "jquery.flash": "empty:"
                     }
                 }
             }
