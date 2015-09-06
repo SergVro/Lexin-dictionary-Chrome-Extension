@@ -1,7 +1,9 @@
+//# sourceURL=PopupPage.js
+
 
 import LinkAdapter = require("./LinkAdapter");
 import LanguageManager = require("./LanguageManager");
-import TranslationDirection = require("./TranslationDirection");
+import TranslationDirection = require("./Dictionary/TranslationDirection");
 import interfaces = require("./Interfaces");
 import IMessageService = interfaces.IMessageService;
 import ITranslation = interfaces.ITranslation;
@@ -9,9 +11,9 @@ import Tracker = require("./Tracker");
 import $ = require("jquery");
 
 class PopupPage {
-    history = [];
-    historyIndex = -1;
-    currentWord: string;
+    private history = [];
+    private historyIndex = -1;
+    private currentWord: string;
     private messageService: IMessageService;
     private languageManager: LanguageManager;
 

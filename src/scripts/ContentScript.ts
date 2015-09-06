@@ -7,9 +7,9 @@ import interfaces = require("./Interfaces");
 import IMessageService = interfaces.IMessageService;
 import IMessageHandlers = interfaces.IMessageHandlers;
 import LinkAdapter = require("./LinkAdapter");
-import MessageService = require("./MessageService");
-import MessageBus = require("./MessageBus");
-import MessageType = require("./MessageType");
+import MessageService = require("./Messaging/MessageService");
+import MessageBus = require("./Messaging/MessageBus");
+import MessageType = require("./Messaging/MessageType");
 
 class ContentScript {
 

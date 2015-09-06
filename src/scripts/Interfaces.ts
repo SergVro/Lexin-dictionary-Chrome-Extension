@@ -1,6 +1,6 @@
 /// <reference path="..\lib\jquery\jquery.d.ts" />
-import TranslationDirection = require("./TranslationDirection");
-import MessageType = require("./MessageType");
+import TranslationDirection = require("./Dictionary/TranslationDirection");
+import MessageType = require("./Messaging/MessageType");
 
 export interface ILanguage {
     value: string;
@@ -61,7 +61,7 @@ export interface MessageHandler {
 }
 
 export interface IMessageBus {
-    registerHandler(method: MessageType, handler: MessageHandler);
+    registerHandler(method: MessageType, handler: MessageHandler, ignoreEmptyResult?: boolean);
     sendMessage(method: MessageType, args?: any): JQueryPromise<any>;
     sendMessageToActiveTab(method: MessageType, args?: any): JQueryPromise<any>;
     createNewTab(url: string): void;

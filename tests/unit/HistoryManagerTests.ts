@@ -8,7 +8,7 @@ import BackgroundWorker = require("src/scripts/BackgroundWorker");
 import HistoryManager = require("src/scripts/HistoryManager");
 import LanguageManager = require("src/scripts/LanguageManager");
 import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
-import TranslationManager = require("src/scripts/TranslationManager");
+import TranslationManager = require("src/scripts/Dictionary/TranslationManager");
 
 import interfaces = require("src/scripts/Interfaces");
 import ISettingsStorage = interfaces.ISettingsStorage;

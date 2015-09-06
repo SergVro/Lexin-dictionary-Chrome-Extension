@@ -1,10 +1,10 @@
 import TranslationParser = require("./Dictionary/TranslationParser");
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
+import TranslationManager = require("./Dictionary/TranslationManager");
 import HistoryManager = require("./HistoryManager");
 import LanguageManager = require("./LanguageManager");
-import TranslationManager = require("./TranslationManager");
 import BackgroundWorker = require("./BackgroundWorker");
-import MessageHandlers = require("./MessageHandlers");
+import MessageHandlers = require("./Messaging/MessageHandlers");
 
 var translationParser = new TranslationParser();
 var dictionaryFactory = new DictionaryFactory();

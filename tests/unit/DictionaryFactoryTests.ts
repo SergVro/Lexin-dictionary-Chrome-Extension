@@ -4,7 +4,7 @@ import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
 import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
-import TranslationDirection = require("src/scripts/TranslationDirection");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 
 var factory: DictionaryFactory;
 

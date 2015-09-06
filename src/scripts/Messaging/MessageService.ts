@@ -1,14 +1,14 @@
 //# sourceURL=MessageService.js
-/// <reference path="..\lib\jquery\jquery.d.ts" />
+/// <reference path="../../lib/jquery/jquery.d.ts" />
 
-import interfaces = require("./Interfaces");
+import interfaces = require("../Interfaces");
 import IMessageService = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import IHistoryItem = interfaces.IHistoryItem;
 import ITranslation = interfaces.ITranslation;
 
 import MessageType = require("./MessageType");
-import TranslationDirection = require("./TranslationDirection");
+import TranslationDirection = require("../Dictionary/TranslationDirection");
 import MessageBus = require("./MessageBus");
 
 class MessageService implements IMessageService{

@@ -4,12 +4,13 @@ import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
 import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
+import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
+import TranslationManager = require("src/scripts/Dictionary/TranslationManager");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
+
 import BackgroundWorker = require("src/scripts/BackgroundWorker");
 import HistoryManager = require("src/scripts/HistoryManager");
 import LanguageManager = require("src/scripts/LanguageManager");
-import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
-import TranslationManager = require("src/scripts/TranslationManager");
-import TranslationDirection = require("src/scripts/TranslationDirection");
 
 import interfaces = require("src/scripts/Interfaces");
 import ISettingsStorage = interfaces.ISettingsStorage;

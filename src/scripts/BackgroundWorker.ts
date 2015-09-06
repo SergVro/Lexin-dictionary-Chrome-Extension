@@ -8,7 +8,7 @@ import ITranslation = interfaces.ITranslation;
 import ITranslationManager = interfaces.ITranslationManager;
 import IMessageHandlers = interfaces.IMessageHandlers;
 
-import TranslationDirection = require("./TranslationDirection");
+import TranslationDirection = require("./Dictionary/TranslationDirection");
 
 class BackgroundWorker {
 

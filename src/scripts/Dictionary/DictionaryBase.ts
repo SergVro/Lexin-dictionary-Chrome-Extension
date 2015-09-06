@@ -6,7 +6,7 @@ import IDictionary = interfaces.IDictionary;
 import IHistoryItem = interfaces.IHistoryItem;
 import ILanguage = interfaces.ILanguage;
 import ILoader = interfaces.ILoader;
-import TranslationDirection = require("../TranslationDirection");
+import TranslationDirection = require("./TranslationDirection");
 import TranslationParser = require("./TranslationParser");
 
 class DictionaryBase extends TranslationParser implements IDictionary{

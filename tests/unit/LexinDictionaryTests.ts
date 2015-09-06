@@ -10,7 +10,7 @@ import fakes = require("tests/unit/util/fakes");
 import FakeLoader = fakes.FakeLoader;
 
 import LexinDictionary = require("src/scripts/Dictionary/LexinDictionary");
-import TranslationDirection = require("src/scripts/TranslationDirection");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 
 import swe_rus_translation_multi = require("intern/dojo/text!tests/unit/data/swe_rus_translation_multi.html");
 

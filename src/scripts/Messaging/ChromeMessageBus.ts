@@ -1,9 +1,9 @@
 //# sourceURL=ChromeMessageBus.js
 
-/// <reference path="..\lib\chrome\chrome.d.ts" />
-/// <reference path="..\lib\jquery\jquery.d.ts" />
+/// <reference path="../../lib/chrome/chrome.d.ts" />
+/// <reference path="../../lib/jquery/jquery.d.ts" />
 
-import interfaces = require("./Interfaces");
+import interfaces = require("../Interfaces");
 import IMessageBus = interfaces.IMessageBus;
 import MessageHandler = interfaces.MessageHandler;
 import MessageType = require("./MessageType");

@@ -1,6 +1,6 @@
 //# sourceURL=MessageBus.js
 
-import interfaces = require("./Interfaces");
+import interfaces = require("../Interfaces");
 import IMessageBus = interfaces.IMessageBus;
 
 import ChromeMessageBus = require("./ChromeMessageBus");

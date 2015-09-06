@@ -1,10 +1,10 @@
-/// <reference path="..\lib\jquery\jquery.d.ts" />
+/// <reference path="../../lib/jquery/jquery.d.ts" />
 
 import $ = require("jquery");
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import LanguageManager = require("./LanguageManager");
-import Tracker = require("./Tracker");
-import interfaces = require("./Interfaces");
+import DictionaryFactory = require("./DictionaryFactory");
+import LanguageManager = require("../LanguageManager");
+import Tracker = require("../Tracker");
+import interfaces = require("../Interfaces");
 import IHistoryManager = interfaces.IHistoryManager;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
@@ -31,7 +31,6 @@ class TranslationManager {
         var deferred = $.Deferred(), self = this;
         word = $.trim(word);
         if (!word) {
-            console.error("word is required");
             deferred.reject("word is required");
             return deferred;
         }

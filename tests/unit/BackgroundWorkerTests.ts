@@ -4,7 +4,7 @@ import registerSuite = require("intern!object");
 import assert = require("intern/chai!assert");
 
 import BackgroundWorker = require("src/scripts/BackgroundWorker");
-import TranslationDirection = require("src/scripts/TranslationDirection");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 
 import fakes = require("tests/unit/util/fakes");
 import FakeHistoryManager = fakes.FakeHistoryManager;

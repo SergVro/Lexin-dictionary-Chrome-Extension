@@ -28,12 +28,12 @@
     "scripts/LinkAdapter.js",
     "scripts/content.js",
     "scripts/ContentScript.js",
-    "scripts/MessageType.js",
-    "scripts/MessageService.js",
-    "scripts/TranslationDirection.js",
-    "scripts/MessageBus.js",
-    "scripts/MessageHandlers.js",
-    "scripts/ChromeMessageBus.js"
+    "scripts/Dictionary/TranslationDirection.js",
+    "scripts/Messaging/MessageType.js",
+    "scripts/Messaging/MessageService.js",
+    "scripts/Messaging/MessageBus.js",
+    "scripts/Messaging/MessageHandlers.js",
+    "scripts/Messaging/ChromeMessageBus.js"
   ],
   "content_scripts": [{
     "run_at": "document_end",

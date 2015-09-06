@@ -2,7 +2,7 @@ import interfaces = require("../Interfaces");
 import IDictionary = interfaces.IDictionary;
 import IHistoryItem = interfaces.IHistoryItem;
 import ILanguage = interfaces.ILanguage;
-import TranslationDirection = require("../TranslationDirection");
+import TranslationDirection = require("./TranslationDirection");
 import DictionaryBase = require("./DictionaryBase");
 
 class FolketsDictionary extends DictionaryBase{

@@ -1,7 +1,8 @@
+//# sourceURL=popup.js
 /// <reference path="..\lib\jquery\jquery.d.ts" />
 
 import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import MessageService = require("./MessageService");
+import MessageService = require("./Messaging/MessageService");
 import LanguageManager = require("./LanguageManager");
 import PopupPage = require("./PopupPage");
 import $ = require("jquery");

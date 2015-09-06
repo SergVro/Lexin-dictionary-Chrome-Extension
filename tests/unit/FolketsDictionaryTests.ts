@@ -8,7 +8,7 @@ import fakes = require("tests/unit/util/fakes");
 import FakeLoader = fakes.FakeLoader;
 
 import FolketsDictionary = require("src/scripts/Dictionary/FolketsDictionary");
-import TranslationDirection = require("src/scripts/TranslationDirection");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 
 import swe_eng_translation_multi = require("intern/dojo/text!tests/unit/data/swe_eng_translation_multi.html");
 

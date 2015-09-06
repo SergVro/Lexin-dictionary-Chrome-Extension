@@ -6,6 +6,7 @@ import assert = require("intern/chai!assert");
 
 import HistoryModel = require("src/scripts/HistoryModel");
 import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 import LanguageManager = require("src/scripts/LanguageManager");
 
 import interfaces = require("src/scripts/Interfaces");
@@ -14,7 +15,6 @@ import IMessageService  = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
 import ISettingsStorage = interfaces.ISettingsStorage;
-import TranslationDirection = require("src/scripts/TranslationDirection");
 
 import fakes = require("tests/unit/util/fakes");
 import TestMessageService = fakes.TestMessageService;

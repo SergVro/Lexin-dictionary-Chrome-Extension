@@ -1,4 +1,4 @@
-import interfaces = require("./Interfaces");
+import interfaces = require("../Interfaces");
 
 import IMessageHandlers = interfaces.IMessageHandlers;
 
@@ -8,7 +8,7 @@ import ClearHistoryHandler = interfaces.ClearHistoryHandler;
 import GetSelectionHandler = interfaces.GetSelectionHandler;
 
 import MessageType = require("./MessageType");
-import TranslationDirection = require("./TranslationDirection");
+import TranslationDirection = require("../Dictionary/TranslationDirection");
 import MessageBus = require("./MessageBus");
 
 

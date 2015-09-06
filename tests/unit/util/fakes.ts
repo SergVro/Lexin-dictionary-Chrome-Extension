@@ -16,7 +16,7 @@ import GetSelectionHandler = interfaces.GetSelectionHandler;
 
 
 
-import TranslationDirection = require("src/scripts/TranslationDirection");
+import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
 import jquery = require("jquery");
 
 export class FakeLoader implements ILoader {
