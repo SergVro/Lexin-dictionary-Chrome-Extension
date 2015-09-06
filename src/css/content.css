@@ -56,7 +56,7 @@ div.lexinTranslationContent
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 20em;
-    max-height: 39em;
+    max-height: 20em;
     padding: 0.5em;
 }
 

@@ -69,10 +69,9 @@ class ContentScript {
 
                 container.position({
                     of: evt,
-                    my: "left bottom",
+                    my: "center+10 bottom-20",
                     at: "center top",
-                    offset: "-10",
-                    collision: "flip"
+                    collision: "flipfit"
                 });
 
                 self.messageService.getTranslation(selection).then((response) => {
