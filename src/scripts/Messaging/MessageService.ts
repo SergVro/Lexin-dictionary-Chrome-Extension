@@ -23,7 +23,7 @@ class MessageService implements IMessageService{
 
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
         return MessageBus.Instance.sendMessage(MessageType.getTranslation,
-            {word: word, direction: direction || TranslationDirection.to });
+            {word: word, direction: direction ? direction : TranslationDirection.to });
     }
 
     getSelectedText(): JQueryPromise<string> {

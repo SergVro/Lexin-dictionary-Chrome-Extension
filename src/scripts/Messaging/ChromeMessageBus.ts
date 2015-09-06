@@ -10,7 +10,7 @@ import MessageType = require("./MessageType");
 
 class ChromeMessageBus implements IMessageBus {
 
-    registerHandler(method: MessageType, handler: MessageHandler): void {
+    registerHandler(method: MessageType, handler: MessageHandler, ignoreEmptyResult?: boolean): void {
         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (request.method === method) {
                 var result = handler(request.args);
@@ -19,7 +19,7 @@ class ChromeMessageBus implements IMessageBus {
                         sendResponse(response);
                     });
                     return true; // message listener should return true if response is async
-                } else {
+                } else if (!(ignoreEmptyResult && !result)) {
                     sendResponse(result);
                 }
             }
@@ -37,9 +37,11 @@ class ChromeMessageBus implements IMessageBus {
 
     sendMessageToActiveTab(method: MessageType, args: any): JQueryPromise<any> {
         var deferred = $.Deferred();
-        chrome.tabs.query({active: true}, function (tabs) {
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
             chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
-                deferred.resolve(response);
+                if (response) {
+                    deferred.resolve(response);
+                }
             });
         });
         return deferred.promise();

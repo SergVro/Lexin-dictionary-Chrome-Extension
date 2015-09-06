@@ -1,6 +1,6 @@
 
 enum TranslationDirection {
-    from,
+    from = 1,
     to
 }
 
