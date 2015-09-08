@@ -1,4 +1,6 @@
-# About
+# Lexin Chrome Extension
+[![Build Status](https://travis-ci.org/SergVro/Lexin-dictionary-Chrome-Extension.svg?branch=master)](https://travis-ci.org/SergVro/Lexin-dictionary-Chrome-Extension)
+## About
 This project is a Google Chrome Extension allowing users to translate any word selected on a page from Swedish to many other languages.
 
 Supported languages:
@@ -30,7 +32,7 @@ The extension can be installed from [Chrome Web Store](http://chrome.google.com/
 
 [License](./LICENSE.txt)
 
-# Installation
+## Installation for development
 
 Requirements:
 - node.js
