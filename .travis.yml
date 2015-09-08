@@ -1,0 +1,12 @@
+language: node_js
+node_js:
+  - '0.12'
+before_install:
+  - npm install -g grunt-cli
+install: npm install
+before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - node node_modules/selenium-server/bin/selenium &
+  - grunt build
+script: node_modules/.bin/intern-runner config=tests/intern-travis

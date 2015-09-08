@@ -1,0 +1,29 @@
+
+#history table
+{
+    border-collapse: collapse;
+    border: 1px solid #D9D9D9;
+
+    width: 43em;
+}
+
+#history table th
+{
+    border: 1px solid #D9D9D9;
+    background-color: #f4f4f4;
+    font-weight: normal;
+    min-width: 10em;
+}
+#history table td
+{
+    border-left: 1px solid #D9D9D9;
+    border-right: 1px solid #D9D9D9;
+    border-top: 1px solid #D9D9D9;
+
+    padding: 0 0.4em 0 0.4em;
+}
+
+#history table td.nobottomborder
+{
+    border-top: none;
+}

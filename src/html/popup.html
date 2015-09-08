@@ -1,0 +1,40 @@
+<html>
+<head>
+    <title>Lexin</title>
+    <link href="../css/content.css" rel="stylesheet" type="text/css" />
+    <link href="../css/popup.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+    <input type="hidden" id="word" />
+
+    <div class="customInputContainer">
+        <label for="wordInput" class="inputLabel">From Swedish:</label>
+        <input id="wordInput" autofocus="autofocus" type="text" title="Enter a word to get its translation from Swedish to the language selected above" />
+    </div>
+    <div class="customInputContainer">
+        <label for="fromWordInput" class="inputLabel">To Swedish:</label>
+        <input id="fromWordInput" type="text" title="Enter a word to get its translation to Swedish from the language selected above " />
+    </div>
+    <div class="languageSelectorContainer">
+        <label for="language" class="inputLabel">Language:</label>
+        <select id="language" title="Select a language of translation">
+        </select>
+        <a id="historyLink" href="history.html" class="historyIcon" title="Open translations history">&nbsp;</a>
+    </div>
+    <div class="quickTipContainer">
+        <div id="quickTip">
+            Tip: Try to use 'Alt + Double Click' on a word to get a translation.
+            <span class="closeMe">hide tip</span>
+        </div>
+        
+    </div>
+    <div class="lexinTranslationContainer">
+        <div id="translation" class="lexinTranslationPopup">
+        </div>
+    </div>
+
+    <script src="../lib/require.js" data-main="../scripts/popup-main.js" type="text/javascript"></script>
+
+</body>
+</html>
