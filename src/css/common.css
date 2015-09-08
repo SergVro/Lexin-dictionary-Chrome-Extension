@@ -36,3 +36,8 @@ body {
   border-bottom: 1px solid #eeeeee;
 }
 
+.help {
+    padding: 20px;
+    max-width: 300px;
+    color: gray;
+}

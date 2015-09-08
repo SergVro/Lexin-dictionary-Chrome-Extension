@@ -104,7 +104,7 @@ export class FakeTranslationManager implements ITranslationManager {
 
 export class FakeHistoryManager implements IHistoryManager {
     history: IHistoryItem[] = [];
-    getHistory(langDirection: string, compress: boolean): IHistoryItem[] {
+    getHistory(langDirection: string): IHistoryItem[] {
         return this.history;
     }
 

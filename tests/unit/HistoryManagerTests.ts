@@ -32,7 +32,7 @@ registerSuite({
 
     "getHistory": {
         "empty history"() {
-            var testHistory = historyManager.getHistory("swe_foo", false);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 0);
         },
 
@@ -41,22 +41,9 @@ registerSuite({
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo", false);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 1);
             assert.equal(testHistory[0].word, "test_word");
-        },
-
-        "duplicates"() {
-            historyManager.addToHistory("swe_foo", [
-                {word: "test_word", translation: "test_translation", added: new Date().getTime()},
-                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
-            ]);
-
-            var testHistory = historyManager.getHistory("swe_foo", false);
-            assert.equal(testHistory.length, 2);
-            assert.equal(testHistory[0].word, "test_word");
-            assert.equal(testHistory[1].word, "test_word");
-
         },
 
         "compress full duplicates"() {
@@ -65,7 +52,7 @@ registerSuite({
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo", true);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 1);
             assert.equal(testHistory[0].word, "test_word");
         },
@@ -76,7 +63,7 @@ registerSuite({
                 {word: "test_word", translation: "test_translation2", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo", true);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 1);
             assert.equal(testHistory[0].word, "test_word");
             assert.equal(testHistory[0].translation, "test_translation; test_translation2");
@@ -88,7 +75,7 @@ registerSuite({
                 {word: "test_word", translation: "test_translation2; test_translation3", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo", true);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 1);
             assert.equal(testHistory[0].word, "test_word");
             assert.equal(testHistory[0].translation, "test_translation; test_translation2; test_translation3");
@@ -102,7 +89,7 @@ registerSuite({
                 {word: "test_word3", translation: "test_translation3", added: new Date(2015, 9, 3).getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo", true);
+            var testHistory = historyManager.getHistory("swe_foo");
             assert.equal(testHistory.length, 3);
             assert.equal(testHistory[0].word, "test_word2");
             assert.equal(testHistory[1].word, "test_word3");
@@ -128,7 +115,26 @@ registerSuite({
             assert.equal(history_swe_foo.length, 0);
             assert.equal(history_swe_bar.length, 1);
         }
-    }
+    },
 
+    "compress too long history"() {
+
+        var addCount = 15;
+        historyManager.maxHistory = 10;
+        var addedValue = new Date().getTime();
+        for (var i = 0; i < addCount; i++) {
+            var item = {
+                word: `testWord ${i}`,
+                translation: `test translation ${i}`,
+                added: addedValue + i // to ensure each next item gets greater value then previous
+            };
+            historyManager.addToHistory("swe_foo", [item]);
+        }
+        var history = historyManager.getHistory("swe_foo");
+        assert.isTrue(history.length < addCount);
+        for (var j = 0; j < history.length; j++) {
+            assert.equal(`testWord ${addCount - 1 - j}`, history[j].word, `wrong element at ${j}`);
+        }
+    }
 
 });

@@ -37,15 +37,17 @@ class TranslationManager {
         var langDirection = languageDirection || this.languageManager.currentLanguage;
         var dictionary = this.dictionaryFactory.getDictionary(langDirection);
         dictionary.getTranslation(word, langDirection, direction).done((data) => {
+            deferred.resolve(data);
+
             Tracker.translation(langDirection);
             if (!skipHistory) {
                 var translations = dictionary.parseTranslation(data, langDirection);
                 this.historyManager.addToHistory(langDirection, translations);
             }
-            deferred.resolve(data);
         }).fail((error) => {
-            Tracker.translationError(langDirection);
             deferred.reject(error);
+
+            Tracker.translationError(langDirection);
         });
         return deferred.promise();
     }

@@ -38,7 +38,7 @@ class BackgroundWorker {
 
     initialize() {
         this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
-        this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection, true));
+        this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection));
         this.messageHandlers.registerClearHistoryHandler((langDirection) => this.historyManager.clearHistory(langDirection));
     }
 }

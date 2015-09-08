@@ -4,32 +4,47 @@ import IHistoryManager = interfaces.IHistoryManager;
 import IHistoryItem = interfaces.IHistoryItem;
 import ISettingsStorage = interfaces.ISettingsStorage;
 import TranslationParser = require("./Dictionary/TranslationParser");
+import Tracker = require("./Tracker");
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
     translationParser: ITranslationParser;
     private storage: Storage;
+    private maxHistoryBuffer: number;
+    private maxHistoryLength: number;
+
+    set maxHistory(value: number) {
+        this.maxHistoryLength = value;
+        this.maxHistoryBuffer = Math.floor(this.maxHistoryLength / 5);
+    }
 
     constructor(translationParser: ITranslationParser, storage: Storage) {
         this.translationParser = translationParser;
         this.storage = storage;
+        this.maxHistory = 1000;
     }
 
-    getHistory(langDirection: string, compress?: boolean): IHistoryItem[] {
+    getHistory(langDirection: string): IHistoryItem[] {
         //  Summary
         //      Returns translation history for the specified language direction.
-        //      If compress is true - all duplicate translations will be merged
 
+        var history = this.loadHistory(langDirection);
+        // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
+        this.compress(history);
+        this.saveHistory(langDirection,  history);
+        return history;
+    }
+
+    private loadHistory(langDirection: string): IHistoryItem[] {
         var key = this.getStorageKey(langDirection);
         var storedHistory = this.storage.getItem(key);
         var history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
-        if (history && compress) {
-            // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
-            this._removeDuplicates(history);
-            history.sort(this.sort_by("added", true));
-            this.storage.setItem(key, JSON.stringify(history));
-        }
         return history;
+    }
+
+    private saveHistory(langDirection: string, history: IHistoryItem[]): void {
+        var key = this.getStorageKey(langDirection);
+        this.storage.setItem(key, JSON.stringify(history));
     }
 
     private getStorageKey(langDirection: string) {
@@ -46,11 +61,14 @@ class HistoryManager implements IHistoryManager {
         //  Summary
         //      Adds a new word and translation to the translation history
 
-        var history = this.getHistory(langDirection, false);
+        var history = this.loadHistory(langDirection);
         if (!history) {
             history = [];
         }
         history = history.concat(translations);
+        if (this.needToCompress(history)) {
+            this.compress(history);
+        }
         var serializedHistory = JSON.stringify(history);
         this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
     }
@@ -113,6 +131,21 @@ class HistoryManager implements IHistoryManager {
             }
             return 0;
         };
+    }
+
+    private compress(history: IHistoryItem[]): void {
+        this._removeDuplicates(history);
+        history.sort(this.sort_by("added", true));
+        if (this.needToCompress(history)) {
+            var countToRemove = history.length - this.maxHistoryLength;
+            history.splice(-countToRemove, countToRemove);
+
+            Tracker.track("history", "compress");
+        }
+    }
+
+    private needToCompress(history: IHistoryItem[]) {
+        return history.length > (this.maxHistoryLength + this.maxHistoryBuffer);
     }
 }
 

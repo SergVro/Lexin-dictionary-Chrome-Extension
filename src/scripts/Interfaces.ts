@@ -23,7 +23,7 @@ export interface ISettingsStorage {
 }
 
 export interface IHistoryManager {
-    getHistory(langDirection: string, compress: boolean): IHistoryItem[];
+    getHistory(langDirection: string): IHistoryItem[];
     clearHistory(langDirection: string): void;
     addToHistory(langDirection: string, translations: IHistoryItem[]): void;
 }
