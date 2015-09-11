@@ -54,5 +54,7 @@
       "css/content.css"
     ]
   }],
-  "options_page": "html/options.html"
+  "options_page": "html/options.html",
+  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC3b/02tF2g+elvNOIguRLJQ27GcIyfYhXGymNCSrdJNWsacKa8zWbrW6+ZEhKjzrpGGjFLg0tBc63YMH/A+QKwJCZ/lZxGWevdJvznnSaRkTdtXQsHnLREh54CPXKL3zuBI7Wyj+mOLsbnQlqEZPHwb6Ta1gjifxjOEVFKkqDqxQIDAQAB"
+
 }

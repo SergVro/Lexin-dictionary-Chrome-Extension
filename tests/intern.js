@@ -16,7 +16,15 @@ define({
     // OnDemand. Options that will be permutated are browserName, version, platform, and platformVersion; any other
     // capabilities options specified for an environment will be copied as-is
     environments: [
-        { browserName: 'chrome' }
+        {
+            browserName: 'chrome',
+            chromeOptions: {
+                //extensions: [ 'base64-encoded crx file' ]
+                args: [
+                    "load-extension=c:\\GitHub\\Lexin-dictionary-Chrome-Extension\\dist\\min" //TODO: Fix path
+                ]
+            }
+        }
     ],
 
     // Maximum number of simultaneous integration tests that should be executed on the remote WebDriver service
@@ -38,18 +46,20 @@ define({
         // Packages that should be registered with the loader in each testing environment
         paths: {
             "jquery": "src/lib/jquery.min",
-            //"jquery": "empty:",
             //"src": "dist"
         }
     },
 
     // Non-functional test suite(s) to run in each browser
     suites: [
-        'tests/unit/all'
-      ],
+       // 'tests/unit/all'
+    ],
 
+    leaveRemoteOpen: true,
     // Functional test suite(s) to execute against each browser once non-functional tests are completed
-    functionalSuites: [  /* 'myPackage/tests/functional' */ ],
+    functionalSuites: [
+       // "tests/functional/all"
+    ],
 
     // A regular expression matching URLs to files that should not be included in code coverage analysis
     excludeInstrumentation: /^(?:tests|node_modules|bower_components|src\/lib)\//

@@ -147,9 +147,19 @@ module.exports = function(grunt) {
                     runType: 'runner', // defaults to 'client'
                     config: 'tests/intern',
                     reporters: [ 'Console' ],
-                    suites: [ 'tests/unit/all' ]
+                    suites: [ 'tests/unit/all' ],
                 }
             },
+            func: {
+                options: {
+                    runType: 'runner', // defaults to 'client'
+                    config: 'tests/intern',
+                    reporters: [ 'Console' ],
+                    functionalSuites: ['tests/functional/all'],
+                    leaveRemoteOpen: true
+                }
+            },
+
             travis: {
                 options: {
                     runType: 'runner', // defaults to 'client'
@@ -175,7 +185,7 @@ module.exports = function(grunt) {
 
     // Default task(s).
     grunt.registerTask('build', ['clean', 'typescript', 'tslint', 'copy', 'requirejs', 'clean:temp', 'compress']);
-    grunt.registerTask('test',  ['typescript:tests', 'run:webdriver','intern:main','stop:webdriver']);
+    grunt.registerTask('test',  ['typescript:tests', 'run:webdriver','intern:main', 'intern:func', 'stop:webdriver']);
     grunt.registerTask('travis',  ['build', 'run:selenium','intern:travis','stop:selenium']);
 
 

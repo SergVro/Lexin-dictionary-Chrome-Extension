@@ -63,9 +63,15 @@ class ContentScript {
                         container.css("zIndex", zIndex++);
                         insideTranslation = true;
                     });
-                var translationBlock = $("<div></div>").attr("id", "translation")
-                    .addClass("yui3-cssreset").addClass("lexinTranslationContent")
-                    .html("Searching for '" + selection + "'...").appendTo(container);
+                var translationBlock = $("<div></div>")
+                    .attr("id", "translation")
+                    .addClass("yui3-cssreset")
+                    .addClass("lexinTranslationContent", 1000)
+                    .addClass("loading")
+                    .appendTo(container);
+                var loadingText = setTimeout(() => {
+                    translationBlock.text("Searching for '" + selection + "'...");
+                }, 500);
 
                 container.position({
                     of: evt,
@@ -75,7 +81,10 @@ class ContentScript {
                 });
 
                 self.messageService.getTranslation(selection).then((response) => {
-                    translationBlock.html(response.translation || response.error);
+                    clearTimeout(loadingText);
+                    translationBlock.html(response.translation || response.error)
+                        .removeClass("loading")
+                        .addClass("loaded");
                     LinkAdapter.AdaptLinks($("#translation"));
                 });
 
