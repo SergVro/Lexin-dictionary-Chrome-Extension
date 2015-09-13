@@ -77,7 +77,7 @@ class OptionsPage {
 
         var self = this;
         $("input[name='langs']").change(function() {
-            $("input[name='enabled']:disabled").prop("disabled", false).prop("checked", false);
+            $("input[name='enabled']:disabled").prop("disabled", false);
             $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
             self.save_options();
             Tracker.track("language", "changed");

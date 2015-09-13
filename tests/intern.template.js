@@ -17,11 +17,10 @@ define({
     // capabilities options specified for an environment will be copied as-is
     environments: [
         {
-            browserName: 'chrome',
+            browserName: "chrome",
             chromeOptions: {
-                //extensions: [ 'base64-encoded crx file' ]
                 args: [
-                    "load-extension=c:\\GitHub\\Lexin-dictionary-Chrome-Extension\\dist\\min" //TODO: Fix path
+                    "load-extension=<%= options.rootPath %>/dist/min"
                 ]
             }
         }
@@ -32,11 +31,11 @@ define({
 
     // Name of the tunnel class to use for WebDriver tests.
     // See <https://theintern.github.io/intern/#option-tunnel> for built-in options
-    tunnel: 'NullTunnel',
+    tunnel: "NullTunnel",
 
     loaders: {
-        'host-node': 'requirejs',
-        'host-browser': 'bower_components/requirejs/require.js'
+        "host-node": "requirejs",
+        "host-browser": "bower_components/requirejs/require.js"
     },
     // Configuration options for the module loader; any AMD configuration options supported by the AMD loader in use
     // can be used here.
@@ -52,14 +51,17 @@ define({
 
     // Non-functional test suite(s) to run in each browser
     suites: [
-       // 'tests/unit/all'
+        //"tests/unit/all"
     ],
 
-    leaveRemoteOpen: true,
+    leaveRemoteOpen: false,
+
     // Functional test suite(s) to execute against each browser once non-functional tests are completed
     functionalSuites: [
-       // "tests/functional/all"
+        //"tests/functional/all"
     ],
+
+    //grep: /Change language, Type word, Check history/,
 
     // A regular expression matching URLs to files that should not be included in code coverage analysis
     excludeInstrumentation: /^(?:tests|node_modules|bower_components|src\/lib)\//
