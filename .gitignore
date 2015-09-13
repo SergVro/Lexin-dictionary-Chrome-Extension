@@ -167,3 +167,4 @@ src/scripts/**/*.js
 src/lib/*/*.js
 node_modules/
 tests/unit/**/*.js
+tests/intern.js

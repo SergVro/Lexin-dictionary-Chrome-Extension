@@ -1,16 +1,26 @@
+
+
 module.exports = function(grunt) {
+    var path = require("path");
+    var rootPath = path.resolve();
+    //var extensionPath = path.resolve()+"/dist/min";
+
     // Project configuration.
     grunt.initConfig({
+
+        options: {
+            rootPath: rootPath
+        },
 
         clean: {
             build: [
                 "dist",
-                "tests/unit/**/*.js",
+                "tests/unit/**/!(all).js",
                 "tests/unit/**/*.map",
                 "src/scripts/**/*.js",
                 "src/scripts/**/*.map"
             ],
-            temp: ['dist/temp']
+            temp: ["dist/temp"]
         },
 
         tslint: {
@@ -18,41 +28,41 @@ module.exports = function(grunt) {
                 configuration: grunt.file.readJSON("tslint.json")
             },
             sources: {
-                src: ['src/scripts/**/*.ts']
+                src: ["src/scripts/**/*.ts"]
             },
             tests: {
-                src: ['tests/**/*.ts']
+                src: ["tests/**/*.ts"]
             }
         },
 
 
         watch: {
             sources: {
-                files: ['<%= tslint.sources.src %>'],
-                tasks: ['tslint:sources', 'typescript:sources'],
+                files: ["<%= tslint.sources.src %>"],
+                tasks: ["tslint:sources", "typescript:sources"],
             },
             tests: {
-                files: ['<%= tslint.tests.src %>'],
-                tasks: ['tslint:tests', 'typescript:tests'],
+                files: ["<%= tslint.tests.src %>"],
+                tasks: ["tslint:tests", "typescript:tests"],
 
             },
         },
 
         typescript: {
             sources: {
-                src: ['src/scripts/**/*.ts'],
+                src: ["src/scripts/**/*.ts"],
                 options: {
-                    module: 'amd', //or commonjs
-                    target: 'es5', //or es3
+                    module: "amd", //or commonjs
+                    target: "es5", //or es3
                     sourceMap: true,
                     declaration: false
                 }
             },
             tests: {
-                src: ['tests/unit/**/*.ts'],
+                src: ["tests/unit/**/*.ts", "tests/functional/**/*.ts"],
                 options: {
-                    module: 'amd', //or commonjs
-                    target: 'es5', //or es3
+                    module: "amd", //or commonjs
+                    target: "es5", //or es3
                     sourceMap: true,
                     declaration: false
                 }
@@ -65,17 +75,26 @@ module.exports = function(grunt) {
                 files: [
                     {
                         expand: true,
-                        cwd: 'src',
+                        cwd: "src",
                         src: [
-                            '**/*.*',
-                            '!**/*.ts',
+                            "**/*.*",
+                            "!**/*.ts",
                             "!**/*.map",
                             "!lib/*/*.*"
                         ],
-                        dest: 'dist/temp',
-                        filter: 'isFile'
+                        dest: "dist/temp",
+                        filter: "isFile"
                     }
                 ]
+            },
+            internconfig: {
+                src: "tests/intern.template.js",
+                dest: "tests/intern.js",
+                options: {
+                    process: function(content, path) {
+                        return grunt.template.process(content);
+                    }
+                }
             }
         },
 
@@ -108,10 +127,10 @@ module.exports = function(grunt) {
         compress: {
             main: {
                 options: {
-                    archive: 'dist/lexin-extension.zip'
+                    archive: "dist/lexin-extension.zip"
                 },
                 files: [
-                    {expand: true, cwd: 'dist/min', src: ['**/*', '!build.txt']},
+                    {expand: true, cwd: "dist/min", src: ["**/*", "!build.txt"]},
                 ]
             }
         },
@@ -121,22 +140,28 @@ module.exports = function(grunt) {
                 wait: false
             },
             webdriver: {
-                cmd: 'chromedriver', // make sure is in your PATH
+                cmd: "chromedriver", // make sure is in your PATH
                 args: [
-                    '--port=4444',
-                    '--url-base=wd/hub'
+                    "--port=4444",
+                    "--url-base=wd/hub"
                 ]
             },
             phantomjs: {
-                cmd: 'phantomjs',
+                cmd: "phantomjs",
                 args: [
-                    '--webdriver=4444'
+                    "--webdriver=4444"
                 ]
             },
             selenium: {
-                cmd: 'node',
+                cmd: "node",
                 args:[
-                    'node_modules/selenium-server/bin/selenium'
+                    "node_modules/selenium-server/bin/selenium"
+                ]
+            },
+            combinetests: {
+                cmd: "node",
+                args: [
+                    "tests/combine.js"
                 ]
             }
         },
@@ -144,41 +169,51 @@ module.exports = function(grunt) {
         intern: {
             main: {
                 options: {
-                    runType: 'runner', // defaults to 'client'
-                    config: 'tests/intern',
-                    reporters: [ 'Console' ],
-                    suites: [ 'tests/unit/all' ]
+                    runType: "runner", // defaults to "client"
+                    config: "tests/intern",
+                    reporters: [ "Console" ],
+                    suites: [ "tests/unit/all" ],
                 }
             },
+            func: {
+                options: {
+                    runType: "runner", // defaults to "client"
+                    config: "tests/intern",
+                    reporters: [ "Console" ],
+                    functionalSuites: ["tests/functional/all"],
+                    //leaveRemoteOpen: true
+                }
+            },
+
             travis: {
                 options: {
-                    runType: 'runner', // defaults to 'client'
-                    config: 'tests/intern-travis',
-                    reporters: [ 'Console' ],
-                    suites: [ 'tests/unit/all' ]
+                    runType: "runner", // defaults to "client"
+                    config: "tests/intern-travis",
+                    reporters: [ "Console" ],
+                    suites: [ "tests/unit/all" ]
                 }
 
             }
-        },
+        }
 
     });
 
-    grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-contrib-compress');
-    grunt.loadNpmTasks('grunt-contrib-watch');
-    grunt.loadNpmTasks('grunt-tslint');
-    grunt.loadNpmTasks('grunt-typescript');
-    grunt.loadNpmTasks('grunt-contrib-requirejs');
-    grunt.loadNpmTasks('grunt-run');
-    grunt.loadNpmTasks('intern');
+    grunt.loadNpmTasks("grunt-contrib-clean");
+    grunt.loadNpmTasks("grunt-contrib-copy");
+    grunt.loadNpmTasks("grunt-contrib-compress");
+    grunt.loadNpmTasks("grunt-contrib-watch");
+    grunt.loadNpmTasks("grunt-tslint");
+    grunt.loadNpmTasks("grunt-typescript");
+    grunt.loadNpmTasks("grunt-contrib-requirejs");
+    grunt.loadNpmTasks("grunt-run");
+    grunt.loadNpmTasks("intern");
 
     // Default task(s).
-    grunt.registerTask('build', ['clean', 'typescript', 'tslint', 'copy', 'requirejs', 'clean:temp', 'compress']);
-    grunt.registerTask('test',  ['typescript:tests', 'run:webdriver','intern:main','stop:webdriver']);
-    grunt.registerTask('travis',  ['build', 'run:selenium','intern:travis','stop:selenium']);
+    grunt.registerTask("build", ["clean", "typescript", "tslint", "copy", "requirejs", "clean:temp", "compress"]);
+    grunt.registerTask("test",  ["typescript:tests", "run:combinetests", "run:webdriver","intern:main", "intern:func", "stop:webdriver"]);
+    grunt.registerTask("travis",  ["build", "run:combinetests", "run:selenium","intern:travis","stop:selenium"]);
 
 
-    grunt.registerTask('default', ['build', 'test']);
+    grunt.registerTask("default", ["build", "test"]);
 
 };

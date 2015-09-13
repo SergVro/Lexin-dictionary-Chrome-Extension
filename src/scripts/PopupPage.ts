@@ -43,10 +43,15 @@ class PopupPage {
             return;
         }
         var translationBox = $("#translation");
-        translationBox.html("Searching for '" + word + "'...");
+        translationBox.html("Searching for '" + word + "'...")
+            .addClass("loading")
+            .removeClass("loaded");
         this.messageService.getTranslation(word, direction).then((response: ITranslation) => {
             if (word === this.currentWord) {
-                translationBox.html(response.translation || response.error);
+                translationBox
+                    .html(response.translation || response.error)
+                    .removeClass("loading")
+                    .addClass("loaded");
                 LinkAdapter.AdaptLinks(translationBox);
             }
         });
