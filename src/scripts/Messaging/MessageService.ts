@@ -11,7 +11,7 @@ import MessageType = require("./MessageType");
 import TranslationDirection = require("../Dictionary/TranslationDirection");
 import MessageBus = require("./MessageBus");
 
-class MessageService implements IMessageService{
+class MessageService implements IMessageService {
 
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
         return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});

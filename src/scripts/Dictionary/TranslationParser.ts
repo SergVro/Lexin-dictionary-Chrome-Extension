@@ -2,7 +2,7 @@ import interfaces = require("../Interfaces");
 import ITranslationParser = interfaces.ITranslationParser;
 import IHistoryItem = interfaces.IHistoryItem;
 
-class TranslationParser implements ITranslationParser{
+class TranslationParser implements ITranslationParser {
 
     parse(translation: string, parsingRegExp: RegExp): IHistoryItem[] {
         //  Summary

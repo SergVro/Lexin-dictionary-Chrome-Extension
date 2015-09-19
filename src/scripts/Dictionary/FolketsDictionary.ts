@@ -5,7 +5,7 @@ import ILanguage = interfaces.ILanguage;
 import TranslationDirection = require("./TranslationDirection");
 import DictionaryBase = require("./DictionaryBase");
 
-class FolketsDictionary extends DictionaryBase{
+class FolketsDictionary extends DictionaryBase {
 
     get parsingRegExp(): RegExp {
         return /<p><img.*\(S.+?\).*\/>\s*<b>(.+?)<\/b>.*<img.*\(E.+?\).*\/>\s*<b>(.+?)<\/b>.*<\/p>$/igm;

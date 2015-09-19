@@ -12,7 +12,7 @@ import TranslationDirection = require("../Dictionary/TranslationDirection");
 import MessageBus = require("./MessageBus");
 
 
-class MessageHandlers implements IMessageHandlers{
+class MessageHandlers implements IMessageHandlers {
     registerGetTranslationHandler(handler: GetTranslationHandler): void {
         MessageBus.Instance.registerHandler(MessageType.getTranslation, (args) => {
             return handler(args.word, args.direction);

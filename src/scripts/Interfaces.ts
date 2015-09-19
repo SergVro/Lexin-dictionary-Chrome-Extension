@@ -47,7 +47,7 @@ export interface ITranslationParser {
     parse(translation: string, parsingRegExp: RegExp): IHistoryItem[];
 }
 
-export interface IDictionary extends ITranslationParser{
+export interface IDictionary extends ITranslationParser {
     getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> ;
     isLanguageSupported(langDirection: string): boolean;
     getSupportedLanguages(): ILanguage[];

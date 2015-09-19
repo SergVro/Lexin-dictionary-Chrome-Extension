@@ -9,7 +9,7 @@ import ILoader = interfaces.ILoader;
 import TranslationDirection = require("./TranslationDirection");
 import TranslationParser = require("./TranslationParser");
 
-class DictionaryBase extends TranslationParser implements IDictionary{
+class DictionaryBase extends TranslationParser implements IDictionary {
 
     loader: ILoader;
 
