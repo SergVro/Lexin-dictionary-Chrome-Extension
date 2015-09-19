@@ -9,21 +9,23 @@ import HistoryManager = require("src/scripts/HistoryManager");
 import LanguageManager = require("src/scripts/LanguageManager");
 import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
 import TranslationManager = require("src/scripts/Dictionary/TranslationManager");
+import LocalStorage = require("src/scripts/Storage/LocalStorage");
 
 import interfaces = require("src/scripts/Interfaces");
 import ISettingsStorage = interfaces.ISettingsStorage;
 
 import fakes = require("tests/unit/util/fakes");
 
-var historyManager: HistoryManager;
+var historyManager: HistoryManager, localStore: ISettingsStorage;
 
 registerSuite({
     name: "HistoryManager",
     // Assume we have a promises interface defined
     beforeEach() {
+        localStore = new LocalStorage();
         localStorage.clear();
         var translationParser = new TranslationParser();
-        historyManager = new HistoryManager(translationParser, localStorage);
+        historyManager = new HistoryManager(translationParser, localStore);
     },
 
     teardown() {
@@ -32,8 +34,9 @@ registerSuite({
 
     "getHistory": {
         "empty history"() {
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 0);
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                assert.equal(testHistory.length, 0);
+            });
         },
 
         "with item"() {
@@ -41,9 +44,10 @@ registerSuite({
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 1);
-            assert.equal(testHistory[0].word, "test_word");
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                assert.equal(testHistory.length, 1);
+                assert.equal(testHistory[0].word, "test_word");
+            });
         },
 
         "compress full duplicates"() {
@@ -52,9 +56,10 @@ registerSuite({
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 1);
-            assert.equal(testHistory[0].word, "test_word");
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                assert.equal(testHistory.length, 1);
+                assert.equal(testHistory[0].word, "test_word");
+            });
         },
 
         "compress duplicate words"() {
@@ -63,10 +68,12 @@ registerSuite({
                 {word: "test_word", translation: "test_translation2", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 1);
-            assert.equal(testHistory[0].word, "test_word");
-            assert.equal(testHistory[0].translation, "test_translation; test_translation2");
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                assert.equal(testHistory.length, 1);
+                assert.equal(testHistory[0].word, "test_word");
+                assert.equal(testHistory[0].translation, "test_translation; test_translation2");
+
+            });
         },
 
         "compress duplicate translations"() {
@@ -75,10 +82,11 @@ registerSuite({
                 {word: "test_word", translation: "test_translation2; test_translation3", added: new Date().getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 1);
-            assert.equal(testHistory[0].word, "test_word");
-            assert.equal(testHistory[0].translation, "test_translation; test_translation2; test_translation3");
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                assert.equal(testHistory.length, 1);
+                assert.equal(testHistory[0].word, "test_word");
+                assert.equal(testHistory[0].translation, "test_translation; test_translation2; test_translation3");
+            });
         },
 
 
@@ -89,11 +97,12 @@ registerSuite({
                 {word: "test_word3", translation: "test_translation3", added: new Date(2015, 9, 3).getTime()}
             ]);
 
-            var testHistory = historyManager.getHistory("swe_foo");
-            assert.equal(testHistory.length, 3);
-            assert.equal(testHistory[0].word, "test_word2");
-            assert.equal(testHistory[1].word, "test_word3");
-            assert.equal(testHistory[2].word, "test_word");
+            return historyManager.getHistory("swe_foo").then((testHistory) => {
+                    assert.equal(testHistory.length, 3);
+                    assert.equal(testHistory[0].word, "test_word2");
+                    assert.equal(testHistory[1].word, "test_word3");
+                    assert.equal(testHistory[2].word, "test_word");
+                });
         }
 
     },
@@ -107,13 +116,16 @@ registerSuite({
                 {word: "test_word2", translation: "test_translation2", added: new Date().getTime()}
             ]);
 
-            historyManager.clearHistory("swe_foo");
+            return historyManager.clearHistory("swe_foo").then(() => {
+                return $.when(
+                    historyManager.getHistory("swe_foo")
+                        .then((history_swe_foo) => assert.equal(history_swe_foo.length, 0)),
+                    historyManager.getHistory("swe_bar")
+                        .then((history_swe_bar) => assert.equal(history_swe_bar.length, 1))
+                );
+            });
 
-            var history_swe_foo = historyManager.getHistory("swe_foo");
-            var history_swe_bar = historyManager.getHistory("swe_bar");
 
-            assert.equal(history_swe_foo.length, 0);
-            assert.equal(history_swe_bar.length, 1);
         }
     },
 
@@ -130,11 +142,12 @@ registerSuite({
             };
             historyManager.addToHistory("swe_foo", [item]);
         }
-        var history = historyManager.getHistory("swe_foo");
-        assert.isTrue(history.length < addCount);
-        for (var j = 0; j < history.length; j++) {
-            assert.equal(`testWord ${addCount - 1 - j}`, history[j].word, `wrong element at ${j}`);
-        }
+        return historyManager.getHistory("swe_foo").then((history) => {
+            assert.isTrue(history.length < addCount);
+            for (var j = 0; j < history.length; j++) {
+                assert.equal(`testWord ${addCount - 1 - j}`, history[j].word, `wrong element at ${j}`);
+            }
+        });
     }
 
 });

@@ -7,6 +7,7 @@ import TranslationDirection = require("./Dictionary/TranslationDirection");
 import interfaces = require("./Interfaces");
 import IMessageService = interfaces.IMessageService;
 import ITranslation = interfaces.ITranslation;
+import ISettingsStorage = interfaces.ISettingsStorage;
 import Tracker = require("./Tracker");
 import $ = require("jquery");
 
@@ -16,23 +17,29 @@ class PopupPage {
     private currentWord: string;
     private messageService: IMessageService;
     private languageManager: LanguageManager;
+    private settingsStorage: ISettingsStorage;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager) {
+    constructor(MessageService: IMessageService, languageManager: LanguageManager, settingsStorage: ISettingsStorage) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
+        this.settingsStorage = settingsStorage;
 
-        this.fillLanguages();
-        this.translateSelectedWord();
-        this.currentLanguage = this.languageManager.currentLanguage;
+        this.fillLanguages().then(() => {
+            this.languageManager.getCurrentLanguage().then((language) => {
+                this.setCurrentLanguage(language);
+            });
+        });
 
         this.subscribeOnEvents();
+        this.translateSelectedWord();
     }
 
-    set currentLanguage(value: string) {
+    setCurrentLanguage(value: string) {
+        console.log("set current language", value);
         $("#language").val(value);
     }
 
-    get currentLanguage(): string {
+    getCurrentLanguage(): string {
         return $("#language").val();
     }
 
@@ -70,13 +77,14 @@ class PopupPage {
         }
     }
 
-    fillLanguages() {
-        var languages = this.languageManager.getEnabledLanguages();
-        $("#language").empty();
-        for (var lang of languages) {
-            var option = $("<option></option>").attr("value", lang.value).append(lang.text);
-            $("#language").append(option);
-        }
+    fillLanguages(): JQueryPromise<void> {
+        return this.languageManager.getEnabledLanguages().then((languages) => {
+            $("#language").empty();
+            for (var lang of languages) {
+                var option = $("<option></option>").attr("value", lang.value).append(lang.text);
+                $("#language").append(option);
+            }
+        });
     }
 
     translateSelectedWord(): void {
@@ -97,9 +105,11 @@ class PopupPage {
         var self = this;
 
         $("#language").change(() => {
-            Tracker.track("language", "changed", this.currentLanguage);
-            this.languageManager.currentLanguage = this.currentLanguage;
-            this.getTranslation();
+            Tracker.track("language", "changed", this.getCurrentLanguage());
+
+            this.languageManager.setCurrentLanguage(this.getCurrentLanguage()).then(() => {
+                this.getTranslation();
+            });
         });
 
         $("a#historyLink").click(() => {
@@ -182,16 +192,15 @@ class PopupPage {
             }
         });
 
-        //window.localStorage.setItem("showQuickTip", "Yes");
-        var showQuickTip = window.localStorage.getItem("showQuickTip");
-        if (showQuickTip !== "No") {
+        var hideQuickTip = this.settingsStorage["showQuickTip"];
+        if (!hideQuickTip) {
             var tipContainer = $(".quickTipContainer");
             tipContainer.css("display", "block");
-            tipContainer.click(function () {
-                $(".quickTipContainer").fadeOut("fast", function () {
+            tipContainer.click(() => {
+                $(".quickTipContainer").fadeOut("fast", () => {
                     $(".quickTipContainer").css("display", "none");
                 });
-                window.localStorage.setItem("showQuickTip", "No");
+                this.settingsStorage["showQuickTip"] = true;
             });
         }
     }

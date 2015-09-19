@@ -9,7 +9,7 @@ import Tracker = require("./Tracker");
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
     translationParser: ITranslationParser;
-    private storage: Storage;
+    private storage: ISettingsStorage;
     private maxHistoryBuffer: number;
     private maxHistoryLength: number;
 
@@ -18,60 +18,74 @@ class HistoryManager implements IHistoryManager {
         this.maxHistoryBuffer = Math.floor(this.maxHistoryLength / 5);
     }
 
-    constructor(translationParser: ITranslationParser, storage: Storage) {
+    constructor(translationParser: ITranslationParser, storage: ISettingsStorage) {
         this.translationParser = translationParser;
         this.storage = storage;
         this.maxHistory = 1000;
     }
 
-    getHistory(langDirection: string): IHistoryItem[] {
+    getHistory(langDirection: string): JQueryPromise<IHistoryItem[]> {
         //  Summary
         //      Returns translation history for the specified language direction.
 
-        var history = this.loadHistory(langDirection);
-        // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
-        this.compress(history);
-        this.saveHistory(langDirection,  history);
-        return history;
+        this.checkLangDirection(langDirection);
+
+        return this.loadHistory(langDirection).then<IHistoryItem[]>((history) => {
+            // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
+            this.compress(history);
+            this.saveHistory(langDirection,  history);
+            return history;
+        });
+
     }
 
-    private loadHistory(langDirection: string): IHistoryItem[] {
-        var key = this.getStorageKey(langDirection);
-        var storedHistory = this.storage.getItem(key);
-        var history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
-        return history;
+    clearHistory(langDirection: string): JQueryPromise<void> {
+        //  Summary
+        //      Clears translation history for the specified language direction
+        this.checkLangDirection(langDirection);
+        return this.storage.removeItem(this.getStorageKey(langDirection));
     }
 
-    private saveHistory(langDirection: string, history: IHistoryItem[]): void {
+    addToHistory(langDirection: string, translations: IHistoryItem[]): JQueryPromise<void> {
+        //  Summary
+        //      Adds a new word and translation to the translation history
+
+        this.checkLangDirection(langDirection);
+
+        return this.loadHistory(langDirection).then((history) => {
+                if (!history) {
+                    history = [];
+                }
+                history = history.concat(translations);
+                if (this.needToCompress(history)) {
+                    this.compress(history);
+                }
+                var serializedHistory = JSON.stringify(history);
+                return this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
+            }
+        );
+    }
+
+
+    private loadHistory(langDirection: string): JQueryPromise<IHistoryItem[]> {
         var key = this.getStorageKey(langDirection);
-        this.storage.setItem(key, JSON.stringify(history));
+
+        // TODO: Check if it works like that
+        return this.storage.getItem(key).then((storedHistory) => {
+            var history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
+            return history;
+        });
+    }
+
+    private saveHistory(langDirection: string, history: IHistoryItem[]): JQueryPromise<void> {
+        var key = this.getStorageKey(langDirection);
+        return this.storage.setItem(key, JSON.stringify(history));
     }
 
     private getStorageKey(langDirection: string) {
         return this.storageKey + langDirection;
     }
 
-    clearHistory(langDirection: string): void {
-        //  Summary
-        //      Clears translation history for the specified language direction
-        this.storage.removeItem(this.getStorageKey(langDirection));
-    }
-
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
-        //  Summary
-        //      Adds a new word and translation to the translation history
-
-        var history = this.loadHistory(langDirection);
-        if (!history) {
-            history = [];
-        }
-        history = history.concat(translations);
-        if (this.needToCompress(history)) {
-            this.compress(history);
-        }
-        var serializedHistory = JSON.stringify(history);
-        this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
-    }
 
     private _removeDuplicates(history: IHistoryItem[]): void {
         //  Summary
@@ -146,6 +160,12 @@ class HistoryManager implements IHistoryManager {
 
     private needToCompress(history: IHistoryItem[]) {
         return history.length > (this.maxHistoryLength + this.maxHistoryBuffer);
+    }
+
+    private checkLangDirection(langDirection: string): void {
+        if (!langDirection) {
+            throw new Error("Language direction is not specified");
+        }
     }
 }
 

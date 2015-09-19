@@ -18,23 +18,29 @@ import ISettingsStorage = interfaces.ISettingsStorage;
 import fakes = require("tests/unit/util/fakes");
 import FakeDictionary = fakes.FakeDictionary;
 
+import LocalStorage = require("src/scripts/Storage/LocalStorage");
+
+
 var translationManager: TranslationManager,
     fakeDictionary: FakeDictionary,
     languageManager: LanguageManager,
-    historyManager: HistoryManager;
+    historyManager: HistoryManager,
+    localStore: ISettingsStorage;
 
 
 registerSuite({
     name: "TranslationManager",
     beforeEach() {
+        localStore = new LocalStorage();
+        localStorage.clear();
 
         fakeDictionary = new FakeDictionary();
 
         var translationParser = new TranslationParser(),
             dictionaryFactory = new DictionaryFactory([fakeDictionary]);
 
-        languageManager = new LanguageManager(localStorage, dictionaryFactory);
-        historyManager = new HistoryManager(translationParser, localStorage);
+        languageManager = new LanguageManager(localStore, dictionaryFactory);
+        historyManager = new HistoryManager(translationParser, localStore);
         translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
 
         localStorage.clear();
@@ -56,20 +62,27 @@ registerSuite({
         "add word to history"() {
             var dfd = this.async();
             translationManager.getTranslation("aword", TranslationDirection.to).then((translation) => {
-                var history = historyManager.getHistory(languageManager.currentLanguage);
-                assert.equal(history.length, 1);
-                assert.equal(history[0].word, "aword");
-                assert.equal(history[0].translation, "atranslation");
-                dfd.resolve();
+                languageManager.getCurrentLanguage().then((language) => {
+                    historyManager.getHistory(language).then((history) => {
+                        assert.equal(history.length, 1);
+                        assert.equal(history[0].word, "aword");
+                        assert.equal(history[0].translation, "atranslation");
+                        dfd.resolve();
+                    });
+                });
+
             });
         },
 
         "skip add word to history"() {
             var dfd = this.async();
             translationManager.getTranslation("aword", TranslationDirection.to, null, true).then((translation) => {
-                var history = historyManager.getHistory(languageManager.currentLanguage);
-                assert.equal(history.length, 0);
-                dfd.resolve();
+                languageManager.getCurrentLanguage().then((language) => {
+                    historyManager.getHistory(language).then((history) => {
+                        assert.equal(history.length, 0);
+                        dfd.resolve();
+                    });
+                });
             });
         },
 
@@ -81,8 +94,6 @@ registerSuite({
                 assert.equal(e, "word is required");
                 dfd.resolve();
             });
-
         }
-
     }
 });

@@ -9,6 +9,9 @@ import LanguageManager = require("src/scripts/LanguageManager");
 import interfaces = require("src/scripts/Interfaces");
 import ILanguage = interfaces.ILanguage;
 import ISettingsStorage = interfaces.ISettingsStorage;
+import fakes = require("./util/fakes");
+//import LocalStorage = require("src/scripts/Storage/LocalStorage");
+import FakeAsyncStorage = fakes.FakeAsyncStorage;
 
 var mockSettingsStorage: ISettingsStorage,
     dictionaryFactory: DictionaryFactory,
@@ -18,7 +21,8 @@ registerSuite({
     name: "LanguageManager",
 
     beforeEach() {
-        mockSettingsStorage = {};
+        mockSettingsStorage = new FakeAsyncStorage();
+        localStorage.clear();
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
     },
@@ -38,14 +42,20 @@ registerSuite({
                 ];
 
             languageManager.setEnabledLanguages(enabledLanguages);
-            assert.sameMembers(enabledLanguages, languageManager.getEnabledLanguages(),
-                "setEnabledLanguages should set the list of enabled languages");
+            return languageManager.getEnabledLanguages().then((el) => {
+                assert.sameMembers(enabledLanguages, el,
+                    "setEnabledLanguages should set the list of enabled languages");
+            });
         },
 
         "setEnabledByValue"() {
-            languageManager.setEnabledByValues(["swe_eng", "swe_rus"]);
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-            assert.isTrue(languageManager.isEnabled("swe_rus"));
+            return languageManager.setEnabledByValues(["swe_eng", "swe_rus"]).then(() => {
+                return $.when(
+                    languageManager.isEnabled("swe_eng").then((enabled) => assert.isTrue(enabled)),
+                    languageManager.isEnabled("swe_rus").then((enabled) => assert.isTrue(enabled))
+                );
+            });
+
         },
 
         "setEnabledByValue invalid"() {
@@ -56,47 +66,79 @@ registerSuite({
         "getEnabledLanguages"() {
             var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-            languageManager.currentLanguage = "swe_eng";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            assert.deepEqual(myEnabledLanguages, languageManager.getEnabledLanguages());
+            return languageManager.setCurrentLanguage("swe_eng").then(() => {
+                return languageManager.setEnabledLanguages(myEnabledLanguages).then(() => {
+                    return languageManager.getEnabledLanguages().then((enabledLang) => {
+                        assert.deepEqual(myEnabledLanguages, enabledLang);
+                    });
+                });
+            });
         },
 
         "getEnabledLanguages default"() {
-            assert.deepEqual(languageManager.getLanguages(), languageManager.getEnabledLanguages());
+            return languageManager.getEnabledLanguages().then((enabledLangs) => {
+                assert.deepEqual(languageManager.getLanguages(), enabledLangs);
+            });
         },
 
         "isEnabled"() {
             var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-            languageManager.currentLanguage = "swe_rus";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-            assert.isTrue(languageManager.isEnabled("swe_rus"));
-            assert.isFalse(languageManager.isEnabled("swe_swe"));
+            return $.when(
+                languageManager.setCurrentLanguage("swe_rus"),
+                languageManager.setEnabledLanguages(myEnabledLanguages)
+            ).then(() => {
+                    return $.when(
+                        languageManager.isEnabled("swe_eng"),
+                        languageManager.isEnabled("swe_rus"),
+                        languageManager.isEnabled("swe_swe")
+                    ).then((swe_eng, swe_rus, swe_swe) => {
+                        assert.isTrue(swe_eng);
+                        assert.isTrue(swe_rus);
+                        assert.isFalse(swe_swe);
+                    });
+            });
+
+
         },
 
         "setEnabled"() {
-            languageManager.setEnabledLanguages([]);
-            languageManager.setEnabled("swe_eng");
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
+            return $.when(
+                languageManager.setEnabledLanguages([]),
+                languageManager.setEnabled("swe_eng")
+            ).then(() => {
+                return languageManager.isEnabled("swe_eng").then((enabled) => {
+                    assert.isTrue(enabled);
+                });
+            });
+
         },
 
         "setDisabled"() {
-            languageManager.setEnabledLanguages([]);
-            languageManager.setEnabled("swe_eng");
-            languageManager.setDisabled("swe_eng");
-            assert.isFalse(languageManager.isEnabled("swe_eng"));
+            return $.when(
+                languageManager.setEnabledLanguages([]),
+                languageManager.setEnabled("swe_eng"),
+                languageManager.setDisabled("swe_eng")
+            ).then(() => {
+                return languageManager.isEnabled("swe_eng").then((enabled) => {
+                    assert.isFalse(enabled);
+                });
+            });
         },
 
         "setEnabled already"() {
             var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-            languageManager.currentLanguage = "swe_rus";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            languageManager.setEnabled("swe_eng");
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
+            return $.when(
+                languageManager.setCurrentLanguage("swe_rus"),
+                languageManager.setEnabledLanguages(myEnabledLanguages),
+                languageManager.setEnabled("swe_eng")
+            ).then(() => {
+                return languageManager.isEnabled("swe_eng").then((enabled) => {
+                    assert.isTrue(enabled);
+                });
+            });
         }
-
     },
 
     "getLanguage": {
@@ -111,12 +153,16 @@ registerSuite({
     },
     "currentLanguage": {
         "setCurrentLanguage valid"() {
-            languageManager.currentLanguage = "swe_eng";
-            assert.strictEqual(languageManager.currentLanguage, "swe_eng");
+            return languageManager.setCurrentLanguage("swe_eng").then(() => {
+                return languageManager.getCurrentLanguage().then((lang) => {
+                    assert.strictEqual(lang, "swe_eng");
+                });
+            });
+
         },
 
         "setCurrentLanguage invalid"() {
-            assert.throw(() => languageManager.currentLanguage = "swe_aaa", "swe_aaa is not a valid language value");
+            assert.throw(() => languageManager.setCurrentLanguage("swe_aaa"), "swe_aaa is not a valid language value");
         }
     }
 });

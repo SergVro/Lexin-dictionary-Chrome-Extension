@@ -10,35 +10,47 @@ class HistoryModel {
     private messageService: IMessageService;
     private languageManager: LanguageManager;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager, storage: ISettingsStorage) {
+    constructor(MessageService: IMessageService, languageManager: LanguageManager, settingsStorage: ISettingsStorage) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
-        this.settingsStorage = storage || localStorage;
+        this.settingsStorage = settingsStorage;
     }
 
-    get language() : string {
-        return this.languageManager.currentLanguage;
-    }
-    set language(value : string) {
-        this.languageManager.currentLanguage = value;
-        this.fireOnChange();
+    getLanguage() : JQueryPromise<string> {
+        return this.languageManager.getCurrentLanguage();
     }
 
-    get showDate() : boolean {
-        return !!this.settingsStorage["showDate"];
-    }
-    set showDate(value: boolean) {
-        this.settingsStorage["showDate"] = value;
-        this.fireOnChange();
+    setLanguage(value : string): JQueryPromise<void> {
+        return this.languageManager.setCurrentLanguage(value).then(() => {
+            this.fireOnChange();
+        });
     }
 
-    loadLanguages(): ILanguage[] {
-        var languages = this.languageManager.getEnabledLanguages();
-        return languages.filter((item) => item.value !== "swe_swe");
+    getShowDate() : JQueryPromise<boolean> {
+        return this.settingsStorage.getItem("showDate").then((showDate) => {
+            return !!showDate;
+        });
+    }
+    setShowDate(value: boolean): JQueryPromise<void> {
+        return this.settingsStorage.setItem("showDate", value).then(() => {
+            this.fireOnChange();
+        });
+    }
+
+    loadLanguages(): JQueryPromise<ILanguage[]> {
+        return this.languageManager.getEnabledLanguages().then((languages) => {
+            return languages.filter((item) => item.value !== "swe_swe");
+        });
     }
 
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
-        return this.messageService.loadHistory(language);
+        if (language) {
+            return this.messageService.loadHistory(language);
+        } else {
+            var dfd = $.Deferred();
+            dfd.resolve([]);
+            return dfd.promise();
+        }
     }
 
     clearHistory(language : string) : JQueryPromise<{}> {

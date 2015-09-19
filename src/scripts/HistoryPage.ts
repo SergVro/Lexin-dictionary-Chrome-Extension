@@ -12,12 +12,22 @@ class HistoryPage {
 
     constructor(model: HistoryModel) {
         this.model = model;
-        this.languages =  model.loadLanguages();
-        this.renderLanguageSelector();
-        this.currentLanguage = model.language;
-        this.showDate = model.showDate;
-        this.subscribeOnEvents();
-        this.updateHistory();
+        model.loadLanguages().then((languages) => {
+            this.languages = languages;
+            this.renderLanguageSelector();
+            $.when(
+                model.getLanguage().then((language) => {
+                    this.setCurrentLanguage(language);
+
+                }),
+                model.getShowDate().then((showDate) => {
+                    this.showDate = showDate;
+                })
+            ).then(() => {
+                this.updateHistory();
+            });
+            this.subscribeOnEvents();
+        });
     }
 
     private subscribeOnEvents() {
@@ -29,14 +39,14 @@ class HistoryPage {
         });
 
         $("#showDate").change(function () {
-            self.model.showDate = self.showDate;
-            self.updateHistory();
-
-            Tracker.track("showDate", "changed", self.showDate.toString());
+            self.model.setShowDate(self.showDate).then(() => {
+                self.updateHistory();
+                Tracker.track("showDate", "changed", self.showDate.toString());
+            });
         });
 
         $("#clearHistory").click(function () {
-            var langDirection = self.currentLanguage;
+            var langDirection = self.getCurrentLanguage();
             var langName = $("#language option[value='${langDirection}']").text();
             if (confirm("Are you sure you want to clear history for language " + langName)) {
                 self.model.clearHistory(langDirection).then(() => self.updateHistory());
@@ -46,10 +56,10 @@ class HistoryPage {
         });
     }
 
-    get currentLanguage() : string {
+    getCurrentLanguage() : string {
         return $("#language").val();
     }
-    set currentLanguage(value: string) {
+    setCurrentLanguage(value: string) {
         $("#language").val(value);
     }
 
@@ -61,7 +71,7 @@ class HistoryPage {
     }
 
     updateHistory() {
-        this.renderHistory(this.currentLanguage, this.showDate);
+        this.renderHistory(this.getCurrentLanguage(), this.showDate);
     }
 
     renderHistory(langDirection: string, showDate: boolean) {

@@ -167,7 +167,7 @@ module.exports = function(grunt) {
         },
 
         intern: {
-            main: {
+            unit: {
                 options: {
                     runType: "runner", // defaults to "client"
                     config: "tests/intern",
@@ -210,7 +210,9 @@ module.exports = function(grunt) {
 
     // Default task(s).
     grunt.registerTask("build", ["clean", "typescript", "tslint", "copy", "requirejs", "clean:temp", "compress"]);
-    grunt.registerTask("test",  ["typescript:tests", "run:combinetests", "run:webdriver","intern:main", "intern:func", "stop:webdriver"]);
+    grunt.registerTask("test",  ["typescript:tests", "run:combinetests", "run:webdriver","intern:unit", "intern:func", "stop:webdriver"]);
+    grunt.registerTask("testunit", ["typescript:tests", "run:combinetests", "run:webdriver","intern:unit", "stop:webdriver"]);
+    grunt.registerTask("testfunc", ["typescript:tests", "run:combinetests", "run:webdriver","intern:func", "stop:webdriver"]);
     grunt.registerTask("travis",  ["build", "run:combinetests", "run:selenium","intern:travis","stop:selenium"]);
 
 

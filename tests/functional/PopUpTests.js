@@ -10,7 +10,11 @@ define([
         name: "Pop-up",
 
         afterEach: function () {
-            return this.remote.clearLocalStorage();
+            var remote = this.remote;
+            remote.setExecuteAsyncTimeout(1000);
+            return remote.executeAsync(function(callback) {chrome.storage.sync.clear(callback);}).then(function() {
+                return remote.executeAsync(function(callback) {chrome.storage.local.clear(callback);});
+            });
         },
 
         "Type word sv to sv in popup": function() {

@@ -4,8 +4,14 @@ declare var _gaq;
 
 class Tracker {
 
+    static doNotTrack: boolean = false; // should be true while running functional tests
 
     static track(eventTarget: string,  eventType: string, eventLabel?: string, eventValue?: number) {
+
+        if (this.doNotTrack) {
+            return;
+        }
+
         //"hitType": "event",             // Required.
         //"eventCategory": eventTarget,   // Required.
         //"eventAction": eventType,       // Required.

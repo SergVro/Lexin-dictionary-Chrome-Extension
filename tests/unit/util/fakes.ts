@@ -8,6 +8,7 @@ import IDictionary = interfaces.IDictionary;
 import ITranslationManager = interfaces.ITranslationManager;
 import IHistoryManager = interfaces.IHistoryManager;
 import IMessageHandlers = interfaces.IMessageHandlers;
+import ISettingsStorage = interfaces.ISettingsStorage;
 
 import GetTranslationHandler = interfaces.GetTranslationHandler;
 import LoadHistoryHandler = interfaces.LoadHistoryHandler;
@@ -104,16 +105,24 @@ export class FakeTranslationManager implements ITranslationManager {
 
 export class FakeHistoryManager implements IHistoryManager {
     history: IHistoryItem[] = [];
-    getHistory(langDirection: string): IHistoryItem[] {
-        return this.history;
+    getHistory(langDirection: string): JQueryPromise<IHistoryItem[]> {
+        var dfd = $.Deferred();
+        dfd.resolve(this.history);
+        return dfd.promise();
     }
 
-    clearHistory(langDirection: string): void {
+    clearHistory(langDirection: string): JQueryPromise<void> {
+        var dfd = $.Deferred<void>();
         this.history = [];
+        dfd.resolve();
+        return dfd.promise();
     }
 
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
+    addToHistory(langDirection: string, translations: IHistoryItem[]): JQueryPromise<void> {
+        var dfd = $.Deferred<void>();
         this.history = this.history.concat(translations);
+        dfd.resolve();
+        return dfd.promise();
     }
 
 }
@@ -139,5 +148,37 @@ export class FakeMessageHandlers implements IMessageHandlers {
     registerGetSelectionHandler(handler: GetSelectionHandler): void {
         this.getSelectionHandler = handler;
     }
+
+}
+
+export class FakeAsyncStorage implements ISettingsStorage {
+    getItem(key: string): JQueryPromise<any> {
+        var dfd = $.Deferred<any>();
+        var valueStr = localStorage[key];
+        var value;
+        try {
+            value = JSON.parse(valueStr);
+        } catch (e) {
+            value = valueStr;
+        }
+        setTimeout(() => dfd.resolve(value), 100);
+        return dfd.promise();
+    }
+
+    setItem(key: string, value: any): JQueryPromise<void> {
+        var dfd = $.Deferred<void>();
+        localStorage[key] = JSON.stringify(value);
+        setTimeout(() => dfd.resolve(), 100);
+        return dfd.promise();
+    }
+
+    removeItem(key: string): JQueryPromise<void> {
+        var dfd = $.Deferred<void>();
+        localStorage.removeItem(key);
+        setTimeout(() => dfd.resolve(), 1);
+        return dfd.promise();
+
+    }
+
 
 }

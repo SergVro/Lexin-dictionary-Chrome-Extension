@@ -15,6 +15,7 @@ import IMessageService  = interfaces.IMessageService;
 import ILanguage = interfaces.ILanguage;
 import ITranslation = interfaces.ITranslation;
 import ISettingsStorage = interfaces.ISettingsStorage;
+import LocalStorage = require("src/scripts/Storage/LocalStorage");
 
 import fakes = require("tests/unit/util/fakes");
 import TestMessageService = fakes.TestMessageService;
@@ -30,7 +31,8 @@ registerSuite({
     name: "HistoryModel",
     beforeEach() {
         mockMessageService = new TestMessageService();
-        mockSettingsStorage = {};
+        mockSettingsStorage = new LocalStorage();
+        localStorage.clear();
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
         historyModel = new HistoryModel(mockMessageService, languageManager, mockSettingsStorage);
@@ -38,32 +40,37 @@ registerSuite({
     // Assume we have a promises interface defined
     "default data"() {
 
-        assert.strictEqual(historyModel.language, "swe_swe", "default language should be Swedish");
-        assert.strictEqual(historyModel.showDate, false, "default value for showDate should be false");
-
+        return historyModel.getLanguage().then((language) => {
+            assert.strictEqual(language, "swe_swe", "default language should be Swedish");
+            return historyModel.getShowDate().then((showDate) => {
+                assert.strictEqual(showDate, false, "default value for showDate should be false");
+            });
+        });
     },
     "setters": {
         "language"() {
             var testLanguage = "swe_eng";
-
-            historyModel.onChange = (model) => assert.strictEqual(model.language, testLanguage);
-            historyModel.language = testLanguage;
-
-            assert.strictEqual(historyModel.language, testLanguage);
+            return historyModel.setLanguage(testLanguage).then(() => {
+                return historyModel.getLanguage().then((lang) => {
+                    assert.strictEqual(lang, testLanguage);
+                });
+            });
         },
-        "show date"() {
-            historyModel.onChange = (model) => assert.strictEqual(model.showDate, true);
-            historyModel.showDate = true;
 
-            assert.strictEqual(historyModel.showDate, true);
-            assert.strictEqual(mockSettingsStorage["showDate"], true);
+        "show date"() {
+            return historyModel.setShowDate(true).then(() => {
+                return historyModel.getShowDate().then((show) => {
+                    assert.strictEqual(show, true);
+                });
+            });
         }
 
     },
     "methods": {
         "load languages"() {
-            var languages = historyModel.loadLanguages();
-            assert.equal(languages.length, 19, "By default languages list should be all languages except swe_swe");
+            historyModel.loadLanguages().then((languages) => {
+                assert.equal(languages.length, 19, "By default languages list should be all languages except swe_swe");
+            });
         },
 
         "load history"() {

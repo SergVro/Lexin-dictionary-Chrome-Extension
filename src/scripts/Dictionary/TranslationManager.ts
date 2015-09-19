@@ -28,27 +28,30 @@ class TranslationManager {
                    languageDirection?: string, skipHistory? : boolean): JQueryPromise<string> {
         //  Summary
         //      Returns a translation for the specified word
-        var deferred = $.Deferred(), self = this;
+        var deferred = $.Deferred();
         word = $.trim(word);
         if (!word) {
             deferred.reject("word is required");
             return deferred;
         }
-        var langDirection = languageDirection || this.languageManager.currentLanguage;
-        var dictionary = this.dictionaryFactory.getDictionary(langDirection);
-        dictionary.getTranslation(word, langDirection, direction).done((data) => {
-            deferred.resolve(data);
+        this.languageManager.getCurrentLanguage().then((currentLanguage) => {
+            var langDirection = languageDirection || currentLanguage;
+            var dictionary = this.dictionaryFactory.getDictionary(langDirection);
+            dictionary.getTranslation(word, langDirection, direction).done((data) => {
+                deferred.resolve(data);
 
-            Tracker.translation(langDirection);
-            if (!skipHistory) {
-                var translations = dictionary.parseTranslation(data, langDirection);
-                this.historyManager.addToHistory(langDirection, translations);
-            }
-        }).fail((error) => {
-            deferred.reject(error);
+                Tracker.translation(langDirection);
+                if (!skipHistory) {
+                    var translations = dictionary.parseTranslation(data, langDirection);
+                    this.historyManager.addToHistory(langDirection, translations);
+                }
+            }).fail((error) => {
+                deferred.reject(error);
 
-            Tracker.translationError(langDirection);
+                Tracker.translationError(langDirection);
+            });
         });
+
         return deferred.promise();
     }
 }

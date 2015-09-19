@@ -19,13 +19,15 @@ export interface ITranslation {
 }
 
 export interface ISettingsStorage {
-    [key: string]: any;
+    getItem(key: string): JQueryPromise<any>;
+    setItem(key: string, value: any): JQueryPromise<void>;
+    removeItem(key: string): JQueryPromise<void>;
 }
 
 export interface IHistoryManager {
-    getHistory(langDirection: string): IHistoryItem[];
-    clearHistory(langDirection: string): void;
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void;
+    getHistory(langDirection: string): JQueryPromise<IHistoryItem[]>;
+    clearHistory(langDirection: string): JQueryPromise<void>;
+    addToHistory(langDirection: string, translations: IHistoryItem[]): JQueryPromise<void>;
 }
 
 export interface IMessageService {
@@ -72,11 +74,11 @@ export interface GetTranslationHandler {
 }
 
 export interface LoadHistoryHandler {
-    (langDirection: string): IHistoryItem[];
+    (langDirection: string): JQueryPromise<IHistoryItem[]>;
 }
 
 export interface ClearHistoryHandler {
-    (langDirection: string): void;
+    (langDirection: string): JQueryPromise<void>;
 }
 
 export interface GetSelectionHandler {

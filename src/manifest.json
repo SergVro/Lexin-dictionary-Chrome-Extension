@@ -22,7 +22,8 @@
     "http://folkets-lexikon.csc.kth.se/",
     "tabs",
     "webRequest",
-    "webRequestBlocking"
+    "webRequestBlocking",
+    "storage"
   ],
   "web_accessible_resources": [
     "scripts/LinkAdapter.js",

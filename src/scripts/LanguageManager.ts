@@ -14,10 +14,9 @@ class LanguageManager {
         this.settingsStorage = settingsStorage;
         this.languages = dictionaryFactory.getAllSupportedLanguages();
 
-        // enable all languages by default
-        if (!this.settingsStorage[this.enabledKey]) {
-            this.setEnabledLanguages(this.languages);
-        }
+        this.settingsStorage.getItem(this.enabledKey).then((enabledLanguages) => {
+
+        });
     }
 
     getLanguages(): ILanguage[] {
@@ -36,62 +35,82 @@ class LanguageManager {
         return language;
     }
 
-    getEnabledLanguages(): ILanguage[] {
-        var enabledLanguages = (this.settingsStorage[this.enabledKey] || "").split(",");
-        if (enabledLanguages.indexOf(this.currentLanguage) === -1) {
-            enabledLanguages.push(this.currentLanguage);
-        }
-        return this.getLanguages().filter((lang) => enabledLanguages.indexOf(lang.value) >= 0);
+    getEnabledLanguages(): JQueryPromise<ILanguage[]> {
+        return this.settingsStorage.getItem(this.enabledKey).then((enabledLanguagesStr) => {
+            // enable all languages by default
+            if (!enabledLanguagesStr) {
+                return this.setEnabledLanguages(this.languages).then(() => {
+                    return this.getEnabledLanguages();
+                });
+            } else {
+                enabledLanguagesStr = enabledLanguagesStr || "";
+                var enabledLanguages = enabledLanguagesStr.split(",");
+                return this.getCurrentLanguage().then((currentLanguage) => {
+                    if (enabledLanguages.indexOf(currentLanguage) === -1) {
+                        enabledLanguages.push(currentLanguage);
+                    }
+                    return this.getLanguages().filter((lang) => enabledLanguages.indexOf(lang.value) >= 0);
+                });
+            }
+        });
+
     }
 
-    setEnabledLanguages(languages: ILanguage[]): void {
-        this.settingsStorage[this.enabledKey] = languages.map((lang) => lang.value).join(",");
+    setEnabledLanguages(languages: ILanguage[]): JQueryPromise<void> {
+        return this.settingsStorage.setItem(this.enabledKey, languages.map((lang) => lang.value).join(","));
     }
 
-    setEnabledByValues(languages: string[]): void {
+    setEnabledByValues(languages: string[]): JQueryPromise<void> {
         languages.forEach((lang) => this.checkLanguage(lang));
-        this.setEnabledLanguages(languages.map((langValue) => this.getLanguage(langValue)));
+        return this.setEnabledLanguages(languages.map((langValue) => this.getLanguage(langValue)));
     }
 
-    setEnabled(language: string): void {
-        this.changeEnabled(language, true);
+    setEnabled(language: string): JQueryPromise<void> {
+        return this.changeEnabled(language, true);
     }
 
-    setDisabled(language: string): void {
-        this.changeEnabled(language, false);
+    setDisabled(language: string): JQueryPromise<void> {
+        return this.changeEnabled(language, false);
     }
 
-    private changeEnabled(language: string, enabled: boolean): void {
+    private changeEnabled(language: string, enabled: boolean): JQueryPromise<void> {
         var languageEntity = this.getLanguage(language);
+        return this.isEnabled(language).then((alreadyEnabled) => {
+            if ((enabled && alreadyEnabled) || (!enabled && !alreadyEnabled)) {
+                return $.when<void>(); // nothing to do here, since already enabled or disabled
+            }
+            return this.getEnabledLanguages().then((languages) => {
+                if (enabled) {
+                    languages.push(languageEntity);
+                } else {
+                    languages = languages.filter((lang) => lang.value !== languageEntity.value);
+                }
+                return this.setEnabledLanguages(languages);
+            });
+        });
 
-        if ((enabled && this.isEnabled(language)) || (!enabled && !this.isEnabled(language))) {
-            return; // nothing to do here, since already enabled or disabled
-        }
-        var languages = this.getEnabledLanguages();
-        if (enabled) {
-            languages.push(languageEntity);
-        } else {
-            languages = languages.filter((lang) => lang.value !== languageEntity.value);
-        }
-        this.setEnabledLanguages(languages);
     }
 
-    isEnabled(languageValue: string) {
+    isEnabled(languageValue: string): JQueryPromise<boolean> {
         this.checkLanguage(languageValue);
-        return this.getEnabledLanguages().some((lang) => lang.value === languageValue);
+        return this.getEnabledLanguages().then((languages) => {
+          return languages.some((lang) => lang.value === languageValue);
+        });
     }
 
-    get currentLanguage(): string {
-        var language = this.settingsStorage[this.languageKey];
-        if (!language) {
-            language = "swe_swe";
-        }
-        return language;
+    getCurrentLanguage(): JQueryPromise<string> {
+        return this.settingsStorage.getItem(this.languageKey).then((language) => {
+             if (!language) {
+                 language = "swe_swe";
+             }
+             return language;
+        });
+
     }
 
-    set currentLanguage(value: string) {
+    setCurrentLanguage(value: string): JQueryPromise<void> {
         this.checkLanguage(value);
-        this.settingsStorage[this.languageKey] = value;
+        return this.settingsStorage.setItem(this.languageKey, value);
     }
 
     private checkLanguage(value: string) {

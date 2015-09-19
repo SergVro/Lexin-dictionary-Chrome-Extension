@@ -77,17 +77,18 @@ define([
                     .end()
 
                     .get("chrome-extension://jeipbgbikoomhlkkkcjamdbanfhidebd/html/history.html")
+                    .sleep(100)
                     .findById("clearHistory")
                     .isEnabled()
                     .then(function(enabled) {
-                        assert.isTrue(enabled);
+                        assert.isTrue(enabled, "Clear history button should be enabled");
                     })
                     .end()
 
                     .findById("showDate")
                     .isEnabled()
                     .then(function(enabled) {
-                        assert.isTrue(enabled);
+                        assert.isTrue(enabled, "Show date button should be enabled");
                     })
                     .end()
 

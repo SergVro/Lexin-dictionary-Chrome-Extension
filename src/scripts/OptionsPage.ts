@@ -15,82 +15,94 @@ class OptionsPage {
         this.languageManager = languageManager;
 
         this.fillLanguages();
-        this.restore_options();
+        //this.restore_options();
     }
 
     // Saves options to localStorage.
     save_options(): void {
 
-        this.languageManager.currentLanguage = $("input[name='langs']:checked").val();
+        this.languageManager.setCurrentLanguage($("input[name='langs']:checked").val());
 
         var checked = $("input[name='enabled']:checked"),
             enabled: string[] = [];
         for (var i = 0; i < checked.length; i++) {
             enabled.push($(checked[i]).val());
         }
-        this.languageManager.setEnabledByValues(enabled);
-        // Update status to let user know options were saved.
-        $("#status").html("Options saved");
-        $("#status").show();
-        setTimeout(function () {
-            $("#status").fadeOut("fast");
-        }, 750);
+        this.languageManager.setEnabledByValues(enabled).then(() => {
+            // Update status to let user know options were saved.
+            $("#status").html("Options saved");
+            $("#status").show();
+            $("#status").addClass("visible");
+            setTimeout(function () {
+                $("#status").fadeOut("fast");
+                $("#status").removeClass("visible");
+            }, 750);
+        });
     }
 
-    // Restores select box state to saved value from localStorage.
-    restore_options(): void {
-        $("input[name='langs']").val([this.languageManager.currentLanguage]);
-    }
+    //
+    //restore_options(): void {
+    //    this.languageManager.getCurrentLanguage().then((currentLanguage) => {
+    //        $("input[name='langs']").val([currentLanguage]);
+    //    });
+    //}
 
     fillLanguages(): void {
         var languages = this.languageManager.getLanguages();
         $("#languageButtons").empty();
-        for (var lang of languages) {
-            var li = $("<li></li>");
-            var input = $("<input />")
-                .attr("type", "radio")
-                .attr("name", "langs")
-                .attr("value", lang.value)
-                .attr("id", lang.value);
-            var span = $("<label></label>")
-                .attr("for", lang.value)
-                .text(lang.text);
-            li.append(input);
-            li.append(span);
-            var checkBox = $("<input />").attr("type", "checkbox")
-                .attr("name", "enabled")
-                .attr("title", "Enabled")
-                .attr("value", lang.value)
-                .attr("id", "enabled_" + lang.value);
+        this.languageManager.getCurrentLanguage().then((currentLanguage) => {
+            this.languageManager.getEnabledLanguages().then((enabledLangs) => {
+                for (var lang of languages) {
+                    var li = $("<li></li>");
+                    var input = $("<input />")
+                        .attr("type", "radio")
+                        .attr("name", "langs")
+                        .attr("value", lang.value)
+                        .attr("id", lang.value);
+                    input.prop("checked", lang.value === currentLanguage);
 
-            if (this.languageManager.isEnabled(lang.value)) {
-                checkBox.prop("checked", true);
-            }
+                    var span = $("<label></label>")
+                        .attr("for", lang.value)
+                        .text(lang.text);
+                    li.append(input);
+                    li.append(span);
 
-            if (lang.value === this.languageManager.currentLanguage) {
-                checkBox.prop("disabled", true);
-            }
+                    var checkBox = $("<input />").attr("type", "checkbox")
+                        .attr("name", "enabled")
+                        .attr("title", "Enabled")
+                        .attr("value", lang.value)
+                        .attr("id", "enabled_" + lang.value);
 
-            li.append(checkBox);
-            $("#languageButtons").append(li);
-        }
 
-        var self = this;
-        $("input[name='langs']").change(function() {
-            $("input[name='enabled']:disabled").prop("disabled", false);
-            $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
-            self.save_options();
-            Tracker.track("language", "changed");
-        });
-        $("input[name='enabled']").change(function() {
-            self.save_options();
-            Tracker.track("enabled_language", "changed", $(this).val());
-        });
+                    checkBox.prop("checked", enabledLangs.some((l) => l.value === lang.value));
 
-        $("#checkAll").change(function() {
-            $("input[name='enabled']:enabled").prop("checked", this.checked);
-            self.save_options();
-            Tracker.track("enabled_language", "changed_all", this.checked);
+                    if (lang.value === currentLanguage) {
+                        checkBox.prop("disabled", true);
+                    }
+
+                    li.append(checkBox);
+
+                    $("#languageButtons").append(li);
+                }
+
+                var self = this;
+                $("input[name='langs']").change(function() {
+                    $("input[name='enabled']:disabled").prop("disabled", false);
+                    $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
+                    self.save_options();
+                    Tracker.track("language", "changed");
+                });
+                $("input[name='enabled']").change(function() {
+                    self.save_options();
+                    Tracker.track("enabled_language", "changed", $(this).val());
+                });
+
+                $("#checkAll").change(function() {
+                    $("input[name='enabled']:enabled").prop("checked", this.checked);
+                    self.save_options();
+                    Tracker.track("enabled_language", "changed_all", this.checked);
+                });
+            });
         });
     }
 }
