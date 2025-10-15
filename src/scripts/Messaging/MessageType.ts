@@ -1,4 +1,3 @@
-
 enum MessageType {
     getHistory,
     clearHistory,
@@ -6,5 +5,5 @@ enum MessageType {
     getSelection
 }
 
-export = MessageType;
+export default MessageType;
 

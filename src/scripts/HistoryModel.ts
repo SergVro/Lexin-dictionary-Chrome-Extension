@@ -1,9 +1,5 @@
-import interfaces = require("./Interfaces");
-import IMessageService = interfaces.IMessageService;
-import ISettingsStorage = interfaces.ISettingsStorage;
-import ILanguage = interfaces.ILanguage;
-import IHistoryItem = interfaces.IHistoryItem;
-import LanguageManager = require("./LanguageManager");
+import { IMessageService, ISettingsStorage, ILanguage, IHistoryItem } from "./Interfaces.js";
+import LanguageManager from "./LanguageManager.js";
 
 class HistoryModel {
     private settingsStorage: ISettingsStorage;
@@ -33,7 +29,7 @@ class HistoryModel {
     }
 
     loadLanguages(): ILanguage[] {
-        var languages = this.languageManager.getEnabledLanguages();
+        const languages = this.languageManager.getEnabledLanguages();
         return languages.filter((item) => item.value !== "swe_swe");
     }
 
@@ -41,7 +37,7 @@ class HistoryModel {
         return this.messageService.loadHistory(language);
     }
 
-    clearHistory(language : string) : JQueryPromise<{}> {
+    clearHistory(language : string) : JQueryPromise<void> {
         return this.messageService.clearHistory(language);
     }
 
@@ -54,4 +50,4 @@ class HistoryModel {
     }
 }
 
-export = HistoryModel
+export default HistoryModel;

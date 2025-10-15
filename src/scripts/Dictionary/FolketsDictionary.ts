@@ -1,9 +1,6 @@
-import interfaces = require("../Interfaces");
-import IDictionary = interfaces.IDictionary;
-import IHistoryItem = interfaces.IHistoryItem;
-import ILanguage = interfaces.ILanguage;
-import TranslationDirection = require("./TranslationDirection");
-import DictionaryBase = require("./DictionaryBase");
+import { ILanguage } from "../Interfaces.js";
+import TranslationDirection from "./TranslationDirection.js";
+import DictionaryBase from "./DictionaryBase.js";
 
 class FolketsDictionary extends DictionaryBase{
 
@@ -18,18 +15,18 @@ class FolketsDictionary extends DictionaryBase{
     }
 
     createQueryUrl(word: string, langDirection: string, direction: TranslationDirection) : string {
-        var directionString = direction === TranslationDirection.from ? "en" : "sv";
-        var wordEncoded = encodeURIComponent(word);
-        var query = `http://folkets-lexikon.csc.kth.se/folkets/service?lang=${directionString}&interface=en&word=${wordEncoded}`;
+        const directionString = direction === TranslationDirection.from ? "en" : "sv";
+        const wordEncoded = encodeURIComponent(word);
+        const query = `http://folkets-lexikon.csc.kth.se/folkets/service?lang=${directionString}&interface=en&word=${wordEncoded}`;
         return query;
     }
 
     isWordFound(word: string, translation: string): boolean {
-        var decodedTranslation = this.htmlDecode(translation);
+        const decodedTranslation = this.htmlDecode(translation);
         return !(decodedTranslation.indexOf(word + " - No hit") > -1);
     }
 
 
 }
 
-export = FolketsDictionary;
+export default FolketsDictionary;

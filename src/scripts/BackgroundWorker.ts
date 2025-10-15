@@ -1,14 +1,6 @@
-/// <reference path="..\lib\jquery\jquery.d.ts" />
-
-import $ = require("jquery");
-import interfaces = require("./Interfaces");
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import IHistoryManager = interfaces.IHistoryManager;
-import ITranslation = interfaces.ITranslation;
-import ITranslationManager = interfaces.ITranslationManager;
-import IMessageHandlers = interfaces.IMessageHandlers;
-
-import TranslationDirection = require("./Dictionary/TranslationDirection");
+import $ from "jquery";
+import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "./Interfaces.js";
+import TranslationDirection from "./Dictionary/TranslationDirection.js";
 
 class BackgroundWorker {
 
@@ -23,24 +15,24 @@ class BackgroundWorker {
     }
 
     getTranslation(word: string, direction: TranslationDirection): JQueryPromise<ITranslation> {
-        var result =  $.Deferred<ITranslation>();
-        this.translationManager.getTranslation(word, direction).then(function (data) {
-            var response : ITranslation = {translation: data, error: null};
+        const result = $.Deferred<ITranslation>();
+        this.translationManager.getTranslation(word, direction).then((data) => {
+            const response: ITranslation = {translation: data, error: null};
             result.resolve(response);
-        }).fail(function (error) {
-            var errorMessage = "Error connecting to the dictionary service: " +
-                (error ? error.status : "Unknown");
-            var response : ITranslation = {translation: null, error: errorMessage};
+        }).fail((error: any) => {
+            const errorMessage = "Error connecting to the dictionary service: " +
+                (error && error.status ? error.status : "Unknown");
+            const response: ITranslation = {translation: null, error: errorMessage};
             result.resolve(response);
         });
         return result.promise();
     }
 
-    initialize() {
+    initialize(): void {
         this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
         this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection));
         this.messageHandlers.registerClearHistoryHandler((langDirection) => this.historyManager.clearHistory(langDirection));
     }
 }
 
-export = BackgroundWorker;
+export default BackgroundWorker;

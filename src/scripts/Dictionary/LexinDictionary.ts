@@ -1,12 +1,6 @@
-/// <reference path="..\..\lib\jquery\jquery.d.ts" />
-
-import $ = require("jquery");
-import interfaces = require("../Interfaces");
-import IDictionary = interfaces.IDictionary;
-import IHistoryItem = interfaces.IHistoryItem;
-import ILanguage = interfaces.ILanguage;
-import TranslationDirection = require("./TranslationDirection");
-import DictionaryBase = require("./DictionaryBase");
+import { ILanguage } from "../Interfaces.js";
+import TranslationDirection from "./TranslationDirection.js";
+import DictionaryBase from "./DictionaryBase.js";
 
 class LexinDictionary extends DictionaryBase {
     get supportedLanguages(): ILanguage[]{
@@ -41,17 +35,17 @@ class LexinDictionary extends DictionaryBase {
 
 
     createQueryUrl(word: string, langDirection: string, direction: TranslationDirection) : string {
-        var directionString = TranslationDirection[direction];
-        var wordEncoded = encodeURIComponent(word);
-        var query = `http://lexin.nada.kth.se/lexin/service?searchinfo=${directionString},${langDirection},${wordEncoded}`;
+        const directionString = TranslationDirection[direction];
+        const wordEncoded = encodeURIComponent(word);
+        const query = `http://lexin.nada.kth.se/lexin/service?searchinfo=${directionString},${langDirection},${wordEncoded}`;
         return query;
     }
 
     isWordFound(word: string, translation: string): boolean {
-        var decodedTranslation = this.htmlDecode(translation);
+        const decodedTranslation = this.htmlDecode(translation);
         return !(decodedTranslation.indexOf(word + " - Ingen unik träff") > -1
             || decodedTranslation.indexOf(word + " - Ingen träff") > -1);
     }
 }
 
-export = LexinDictionary;
+export default LexinDictionary;

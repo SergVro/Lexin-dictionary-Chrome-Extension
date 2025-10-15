@@ -1,14 +1,9 @@
-//# sourceURL=PopupPage.js
-
-
-import LinkAdapter = require("./LinkAdapter");
-import LanguageManager = require("./LanguageManager");
-import TranslationDirection = require("./Dictionary/TranslationDirection");
-import interfaces = require("./Interfaces");
-import IMessageService = interfaces.IMessageService;
-import ITranslation = interfaces.ITranslation;
-import Tracker = require("./Tracker");
-import $ = require("jquery");
+import LinkAdapter from "./LinkAdapter.js";
+import LanguageManager from "./LanguageManager.js";
+import TranslationDirection from "./Dictionary/TranslationDirection.js";
+import { IMessageService, ITranslation } from "./Interfaces.js";
+import Tracker from "./Tracker.js";
+import $ from "jquery";
 
 class PopupPage {
     private history = [];
@@ -33,16 +28,16 @@ class PopupPage {
     }
 
     get currentLanguage(): string {
-        return $("#language").val();
+        return $("#language").val() as string;
     }
 
     getTranslation(direction?: TranslationDirection): void {
-        var word = $("#word").val();
+        let word = $("#word").val() as string;
         word = $.trim(word);
         if (!word || word === "") {
             return;
         }
-        var translationBox = $("#translation");
+        const translationBox = $("#translation");
         translationBox.html("Searching for '" + word + "'...");
         this.messageService.getTranslation(word, direction).then((response: ITranslation) => {
             if (word === this.currentWord) {
@@ -66,10 +61,10 @@ class PopupPage {
     }
 
     fillLanguages() {
-        var languages = this.languageManager.getEnabledLanguages();
+        const languages = this.languageManager.getEnabledLanguages();
         $("#language").empty();
-        for (var lang of languages) {
-            var option = $("<option></option>").attr("value", lang.value).append(lang.text);
+        for (const lang of languages) {
+            const option = $("<option></option>").attr("value", lang.value).append(lang.text);
             $("#language").append(option);
         }
     }
@@ -89,7 +84,7 @@ class PopupPage {
 
     private subscribeOnEvents(): void {
 
-        var self = this;
+        const self = this;
 
         $("#language").change(() => {
             Tracker.track("language", "changed", this.currentLanguage);
@@ -106,7 +101,7 @@ class PopupPage {
         // if something was clicked inside the translation article
         $("#translation").click(() => {
             Tracker.track("translation", "clicked");
-            var selection = window.getSelection().toString();
+            const selection = window.getSelection().toString();
             if (selection !== "") {
                 this.setCurrentWord(selection);
                 this.getTranslation();
@@ -114,14 +109,14 @@ class PopupPage {
         });
 
         // manual word search
-        var timer = null;
-        var wordInput = $("#wordInput");
+        let timer = null;
+        const wordInput = $("#wordInput");
         wordInput.keyup(function(e){
             if (e.altKey) {
                 return;
             }
             clearTimeout(timer);
-            var word = $(this).val();
+            const word = $(this).val() as string;
             if (word.length >= 2) {
                 timer = setTimeout(() => {
                     Tracker.track("word", "typed", "from_sv");
@@ -138,7 +133,7 @@ class PopupPage {
                 return;
             }
             clearTimeout(timer);
-            var word = $(this).val();
+            const word = $(this).val() as string;
             if (word.length >= 2) {
                 timer = setTimeout(() => {
                     Tracker.track("word", "typed", "to_sv");
@@ -178,9 +173,9 @@ class PopupPage {
         });
 
         //window.localStorage.setItem("showQuickTip", "Yes");
-        var showQuickTip = window.localStorage.getItem("showQuickTip");
+        const showQuickTip = window.localStorage.getItem("showQuickTip");
         if (showQuickTip !== "No") {
-            var tipContainer = $(".quickTipContainer");
+            const tipContainer = $(".quickTipContainer");
             tipContainer.css("display", "block");
             tipContainer.click(function () {
                 $(".quickTipContainer").fadeOut("fast", function () {
@@ -192,4 +187,4 @@ class PopupPage {
     }
 }
 
-export = PopupPage;
+export default PopupPage;

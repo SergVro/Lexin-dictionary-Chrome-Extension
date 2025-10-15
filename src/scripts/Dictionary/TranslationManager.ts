@@ -1,15 +1,9 @@
-/// <reference path="../../lib/jquery/jquery.d.ts" />
-
-import $ = require("jquery");
-import DictionaryFactory = require("./DictionaryFactory");
-import LanguageManager = require("../LanguageManager");
-import Tracker = require("../Tracker");
-import interfaces = require("../Interfaces");
-import IHistoryManager = interfaces.IHistoryManager;
-import ILanguage = interfaces.ILanguage;
-import ITranslation = interfaces.ITranslation;
-
-import TranslationDirection = require("./TranslationDirection");
+import $ from "jquery";
+import DictionaryFactory from "./DictionaryFactory.js";
+import LanguageManager from "../LanguageManager.js";
+import Tracker from "../Tracker.js";
+import { IHistoryManager } from "../Interfaces.js";
+import TranslationDirection from "./TranslationDirection.js";
 
 class TranslationManager {
 
@@ -28,20 +22,20 @@ class TranslationManager {
                    languageDirection?: string, skipHistory? : boolean): JQueryPromise<string> {
         //  Summary
         //      Returns a translation for the specified word
-        var deferred = $.Deferred(), self = this;
+        const deferred = $.Deferred<string>();
         word = $.trim(word);
         if (!word) {
             deferred.reject("word is required");
-            return deferred;
+            return deferred.promise();
         }
-        var langDirection = languageDirection || this.languageManager.currentLanguage;
-        var dictionary = this.dictionaryFactory.getDictionary(langDirection);
+        const langDirection = languageDirection || this.languageManager.currentLanguage;
+        const dictionary = this.dictionaryFactory.getDictionary(langDirection);
         dictionary.getTranslation(word, langDirection, direction).done((data) => {
             deferred.resolve(data);
 
             Tracker.translation(langDirection);
             if (!skipHistory) {
-                var translations = dictionary.parseTranslation(data, langDirection);
+                const translations = dictionary.parseTranslation(data, langDirection);
                 this.historyManager.addToHistory(langDirection, translations);
             }
         }).fail((error) => {
@@ -53,4 +47,4 @@ class TranslationManager {
     }
 }
 
-export = TranslationManager;
+export default TranslationManager;

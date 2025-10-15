@@ -1,9 +1,7 @@
-
-import HistoryModel = require("./HistoryModel");
-import Tracker = require("./Tracker");
-import interfaces = require("./Interfaces");
-import IHistoryItem = interfaces.IHistoryItem;
-import ILanguage = interfaces.ILanguage;
+import HistoryModel from "./HistoryModel.js";
+import Tracker from "./Tracker.js";
+import { IHistoryItem, ILanguage } from "./Interfaces.js";
+import $ from "jquery";
 
 class HistoryPage {
 
@@ -21,11 +19,11 @@ class HistoryPage {
     }
 
     private subscribeOnEvents() {
-        var self = this;
+        const self = this;
         $("#language").change(function () {
             self.updateHistory();
 
-            Tracker.track("language", "changed", $(this).val());
+            Tracker.track("language", "changed", $(this).val() as string);
         });
 
         $("#showDate").change(function () {
@@ -36,8 +34,8 @@ class HistoryPage {
         });
 
         $("#clearHistory").click(function () {
-            var langDirection = self.currentLanguage;
-            var langName = $("#language option[value='${langDirection}']").text();
+            const langDirection = self.currentLanguage;
+            const langName = $("#language option[value='${langDirection}']").text();
             if (confirm("Are you sure you want to clear history for language " + langName)) {
                 self.model.clearHistory(langDirection).then(() => self.updateHistory());
 
@@ -47,7 +45,7 @@ class HistoryPage {
     }
 
     get currentLanguage() : string {
-        return $("#language").val();
+        return $("#language").val() as string;
     }
     set currentLanguage(value: string) {
         $("#language").val(value);
@@ -68,13 +66,13 @@ class HistoryPage {
         $("#history").empty();
         this.model.loadHistory(langDirection).then((history: IHistoryItem[]) => {
 
-            var table = $("<table></table>");
-            var thead = $("<thead></thead>");
+            const table = $("<table></table>");
+            const thead = $("<thead></thead>");
             table.append(thead);
 
-            var dateHead = $("<th>Date</th>");
-            var wordHead = $("<th>Word</th>");
-            var translationHead = $("<th>Translation</th>");
+            const dateHead = $("<th>Date</th>");
+            const wordHead = $("<th>Word</th>");
+            const translationHead = $("<th>Translation</th>");
 
             if (showDate) {
                 thead.append(dateHead);
@@ -84,17 +82,17 @@ class HistoryPage {
 
             $("#history").append(table);
             if (history && history.length > 0) {
-                var prevAddedDateStr = "";
+                let prevAddedDateStr = "";
                 $.each(history, function (i, item) {
 
-                    var tr = $("<tr></tr>");
-                    var tdWord = $("<td></td>");
-                    var tdTrans = $("<td></td>");
-                    var tdAdded = $("<td></td>");
+                    const tr = $("<tr></tr>");
+                    const tdWord = $("<td></td>");
+                    const tdTrans = $("<td></td>");
+                    const tdAdded = $("<td></td>");
 
                     tdWord.html(item.word);
                     tdTrans.html(item.translation);
-                    var addedDateStr = new Date(item.added).toDateString();
+                    let addedDateStr = new Date(item.added).toDateString();
                     if (addedDateStr === prevAddedDateStr) {
                         addedDateStr = "";
                         tdAdded.addClass("noBottomBorder");
@@ -115,7 +113,7 @@ class HistoryPage {
                 $("#clearHistory").removeAttr("disabled");
                 $("#showDate").removeAttr("disabled");
             } else {
-                var noTranslationsTd = $("<td>No translations in history</td>");
+                const noTranslationsTd = $("<td>No translations in history</td>");
                 if (showDate) {
                     noTranslationsTd.attr("colspan", 3);
                 } else {
@@ -133,8 +131,8 @@ class HistoryPage {
     renderLanguageSelector() : void {
         $("#language").empty();
         if (this.languages.length > 0) {
-            for (var lang of this.languages) {
-                var option = $("<option></option>").attr("value", lang.value).append(lang.text);
+            for (const lang of this.languages) {
+                const option = $("<option></option>").attr("value", lang.value).append(lang.text);
                 $("#language").append(option);
             }
         } else {
@@ -143,4 +141,4 @@ class HistoryPage {
     }
 }
 
-export = HistoryPage
+export default HistoryPage;

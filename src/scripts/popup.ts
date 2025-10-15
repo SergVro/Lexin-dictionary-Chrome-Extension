@@ -1,15 +1,12 @@
-//# sourceURL=popup.js
-/// <reference path="..\lib\jquery\jquery.d.ts" />
-
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import MessageService = require("./Messaging/MessageService");
-import LanguageManager = require("./LanguageManager");
-import PopupPage = require("./PopupPage");
-import $ = require("jquery");
+import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import MessageService from "./Messaging/MessageService.js";
+import LanguageManager from "./LanguageManager.js";
+import PopupPage from "./PopupPage.js";
+import $ from "jquery";
 
 $(() => {
-    var messageService = new MessageService();
-    var dictionaryFactory = new DictionaryFactory();
-    var languageManager = new LanguageManager(localStorage, dictionaryFactory);
+    const messageService = new MessageService();
+    const dictionaryFactory = new DictionaryFactory();
+    const languageManager = new LanguageManager(localStorage, dictionaryFactory);
     new PopupPage(messageService, languageManager);
 });

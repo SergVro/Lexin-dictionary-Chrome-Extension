@@ -1,13 +1,7 @@
-/// <reference path="..\..\lib\jquery\jquery.d.ts" />
-
-import $ = require("jquery");
-import interfaces = require("../Interfaces");
-import IDictionary = interfaces.IDictionary;
-import IHistoryItem = interfaces.IHistoryItem;
-import ILanguage = interfaces.ILanguage;
-import ILoader = interfaces.ILoader;
-import TranslationDirection = require("./TranslationDirection");
-import TranslationParser = require("./TranslationParser");
+import $ from "jquery";
+import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../Interfaces.js";
+import TranslationDirection from "./TranslationDirection.js";
+import TranslationParser from "./TranslationParser.js";
 
 class DictionaryBase extends TranslationParser implements IDictionary{
 
@@ -40,8 +34,8 @@ class DictionaryBase extends TranslationParser implements IDictionary{
 
     getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> {
         this.checkLanguage(langDirection);
-        var queryUrl: string = this.createQueryUrl(word, langDirection, direction);
-        var deferred = $.Deferred();
+        const queryUrl: string = this.createQueryUrl(word, langDirection, direction);
+        const deferred = $.Deferred();
         this.loader.get(queryUrl).done((data) => {
             if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {
                 this.getTranslation(word.toLowerCase(), langDirection, direction).done((dataLower) => {
@@ -54,7 +48,7 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         return deferred.promise();
     }
 
-    isWordFound(word: string, translation: string): boolean {
+    isWordFound(_word: string, _translation: string): boolean {
         throw new Error("This method is abstract");
     }
 
@@ -63,7 +57,7 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         return this.parse(translation, this.parsingRegExp);
     }
 
-    createQueryUrl(word: string, langDirection: string, direction: TranslationDirection) : string {
+    createQueryUrl(_word: string, _langDirection: string, _direction: TranslationDirection) : string {
         throw new Error("This method is abstract");
     }
 
@@ -78,5 +72,5 @@ class DictionaryBase extends TranslationParser implements IDictionary{
     }
 }
 
-export = DictionaryBase;
+export default DictionaryBase;
 

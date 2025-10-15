@@ -1,11 +1,8 @@
-//# sourceURL=content.js
-/// <reference path="..\lib\requirejs\require.d.ts" />
+import MessageService from "./Messaging/MessageService.js";
+import MessageHandlers from "./Messaging/MessageHandlers.js";
+import ContentScript from "./ContentScript.js";
 
-import MessageService = require("./Messaging/MessageService");
-import MessageHandlers = require("./Messaging/MessageHandlers");
-import ContentScript = require("./ContentScript");
-
-var messageService = new MessageService(),
-    messageHandlers = new MessageHandlers(),
-    contentScript = new ContentScript(messageService, messageHandlers);
+const messageService = new MessageService();
+const messageHandlers = new MessageHandlers();
+const contentScript = new ContentScript(messageService, messageHandlers);
 contentScript.initialize();

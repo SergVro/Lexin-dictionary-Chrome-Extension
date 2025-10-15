@@ -1,10 +1,10 @@
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import OptionsPage = require("./OptionsPage");
-import LanguageManager = require("./LanguageManager");
-import $ = require("jquery");
+import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import OptionsPage from "./OptionsPage.js";
+import LanguageManager from "./LanguageManager.js";
+import $ from "jquery";
 
 $(() => {
-    var dictionaryFactory = new DictionaryFactory();
-    var languageManager = new LanguageManager(localStorage, dictionaryFactory);
+    const dictionaryFactory = new DictionaryFactory();
+    const languageManager = new LanguageManager(localStorage, dictionaryFactory);
     new OptionsPage(languageManager);
 });

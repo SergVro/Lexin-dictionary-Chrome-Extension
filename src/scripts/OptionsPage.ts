@@ -1,11 +1,6 @@
-/// <reference path="..\lib\jquery\jquery.d.ts" />
-
-import $ = require("jquery");
-import interfaces = require("./Interfaces");
-import ISettingsStorage = interfaces.ISettingsStorage;
-import IMessageService = interfaces.IMessageService;
-import LanguageManager = require("./LanguageManager");
-import Tracker = require("./Tracker");
+import $ from "jquery";
+import LanguageManager from "./LanguageManager.js";
+import Tracker from "./Tracker.js";
 
 class OptionsPage {
 
@@ -21,12 +16,12 @@ class OptionsPage {
     // Saves options to localStorage.
     save_options(): void {
 
-        this.languageManager.currentLanguage = $("input[name='langs']:checked").val();
+        this.languageManager.currentLanguage = $("input[name='langs']:checked").val() as string;
 
-        var checked = $("input[name='enabled']:checked"),
-            enabled: string[] = [];
-        for (var i = 0; i < checked.length; i++) {
-            enabled.push($(checked[i]).val());
+        const checked = $("input[name='enabled']:checked");
+        const enabled: string[] = [];
+        for (let i = 0; i < checked.length; i++) {
+            enabled.push($(checked[i]).val() as string);
         }
         this.languageManager.setEnabledByValues(enabled);
         // Update status to let user know options were saved.
@@ -43,21 +38,21 @@ class OptionsPage {
     }
 
     fillLanguages(): void {
-        var languages = this.languageManager.getLanguages();
+        const languages = this.languageManager.getLanguages();
         $("#languageButtons").empty();
-        for (var lang of languages) {
-            var li = $("<li></li>");
-            var input = $("<input />")
+        for (const lang of languages) {
+            const li = $("<li></li>");
+            const input = $("<input />")
                 .attr("type", "radio")
                 .attr("name", "langs")
                 .attr("value", lang.value)
                 .attr("id", lang.value);
-            var span = $("<label></label>")
+            const span = $("<label></label>")
                 .attr("for", lang.value)
                 .text(lang.text);
             li.append(input);
             li.append(span);
-            var checkBox = $("<input />").attr("type", "checkbox")
+            const checkBox = $("<input />").attr("type", "checkbox")
                 .attr("name", "enabled")
                 .attr("title", "Enabled")
                 .attr("value", lang.value)
@@ -75,7 +70,7 @@ class OptionsPage {
             $("#languageButtons").append(li);
         }
 
-        var self = this;
+        const self = this;
         $("input[name='langs']").change(function() {
             $("input[name='enabled']:disabled").prop("disabled", false).prop("checked", false);
             $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
@@ -84,15 +79,16 @@ class OptionsPage {
         });
         $("input[name='enabled']").change(function() {
             self.save_options();
-            Tracker.track("enabled_language", "changed", $(this).val());
+            Tracker.track("enabled_language", "changed", $(this).val() as string);
         });
 
         $("#checkAll").change(function() {
-            $("input[name='enabled']:enabled").prop("checked", this.checked);
+            const checkbox = this as HTMLInputElement;
+            $("input[name='enabled']:enabled").prop("checked", checkbox.checked);
             self.save_options();
-            Tracker.track("enabled_language", "changed_all", this.checked);
+            Tracker.track("enabled_language", "changed_all", checkbox.checked.toString());
         });
     }
 }
 
-export = OptionsPage;
+export default OptionsPage;

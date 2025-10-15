@@ -1,7 +1,5 @@
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import interfaces = require("./Interfaces");
-import ILanguage = interfaces.ILanguage;
-import ISettingsStorage = interfaces.ISettingsStorage;
+import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import { ILanguage, ISettingsStorage } from "./Interfaces.js";
 
 class LanguageManager {
     private languages: ILanguage[];
@@ -26,7 +24,7 @@ class LanguageManager {
 
     getLanguage(languageValue: string): ILanguage {
         this.checkLanguage(languageValue);
-        var language = null;
+        let language = null;
         this.getLanguages().some((lang) => {
             if (lang.value === languageValue) {
                 language = lang;
@@ -37,7 +35,7 @@ class LanguageManager {
     }
 
     getEnabledLanguages(): ILanguage[] {
-        var enabledLanguages = (this.settingsStorage[this.enabledKey] || "").split(",");
+        const enabledLanguages = (this.settingsStorage[this.enabledKey] || "").split(",");
         if (enabledLanguages.indexOf(this.currentLanguage) === -1) {
             enabledLanguages.push(this.currentLanguage);
         }
@@ -62,12 +60,12 @@ class LanguageManager {
     }
 
     private changeEnabled(language: string, enabled: boolean): void {
-        var languageEntity = this.getLanguage(language);
+        const languageEntity = this.getLanguage(language);
 
         if ((enabled && this.isEnabled(language)) || (!enabled && !this.isEnabled(language))) {
             return; // nothing to do here, since already enabled or disabled
         }
-        var languages = this.getEnabledLanguages();
+        let languages = this.getEnabledLanguages();
         if (enabled) {
             languages.push(languageEntity);
         } else {
@@ -82,7 +80,7 @@ class LanguageManager {
     }
 
     get currentLanguage(): string {
-        var language = this.settingsStorage[this.languageKey];
+        let language = this.settingsStorage[this.languageKey];
         if (!language) {
             language = "swe_swe";
         }
@@ -101,4 +99,4 @@ class LanguageManager {
     }
 }
 
-export = LanguageManager;
+export default LanguageManager;

@@ -1,17 +1,17 @@
-import TranslationParser = require("./Dictionary/TranslationParser");
-import DictionaryFactory = require("./Dictionary/DictionaryFactory");
-import TranslationManager = require("./Dictionary/TranslationManager");
-import HistoryManager = require("./HistoryManager");
-import LanguageManager = require("./LanguageManager");
-import BackgroundWorker = require("./BackgroundWorker");
-import MessageHandlers = require("./Messaging/MessageHandlers");
+import TranslationParser from "./Dictionary/TranslationParser.js";
+import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import TranslationManager from "./Dictionary/TranslationManager.js";
+import HistoryManager from "./HistoryManager.js";
+import LanguageManager from "./LanguageManager.js";
+import BackgroundWorker from "./BackgroundWorker.js";
+import MessageHandlers from "./Messaging/MessageHandlers.js";
 
-var translationParser = new TranslationParser();
-var dictionaryFactory = new DictionaryFactory();
-var languageManager = new LanguageManager(localStorage, dictionaryFactory);
-var historyManager = new HistoryManager(translationParser, localStorage);
-var translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
-var messageHandlers = new MessageHandlers();
-var backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers);
+const translationParser = new TranslationParser();
+const dictionaryFactory = new DictionaryFactory();
+const languageManager = new LanguageManager(localStorage, dictionaryFactory);
+const historyManager = new HistoryManager(translationParser, localStorage);
+const translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
+const messageHandlers = new MessageHandlers();
+const backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers);
 
 backgroundWorker.initialize();

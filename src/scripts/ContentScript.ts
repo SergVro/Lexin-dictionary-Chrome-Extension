@@ -1,15 +1,6 @@
-//# sourceURL=ContentScript.js
-
-/// <reference path="..\lib\jquery\jquery.d.ts" />
-/// <reference path="..\lib\jqueryui\jqueryui.d.ts" />
-
-import interfaces = require("./Interfaces");
-import IMessageService = interfaces.IMessageService;
-import IMessageHandlers = interfaces.IMessageHandlers;
-import LinkAdapter = require("./LinkAdapter");
-import MessageService = require("./Messaging/MessageService");
-import MessageBus = require("./Messaging/MessageBus");
-import MessageType = require("./Messaging/MessageType");
+import { IMessageService, IMessageHandlers } from "./Interfaces.js";
+import LinkAdapter from "./LinkAdapter.js";
+import $ from "jquery";
 
 class ContentScript {
 
@@ -22,14 +13,14 @@ class ContentScript {
     }
 
     getSelection(): string {
-        var selection = window.getSelection().toString();
+        let selection = window.getSelection().toString();
         selection = $.trim(selection);
         return selection;
     }
 
     handleGetSelection() {
         this.messageHandlers.registerGetSelectionHandler(() => {
-            var selectedText = this.getSelection();
+            const selectedText = this.getSelection();
             if (selectedText !== "") {
                 // send response only if there is a selected text
                 // since content script is loaded for all frames on a page
@@ -40,34 +31,38 @@ class ContentScript {
     }
 
     subscribeOnClicks() {
-        var self = this, insideTranslation = false, zIndex = 10000;
+        const self = this;
+        let insideTranslation = false;
+        let zIndex = 10000;
         $(document).click(function (evt) {
-            var mainContainer = $(".lexinExtensionMainContainer");
+            const mainContainer = $(".lexinExtensionMainContainer");
             if (mainContainer.length > 0 && !insideTranslation) {
                 mainContainer.remove();
                 zIndex = 10000;
             }
             insideTranslation = false;
-            var selection = self.getSelection();
+            const selection = self.getSelection();
             if (selection && evt.altKey) {
-                var absoluteContainer = $("<div></div>")
+                const absoluteContainer = $("<div></div>")
                     .addClass("yui3-cssreset")
                     .addClass("lexinExtensionMainContainer")
                     .css("position", "absolute")
                     .insertAfter("body");
-                var container = $("<div></div>")
+                const container = $("<div></div>")
                     .addClass("yui3-cssreset").addClass("lexinTranslationContainer")
                     .css("zIndex", zIndex++)
-                    .appendTo(absoluteContainer).click(function(e) {
+                    .appendTo(absoluteContainer).click(function(_e) {
 
                         container.css("zIndex", zIndex++);
                         insideTranslation = true;
                     });
-                var translationBlock = $("<div></div>").attr("id", "translation")
+                const translationBlock = $("<div></div>").attr("id", "translation")
                     .addClass("yui3-cssreset").addClass("lexinTranslationContent")
-                    .html("Searching for '" + selection + "'...").appendTo(container);
+                    .html("Searching for '" + selection + "'...");
+                translationBlock.appendTo(container);
 
-                container.position({
+                // Position the popup near the click event
+                (container as any).position({
                     of: evt,
                     my: "center+10 bottom-20",
                     at: "center top",
@@ -89,5 +84,5 @@ class ContentScript {
     }
 }
 
-export = ContentScript;
+export default ContentScript;
 

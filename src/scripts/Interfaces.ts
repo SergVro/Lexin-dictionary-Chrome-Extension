@@ -1,6 +1,5 @@
-/// <reference path="..\lib\jquery\jquery.d.ts" />
-import TranslationDirection = require("./Dictionary/TranslationDirection");
-import MessageType = require("./Messaging/MessageType");
+import TranslationDirection from "./Dictionary/TranslationDirection.js";
+import MessageType from "./Messaging/MessageType.js";
 
 export interface ILanguage {
     value: string;
@@ -30,7 +29,7 @@ export interface IHistoryManager {
 
 export interface IMessageService {
     loadHistory(language: string) : JQueryPromise<IHistoryItem[]>;
-    clearHistory(language: string) : JQueryPromise<{}>;
+    clearHistory(language: string) : JQueryPromise<void>;
     getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation>;
     getSelectedText(): JQueryPromise<string>;
     createNewTab(url: string): void;

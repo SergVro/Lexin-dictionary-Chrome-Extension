@@ -1,15 +1,7 @@
-//# sourceURL=MessageService.js
-/// <reference path="../../lib/jquery/jquery.d.ts" />
-
-import interfaces = require("../Interfaces");
-import IMessageService = interfaces.IMessageService;
-import ILanguage = interfaces.ILanguage;
-import IHistoryItem = interfaces.IHistoryItem;
-import ITranslation = interfaces.ITranslation;
-
-import MessageType = require("./MessageType");
-import TranslationDirection = require("../Dictionary/TranslationDirection");
-import MessageBus = require("./MessageBus");
+import { IMessageService, IHistoryItem, ITranslation } from "../Interfaces.js";
+import MessageType from "./MessageType.js";
+import TranslationDirection from "../Dictionary/TranslationDirection.js";
+import MessageBus from "./MessageBus.js";
 
 class MessageService implements IMessageService{
 
@@ -17,7 +9,7 @@ class MessageService implements IMessageService{
         return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});
     }
 
-    clearHistory(language: string) : JQueryPromise<{}> {
+    clearHistory(language: string) : JQueryPromise<void> {
         return MessageBus.Instance.sendMessage(MessageType.clearHistory, {langDirection: language});
     }
 
@@ -35,4 +27,4 @@ class MessageService implements IMessageService{
     }
 }
 
-export = MessageService;
+export default MessageService;
