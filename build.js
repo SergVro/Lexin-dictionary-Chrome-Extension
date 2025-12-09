@@ -33,11 +33,10 @@ async function build() {
     for (const entry of bundledEntryPoints) {
       const outfile = entry.replace('/temp/', '/');
       const isContentScript = entry === contentScriptEntry;
-      const isBackgroundScript = entry.includes('background-main');
       
-      // Content script and HTML pages have jQuery loaded separately
-      // Background service worker needs jQuery bundled in
-      const shouldExternalizeJQuery = isContentScript || !isBackgroundScript;
+      // Only externalize jQuery for content scripts (loaded via manifest)
+      // Bundle jQuery for all other scripts (popup, options, history, help, background)
+      const shouldExternalizeJQuery = isContentScript;
       
       await esbuild.build({
         entryPoints: [entry],
