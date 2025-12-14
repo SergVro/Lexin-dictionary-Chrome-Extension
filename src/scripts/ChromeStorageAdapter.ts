@@ -42,7 +42,7 @@ class ChromeStorageAdapter implements Storage {
                 
                 // Convert all values to strings (localStorage stores everything as strings)
                 for (const key in items) {
-                    if (items.hasOwnProperty(key)) {
+                    if (Object.prototype.hasOwnProperty.call(items, key)) {
                         this.cache[key] = String(items[key]);
                     }
                 }
@@ -139,7 +139,7 @@ class ChromeSettingsStorage implements ISettingsStorage {
             has(target, prop: string) {
                 return target.adapter.getItem(prop) !== null;
             },
-            ownKeys(target) {
+            ownKeys(_target) {
                 // This is tricky - we'd need to get all keys from storage
                 // For now, return empty array
                 return [];

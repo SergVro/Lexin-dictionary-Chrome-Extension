@@ -23,7 +23,7 @@ class MessageHandlers implements IMessageHandlers{
     }
 
     registerGetSelectionHandler(handler: GetSelectionHandler): void {
-        MessageBus.Instance.registerHandler(MessageType.getSelection, (args) => {
+        MessageBus.Instance.registerHandler(MessageType.getSelection, (_args) => {
             return handler();
         }, true);
     }

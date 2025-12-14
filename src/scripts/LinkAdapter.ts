@@ -1,5 +1,3 @@
-import * as DomUtils from "./util/DomUtils.js";
-
 class LinkAdapter {
 
     static playerTemplate: string = "<audio><source src='MP3_FILE_URL' type='audio/mp3' /></audio>";

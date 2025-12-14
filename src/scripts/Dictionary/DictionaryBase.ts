@@ -95,7 +95,7 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         // Replace named entities
         let decoded = value;
         for (const entity in entityMap) {
-            if (entityMap.hasOwnProperty(entity)) {
+            if (Object.prototype.hasOwnProperty.call(entityMap, entity)) {
                 decoded = decoded.replace(new RegExp(entity, "g"), entityMap[entity]);
             }
         }

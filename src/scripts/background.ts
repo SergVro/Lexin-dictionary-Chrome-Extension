@@ -40,6 +40,7 @@ const { storage, settingsStorage } = createChromeStorage();
         
         backgroundWorker.initialize();
         
+        // eslint-disable-next-line no-console
         console.log("Background worker initialized successfully");
     } catch (error) {
         console.error("Failed to initialize background worker:", error);
