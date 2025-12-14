@@ -12,9 +12,48 @@ const bundledEntryPoints = [
   'dist/temp/scripts/content/content-main.js'
 ];
 
+/**
+ * Increments the fourth section (build number) of the version in manifest.json
+ * If version has 3 parts (e.g., "1.8.0"), adds a fourth part (e.g., "1.8.0.0")
+ * Then increments the fourth part (e.g., "1.8.0.1")
+ */
+async function incrementVersion() {
+  const manifestPath = 'src/manifest.json';
+  const manifestContent = await fs.readFile(manifestPath, 'utf-8');
+  const manifest = JSON.parse(manifestContent);
+  
+  const currentVersion = manifest.version;
+  const versionParts = currentVersion.split('.');
+  
+  // Ensure we have at least 4 parts (add 0 if needed)
+  while (versionParts.length < 4) {
+    versionParts.push('0');
+  }
+  
+  // Increment the fourth part (index 3)
+  const buildNumber = parseInt(versionParts[3], 10) || 0;
+  versionParts[3] = (buildNumber + 1).toString();
+  
+  const newVersion = versionParts.join('.');
+  manifest.version = newVersion;
+  
+  // Write back to manifest.json with proper formatting
+  await fs.writeFile(
+    manifestPath,
+    JSON.stringify(manifest, null, 2) + '\n',
+    'utf-8'
+  );
+  
+  console.log(`Version updated: ${currentVersion} -> ${newVersion}`);
+  return newVersion;
+}
+
 async function build() {
   try {
     console.log('Building extension...');
+    
+    // Increment version before building
+    await incrementVersion();
     
     // Build main entry points with esbuild
     for (const entry of bundledEntryPoints) {

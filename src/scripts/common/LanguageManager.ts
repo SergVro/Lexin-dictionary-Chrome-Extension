@@ -1,24 +1,35 @@
 import DictionaryFactory from "../dictionary/DictionaryFactory.js";
-import { ILanguage, ISettingsStorage } from "./Interfaces.js";
+import { ILanguage, IAsyncSettingsStorage } from "./Interfaces.js";
 
 class LanguageManager {
     private languages: ILanguage[];
+    private initialized: Promise<void>;
 
-    private settingsStorage: ISettingsStorage;
+    private settingsStorage: IAsyncSettingsStorage;
     enabledKey: string = "enabledLanguages";
     languageKey: string = "defaultLanguage";
 
-    constructor(settingsStorage: ISettingsStorage, dictionaryFactory: DictionaryFactory) {
+    constructor(settingsStorage: IAsyncSettingsStorage, dictionaryFactory: DictionaryFactory) {
         this.settingsStorage = settingsStorage;
         this.languages = dictionaryFactory.getAllSupportedLanguages();
 
-        // enable all languages by default
-        if (!this.settingsStorage[this.enabledKey]) {
-            this.setEnabledLanguages(this.languages);
+        // Initialize asynchronously - enable all languages by default only if the key doesn't exist (not set yet)
+        this.initialized = this.initialize();
+    }
+
+    private async initialize(): Promise<void> {
+        const enabledValue = await this.settingsStorage.getItem(this.enabledKey);
+        if (enabledValue === null || enabledValue === undefined) {
+            await this.setEnabledLanguages(this.languages);
         }
     }
 
+    async waitForInitialization(): Promise<void> {
+        await this.initialized;
+    }
+
     getLanguages(): ILanguage[] {
+        console.log("getLanguages", this.languages);
         return this.languages;
     }
 
@@ -34,62 +45,105 @@ class LanguageManager {
         return language;
     }
 
-    getEnabledLanguages(): ILanguage[] {
-        const enabledLanguages = (this.settingsStorage[this.enabledKey] || "").split(",");
-        if (enabledLanguages.indexOf(this.currentLanguage) === -1) {
-            enabledLanguages.push(this.currentLanguage);
+    async getEnabledLanguages(): Promise<ILanguage[]> {
+        const enabledLanguagesStr = (await this.settingsStorage.getItem(this.enabledKey)) || "";
+        // Split and filter out empty strings (which occur when the string is empty or has trailing commas)
+        const enabledLanguages = enabledLanguagesStr.split(",").filter(lang => lang.trim() !== "");
+        const currentLang = await this.getCurrentLanguage();
+        if (enabledLanguages.indexOf(currentLang) === -1) {
+            enabledLanguages.push(currentLang);
         }
-        return this.getLanguages().filter((lang) => enabledLanguages.indexOf(lang.value) >= 0);
+        const result = this.getLanguages().filter((lang) => enabledLanguages.indexOf(lang.value) >= 0);
+        console.log("getEnabledLanguages", result);
+        return result;
     }
 
-    setEnabledLanguages(languages: ILanguage[]): void {
-        this.settingsStorage[this.enabledKey] = languages.map((lang) => lang.value).join(",");
+    async setEnabledLanguages(languages: ILanguage[]): Promise<void> {
+        await this.settingsStorage.setItem(this.enabledKey, languages.map((lang) => lang.value).join(","));
     }
 
-    setEnabledByValues(languages: string[]): void {
+    async setEnabledByValues(languages: string[]): Promise<void> {
         languages.forEach((lang) => this.checkLanguage(lang));
-        this.setEnabledLanguages(languages.map((langValue) => this.getLanguage(langValue)));
+        await this.setEnabledLanguages(languages.map((langValue) => this.getLanguage(langValue)));
     }
 
-    setEnabled(language: string): void {
-        this.changeEnabled(language, true);
+    async setEnabled(language: string): Promise<void> {
+        await this.changeEnabled(language, true);
     }
 
-    setDisabled(language: string): void {
-        this.changeEnabled(language, false);
+    async setDisabled(language: string): Promise<void> {
+        await this.changeEnabled(language, false);
     }
 
-    private changeEnabled(language: string, enabled: boolean): void {
+    private async changeEnabled(language: string, enabled: boolean): Promise<void> {
         const languageEntity = this.getLanguage(language);
 
-        if ((enabled && this.isEnabled(language)) || (!enabled && !this.isEnabled(language))) {
+        const isCurrentlyEnabled = await this.isEnabled(language);
+        if ((enabled && isCurrentlyEnabled) || (!enabled && !isCurrentlyEnabled)) {
             return; // nothing to do here, since already enabled or disabled
         }
-        let languages = this.getEnabledLanguages();
+        let languages = await this.getEnabledLanguages();
         if (enabled) {
             languages.push(languageEntity);
         } else {
             languages = languages.filter((lang) => lang.value !== languageEntity.value);
         }
-        this.setEnabledLanguages(languages);
+        await this.setEnabledLanguages(languages);
     }
 
-    isEnabled(languageValue: string) {
+    async isEnabled(languageValue: string): Promise<boolean> {
         this.checkLanguage(languageValue);
-        return this.getEnabledLanguages().some((lang) => lang.value === languageValue);
+        const enabledLanguages = await this.getEnabledLanguages();
+        return enabledLanguages.some((lang) => lang.value === languageValue);
     }
 
-    get currentLanguage(): string {
-        let language = this.settingsStorage[this.languageKey];
+    async getCurrentLanguage(): Promise<string> {
+        let language = await this.settingsStorage.getItem(this.languageKey);
         if (!language) {
             language = "swe_swe";
         }
         return language;
     }
 
-    set currentLanguage(value: string) {
+    get currentLanguage(): string {
+        // Synchronous getter for backward compatibility - returns default if not yet loaded
+        // Use getCurrentLanguage() for async access
+        return "swe_swe";
+    }
+
+    async setCurrentLanguage(value: string): Promise<void> {
         this.checkLanguage(value);
-        this.settingsStorage[this.languageKey] = value;
+        await this.settingsStorage.setItem(this.languageKey, value);
+    }
+
+    set currentLanguage(value: string) {
+        // Synchronous setter for backward compatibility
+        this.setCurrentLanguage(value).catch(err => {
+            console.error("Error setting current language:", err);
+        });
+    }
+
+    async getTranslationDirection(): Promise<number> {
+        const saved = await this.settingsStorage.getItem("translationDirection");
+        // Default to "to" (2) if not set, "from" is 1
+        return saved ? parseInt(saved, 10) : 2;
+    }
+
+    get translationDirection(): number {
+        // Synchronous getter for backward compatibility - returns default
+        // Use getTranslationDirection() for async access
+        return 2;
+    }
+
+    async setTranslationDirection(value: number): Promise<void> {
+        await this.settingsStorage.setItem("translationDirection", value.toString());
+    }
+
+    set translationDirection(value: number) {
+        // Synchronous setter for backward compatibility
+        this.setTranslationDirection(value).catch(err => {
+            console.error("Error setting translation direction:", err);
+        });
     }
 
     private checkLanguage(value: string) {

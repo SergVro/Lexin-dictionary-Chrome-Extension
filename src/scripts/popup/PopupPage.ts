@@ -12,14 +12,23 @@ class PopupPage {
     private currentWord: string;
     private messageService: IMessageService;
     private languageManager: LanguageManager;
+    private currentDirection: TranslationDirection;
 
     constructor(MessageService: IMessageService, languageManager: LanguageManager) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
 
-        this.fillLanguages();
+        this.initialize();
+    }
+
+    private async initialize(): Promise<void> {
+        await this.languageManager.waitForInitialization();
+        await this.fillLanguages();
+        const currentLang = await this.languageManager.getCurrentLanguage();
+        this.currentLanguage = currentLang;
+        // Restore saved translation direction, default to "to" (Swedish → Language)
+        this.currentDirection = await this.getSavedDirection();
         this.translateSelectedWord();
-        this.currentLanguage = this.languageManager.currentLanguage;
 
         this.subscribeOnEvents();
     }
@@ -38,9 +47,11 @@ class PopupPage {
         if (!word || word === "") {
             return;
         }
+        // Use provided direction, or fall back to saved direction
+        const translationDirection = direction || this.currentDirection;
         const translationBox = DomUtils.$("#translation") as HTMLElement;
         DomUtils.setHtml(translationBox, "Searching for '" + word + "'...");
-        this.messageService.getTranslation(word, direction).then((response: ITranslation) => {
+        this.messageService.getTranslation(word, translationDirection).then((response: ITranslation) => {
             if (word === this.currentWord) {
                 DomUtils.setHtml(translationBox, response.translation || response.error);
                 LinkAdapter.AdaptLinks(translationBox);
@@ -61,14 +72,26 @@ class PopupPage {
         }
     }
 
-    fillLanguages() {
-        const languages = this.languageManager.getEnabledLanguages();
+    async fillLanguages(): Promise<void> {        
+        const languages = await this.languageManager.getEnabledLanguages();
         const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
         DomUtils.empty(languageSelect);
         for (const lang of languages) {
             const option = DomUtils.createElement("option", { value: lang.value }, lang.text);
             DomUtils.append(languageSelect, option);
         }
+    }
+
+    private async setDirection(direction: TranslationDirection): Promise<void> {
+        this.currentDirection = direction;
+        await this.languageManager.setTranslationDirection(direction);
+    }
+
+    private async getSavedDirection(): Promise<TranslationDirection> {
+        // Get saved direction from LanguageManager, default to "to" (2)
+        const saved = await this.languageManager.getTranslationDirection();
+        // TranslationDirection.from = 1, TranslationDirection.to = 2
+        return saved === 1 ? TranslationDirection.from : TranslationDirection.to;
     }
 
     translateSelectedWord(): void {
@@ -90,9 +113,9 @@ class PopupPage {
 
         const languageSelect = DomUtils.$("#language");
         if (languageSelect) {
-            languageSelect.addEventListener("change", () => {
+            languageSelect.addEventListener("change", async () => {
                 Tracker.track("language", "changed", this.currentLanguage);
-                this.languageManager.currentLanguage = this.currentLanguage;
+                await this.languageManager.setCurrentLanguage(this.currentLanguage);
                 this.getTranslation();
             });
         }
@@ -132,9 +155,10 @@ class PopupPage {
                 }
                 const word = (this as HTMLInputElement).value;
                 if (word.length >= 2) {
-                    timer = setTimeout(() => {
+                    timer = setTimeout(async () => {
                         Tracker.track("word", "typed", "from_sv");
                         self.setCurrentWord(word, false, true);
+                        await self.setDirection(TranslationDirection.to);
                         self.getTranslation(TranslationDirection.to);
                     }, 500);
                 }
@@ -153,9 +177,10 @@ class PopupPage {
                 }
                 const word = (this as HTMLInputElement).value;
                 if (word.length >= 2) {
-                    timer = setTimeout(() => {
+                    timer = setTimeout(async () => {
                         Tracker.track("word", "typed", "to_sv");
                         self.setCurrentWord(word, false, true);
+                        await self.setDirection(TranslationDirection.from);
                         self.getTranslation(TranslationDirection.from);
                     }, 500);
                 }

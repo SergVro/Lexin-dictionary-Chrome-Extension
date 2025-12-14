@@ -4,29 +4,28 @@ import TranslationManager from "../../src/scripts/dictionary/TranslationManager.
 import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import HistoryManager from "../../src/scripts/history/HistoryManager.js";
 import LanguageManager from "../../src/scripts/common/LanguageManager.js";
-import { FakeDictionary } from "./util/fakes.js";
+import { FakeDictionary, FakeAsyncStorage, FakeAsyncSettingsStorage } from "./util/fakes.js";
 
 describe("TranslationManager", () => {
     let translationManager: TranslationManager;
     let fakeDictionary: FakeDictionary;
     let languageManager: LanguageManager;
     let historyManager: HistoryManager;
+    let fakeStorage: FakeAsyncStorage;
+    let fakeSettingsStorage: FakeAsyncSettingsStorage;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         fakeDictionary = new FakeDictionary();
+        fakeStorage = new FakeAsyncStorage();
+        fakeSettingsStorage = new FakeAsyncSettingsStorage();
 
         const translationParser = new TranslationParser();
         const dictionaryFactory = new DictionaryFactory([fakeDictionary]);
 
-        languageManager = new LanguageManager(localStorage, dictionaryFactory);
-        historyManager = new HistoryManager(translationParser, localStorage);
+        languageManager = new LanguageManager(fakeSettingsStorage, dictionaryFactory);
+        await languageManager.waitForInitialization();
+        historyManager = new HistoryManager(translationParser, fakeStorage);
         translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
-
-        localStorage.clear();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
     });
 
     describe("getTranslation", () => {
@@ -37,7 +36,8 @@ describe("TranslationManager", () => {
 
         it("should add word to history", async () => {
             await translationManager.getTranslation("aword", TranslationDirection.to);
-            const history = historyManager.getHistory(languageManager.currentLanguage);
+            const currentLang = await languageManager.getCurrentLanguage();
+            const history = await historyManager.getHistory(currentLang);
             expect(history.length).toBe(1);
             expect(history[0].word).toBe("aword");
             expect(history[0].translation).toBe("atranslation");
@@ -45,7 +45,8 @@ describe("TranslationManager", () => {
 
         it("should skip adding word to history when skipHistory is true", async () => {
             await translationManager.getTranslation("aword", TranslationDirection.to, undefined, true);
-            const history = historyManager.getHistory(languageManager.currentLanguage);
+            const currentLang = await languageManager.getCurrentLanguage();
+            const history = await historyManager.getHistory(currentLang);
             expect(history.length).toBe(0);
         });
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lexin dictionary",
-  "version": "1.8.0",
+  "version": "1.8.0.8",
   "description": "Swedish to other languages dictionary. Powered by Lexin and Folkets Lexikon",
   "icons": {
     "16": "icons/icon16.png",
@@ -33,7 +33,9 @@
         "scripts/dictionary/*.js",
         "scripts/messaging/*.js"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "content_scripts": [

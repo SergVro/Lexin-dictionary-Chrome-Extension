@@ -10,16 +10,21 @@ class OptionsPage {
     constructor(languageManager: LanguageManager) {
         this.languageManager = languageManager;
 
-        this.fillLanguages();
-        this.restore_options();
+        this.initialize();
     }
 
-    // Saves options to localStorage.
-    save_options(): void {
+    private async initialize(): Promise<void> {
+        await this.languageManager.waitForInitialization();
+        await this.fillLanguages();
+        await this.restore_options();
+    }
+
+    // Saves options to chrome.storage.
+    async save_options(): Promise<void> {
 
         const checkedLang = DomUtils.$("input[name='langs']:checked") as HTMLInputElement;
         if (checkedLang) {
-            this.languageManager.currentLanguage = checkedLang.value;
+            await this.languageManager.setCurrentLanguage(checkedLang.value);
         }
 
         const checked = DomUtils.$$("input[name='enabled']:checked") as NodeListOf<HTMLInputElement>;
@@ -27,7 +32,7 @@ class OptionsPage {
         for (let i = 0; i < checked.length; i++) {
             enabled.push(checked[i].value);
         }
-        this.languageManager.setEnabledByValues(enabled);
+        await this.languageManager.setEnabledByValues(enabled);
         // Update status to let user know options were saved.
         const status = DomUtils.$("#status") as HTMLElement;
         DomUtils.setHtml(status, "Options saved");
@@ -37,15 +42,16 @@ class OptionsPage {
         }, 750);
     }
 
-    // Restores select box state to saved value from localStorage.
-    restore_options(): void {
-        const langInput = DomUtils.$(`input[name='langs'][value='${this.languageManager.currentLanguage}']`) as HTMLInputElement;
+    // Restores select box state to saved value from chrome.storage.
+    async restore_options(): Promise<void> {
+        const currentLang = await this.languageManager.getCurrentLanguage();
+        const langInput = DomUtils.$(`input[name='langs'][value='${currentLang}']`) as HTMLInputElement;
         if (langInput) {
             langInput.checked = true;
         }
     }
 
-    fillLanguages(): void {
+    async fillLanguages(): Promise<void> {
         const languages = this.languageManager.getLanguages();
         const languageButtons = DomUtils.$("#languageButtons") as HTMLElement;
         DomUtils.empty(languageButtons);
@@ -68,11 +74,15 @@ class OptionsPage {
                 id: "enabled_" + lang.value
             }) as HTMLInputElement;
 
-            if (this.languageManager.isEnabled(lang.value)) {
+            // Note: isEnabled and currentLanguage are async, but we need to check them synchronously here
+            // This will be updated after async initialization completes
+            const isEnabled = await this.languageManager.isEnabled(lang.value);
+            if (isEnabled) {
                 checkBox.checked = true;
             }
 
-            if (lang.value === this.languageManager.currentLanguage) {
+            const currentLang = await this.languageManager.getCurrentLanguage();
+            if (lang.value === currentLang) {
                 checkBox.disabled = true;
             }
 
@@ -83,7 +93,7 @@ class OptionsPage {
         const self = this;
         const langInputs = DomUtils.$$("input[name='langs']") as NodeListOf<HTMLInputElement>;
         langInputs.forEach((input) => {
-            input.addEventListener("change", function() {
+            input.addEventListener("change", async function() {
                 const disabledInputs = DomUtils.$$("input[name='enabled']:disabled") as NodeListOf<HTMLInputElement>;
                 disabledInputs.forEach((disabledInput) => {
                     disabledInput.disabled = false;
@@ -94,28 +104,37 @@ class OptionsPage {
                     enabledInput.checked = true;
                     enabledInput.disabled = true;
                 }
-                self.save_options();
+                await self.save_options();
                 Tracker.track("language", "changed");
             });
         });
 
         const enabledInputs = DomUtils.$$("input[name='enabled']") as NodeListOf<HTMLInputElement>;
         enabledInputs.forEach((input) => {
-            input.addEventListener("change", function() {
-                self.save_options();
+            input.addEventListener("change", async function() {
+                await self.save_options();
                 Tracker.track("enabled_language", "changed", this.value);
             });
         });
 
         const checkAll = DomUtils.$("#checkAll") as HTMLInputElement;
         if (checkAll) {
-            checkAll.addEventListener("change", function() {
+            // Initialize checkAll state based on actual enabled languages
+            const enabledLanguages = await this.languageManager.getEnabledLanguages();
+            const allLanguages = this.languageManager.getLanguages();
+            // Check if all languages (except possibly the current one which is always enabled) are enabled
+            // We need to account for the fact that currentLanguage is always included
+            const enabledCount = enabledLanguages.length;
+            const totalCount = allLanguages.length;
+            checkAll.checked = enabledCount === totalCount;
+            
+            checkAll.addEventListener("change", async function() {
                 const checkbox = this as HTMLInputElement;
                 const enabledInputs = DomUtils.$$("input[name='enabled']:enabled") as NodeListOf<HTMLInputElement>;
                 enabledInputs.forEach((input) => {
                     input.checked = checkbox.checked;
                 });
-                self.save_options();
+                await self.save_options();
                 Tracker.track("enabled_language", "changed_all", checkbox.checked.toString());
             });
         }

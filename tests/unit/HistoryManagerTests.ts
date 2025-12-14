@@ -1,79 +1,77 @@
 import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
 import HistoryManager from "../../src/scripts/history/HistoryManager.js";
 import TranslationParser from "../../src/scripts/dictionary/TranslationParser.js";
+import { FakeAsyncStorage } from "./util/fakes.js";
 
 describe("HistoryManager", () => {
     let historyManager: HistoryManager;
+    let fakeStorage: FakeAsyncStorage;
 
     beforeEach(() => {
-        localStorage.clear();
+        fakeStorage = new FakeAsyncStorage();
         const translationParser = new TranslationParser();
-        historyManager = new HistoryManager(translationParser, localStorage);
-    });
-
-    afterEach(() => {
-        localStorage.clear();
+        historyManager = new HistoryManager(translationParser, fakeStorage);
     });
 
     describe("getHistory", () => {
-        it("should return empty history", () => {
-            const testHistory = historyManager.getHistory("swe_foo");
+        it("should return empty history", async () => {
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(0);
         });
 
-        it("should return history with item", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should return history with item", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            const testHistory = historyManager.getHistory("swe_foo");
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(1);
             expect(testHistory[0].word).toBe("test_word");
         });
 
-        it("should compress full duplicates", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should compress full duplicates", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()},
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()}
             ]);
 
-            const testHistory = historyManager.getHistory("swe_foo");
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(1);
             expect(testHistory[0].word).toBe("test_word");
         });
 
-        it("should compress duplicate words", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should compress duplicate words", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()},
                 {word: "test_word", translation: "test_translation2", added: new Date().getTime()}
             ]);
 
-            const testHistory = historyManager.getHistory("swe_foo");
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(1);
             expect(testHistory[0].word).toBe("test_word");
             expect(testHistory[0].translation).toBe("test_translation; test_translation2");
         });
 
-        it("should compress duplicate translations", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should compress duplicate translations", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation; test_translation2", added: new Date().getTime()},
                 {word: "test_word", translation: "test_translation2; test_translation3", added: new Date().getTime()}
             ]);
 
-            const testHistory = historyManager.getHistory("swe_foo");
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(1);
             expect(testHistory[0].word).toBe("test_word");
             expect(testHistory[0].translation).toBe("test_translation; test_translation2; test_translation3");
         });
 
-        it("should sort by date", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should sort by date", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation", added: new Date(2015, 9, 1).getTime()},
                 {word: "test_word2", translation: "test_translation2", added: new Date(2015, 9, 5).getTime()},
                 {word: "test_word3", translation: "test_translation3", added: new Date(2015, 9, 3).getTime()}
             ]);
 
-            const testHistory = historyManager.getHistory("swe_foo");
+            const testHistory = await historyManager.getHistory("swe_foo");
             expect(testHistory.length).toBe(3);
             expect(testHistory[0].word).toBe("test_word2");
             expect(testHistory[1].word).toBe("test_word3");
@@ -82,25 +80,25 @@ describe("HistoryManager", () => {
     });
 
     describe("clearHistory", () => {
-        it("should clear history for specific language", () => {
-            historyManager.addToHistory("swe_foo", [
+        it("should clear history for specific language", async () => {
+            await historyManager.addToHistory("swe_foo", [
                 {word: "test_word", translation: "test_translation", added: new Date().getTime()},
             ]);
-            historyManager.addToHistory("swe_bar", [
+            await historyManager.addToHistory("swe_bar", [
                 {word: "test_word2", translation: "test_translation2", added: new Date().getTime()}
             ]);
 
-            historyManager.clearHistory("swe_foo");
+            await historyManager.clearHistory("swe_foo");
 
-            const history_swe_foo = historyManager.getHistory("swe_foo");
-            const history_swe_bar = historyManager.getHistory("swe_bar");
+            const history_swe_foo = await historyManager.getHistory("swe_foo");
+            const history_swe_bar = await historyManager.getHistory("swe_bar");
 
             expect(history_swe_foo.length).toBe(0);
             expect(history_swe_bar.length).toBe(1);
         });
     });
 
-    it("should compress too long history", () => {
+    it("should compress too long history", async () => {
         const addCount = 15;
         historyManager.maxHistory = 10;
         const addedValue = new Date().getTime();
@@ -110,9 +108,9 @@ describe("HistoryManager", () => {
                 translation: `test translation ${i}`,
                 added: addedValue + i // to ensure each next item gets greater value then previous
             };
-            historyManager.addToHistory("swe_foo", [item]);
+            await historyManager.addToHistory("swe_foo", [item]);
         }
-        const history = historyManager.getHistory("swe_foo");
+        const history = await historyManager.getHistory("swe_foo");
         expect(history.length).toBeLessThan(addCount);
         for (let j = 0; j < history.length; j++) {
             expect(history[j].word).toBe(`testWord ${addCount - 1 - j}`);

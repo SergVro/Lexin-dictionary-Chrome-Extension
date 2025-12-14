@@ -1,31 +1,32 @@
 import HistoryModel from "../../src/scripts/history/HistoryModel.js";
 import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
 import LanguageManager from "../../src/scripts/common/LanguageManager.js";
-import { TestMessageService } from "./util/fakes.js";
-import { ISettingsStorage } from "../../src/scripts/common/Interfaces.js";
+import { TestMessageService, FakeAsyncSettingsStorage } from "./util/fakes.js";
+import { IAsyncSettingsStorage } from "../../src/scripts/common/Interfaces.js";
 
 describe("HistoryModel", () => {
     let mockMessageService: TestMessageService;
-    let mockSettingsStorage: ISettingsStorage;
+    let mockSettingsStorage: IAsyncSettingsStorage;
     let dictionaryFactory: DictionaryFactory;
     let languageManager: LanguageManager;
     let historyModel: HistoryModel;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         mockMessageService = new TestMessageService();
-        mockSettingsStorage = {};
+        mockSettingsStorage = new FakeAsyncSettingsStorage();
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
+        await languageManager.waitForInitialization();
         historyModel = new HistoryModel(mockMessageService, languageManager, mockSettingsStorage);
     });
 
-    it("should have default data", () => {
-        expect(historyModel.language).toBe("swe_swe");
-        expect(historyModel.showDate).toBe(false);
+    it("should have default data", async () => {
+        expect(await historyModel.getLanguage()).toBe("swe_swe");
+        expect(await historyModel.getShowDate()).toBe(false);
     });
 
     describe("setters", () => {
-        it("should set language", () => {
+        it("should set language", async () => {
             const testLanguage = "swe_eng";
             let onChangeCalled = false;
             
@@ -33,30 +34,31 @@ describe("HistoryModel", () => {
                 expect(model.language).toBe(testLanguage);
                 onChangeCalled = true;
             };
-            historyModel.language = testLanguage;
+            await historyModel.setLanguage(testLanguage);
 
-            expect(historyModel.language).toBe(testLanguage);
+            expect(await historyModel.getLanguage()).toBe(testLanguage);
             expect(onChangeCalled).toBe(true);
         });
 
-        it("should set show date", () => {
+        it("should set show date", async () => {
             let onChangeCalled = false;
             
             historyModel.onChange = (model) => {
                 expect(model.showDate).toBe(true);
                 onChangeCalled = true;
             };
-            historyModel.showDate = true;
+            await historyModel.setShowDate(true);
 
-            expect(historyModel.showDate).toBe(true);
-            expect(mockSettingsStorage["showDate"]).toBe(true);
+            expect(await historyModel.getShowDate()).toBe(true);
+            const showDateValue = await mockSettingsStorage.getItem("showDate");
+            expect(showDateValue).toBe("true");
             expect(onChangeCalled).toBe(true);
         });
     });
 
     describe("methods", () => {
-        it("should load languages", () => {
-            const languages = historyModel.loadLanguages();
+        it("should load languages", async () => {
+            const languages = await historyModel.loadLanguages();
             expect(languages.length).toBe(19);
         });
 

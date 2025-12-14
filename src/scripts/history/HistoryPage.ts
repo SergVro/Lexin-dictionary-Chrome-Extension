@@ -10,10 +10,16 @@ class HistoryPage {
 
     constructor(model: HistoryModel) {
         this.model = model;
-        this.languages =  model.loadLanguages();
+        this.initialize();
+    }
+
+    private async initialize(): Promise<void> {
+        this.languages = await this.model.loadLanguages();
         this.renderLanguageSelector();
-        this.currentLanguage = model.language;
-        this.showDate = model.showDate;
+        const currentLang = await this.model.getLanguage();
+        this.currentLanguage = currentLang;
+        const showDate = await this.model.getShowDate();
+        this.showDate = showDate;
         this.subscribeOnEvents();
         this.updateHistory();
     }
@@ -30,8 +36,8 @@ class HistoryPage {
 
         const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
         if (showDateCheckbox) {
-            showDateCheckbox.addEventListener("change", function () {
-                self.model.showDate = self.showDate;
+            showDateCheckbox.addEventListener("change", async function () {
+                await self.model.setShowDate(self.showDate);
                 self.updateHistory();
                 Tracker.track("showDate", "changed", self.showDate.toString());
             });

@@ -18,7 +18,7 @@ class MessageHandlers implements IMessageHandlers{
 
     registerClearHistoryHandler(handler: ClearHistoryHandler): void {
         MessageBus.Instance.registerHandler(MessageType.clearHistory, (args: any) => {
-            handler(args.langDirection);
+            return handler(args.langDirection);
         });
     }
 

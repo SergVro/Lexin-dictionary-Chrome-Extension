@@ -11,7 +11,9 @@ import {
     GetTranslationHandler,
     LoadHistoryHandler,
     ClearHistoryHandler,
-    GetSelectionHandler
+    GetSelectionHandler,
+    IAsyncStorage,
+    IAsyncSettingsStorage
 } from "../../../src/scripts/common/Interfaces.js";
 import TranslationDirection from "../../../src/scripts/dictionary/TranslationDirection.js";
 
@@ -97,16 +99,68 @@ export class FakeTranslationManager implements ITranslationManager {
 export class FakeHistoryManager implements IHistoryManager {
     history: IHistoryItem[] = [];
     
-    getHistory(langDirection: string): IHistoryItem[] {
-        return this.history;
+    async getHistory(langDirection: string): Promise<IHistoryItem[]> {
+        return Promise.resolve(this.history);
     }
 
-    clearHistory(langDirection: string): void {
+    async clearHistory(langDirection: string): Promise<void> {
         this.history = [];
+        return Promise.resolve();
     }
 
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
+    async addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
         this.history = this.history.concat(translations);
+        return Promise.resolve();
+    }
+}
+
+export class FakeAsyncStorage implements IAsyncStorage {
+    private storage: { [key: string]: string } = {};
+
+    async getItem(key: string): Promise<string | null> {
+        return Promise.resolve(this.storage[key] || null);
+    }
+
+    async setItem(key: string, value: string): Promise<void> {
+        this.storage[key] = value;
+        return Promise.resolve();
+    }
+
+    async removeItem(key: string): Promise<void> {
+        delete this.storage[key];
+        return Promise.resolve();
+    }
+
+    async clear(): Promise<void> {
+        this.storage = {};
+        return Promise.resolve();
+    }
+
+    async getLength(): Promise<number> {
+        return Promise.resolve(Object.keys(this.storage).length);
+    }
+
+    async key(index: number): Promise<string | null> {
+        const keys = Object.keys(this.storage);
+        return Promise.resolve(index >= 0 && index < keys.length ? keys[index] : null);
+    }
+}
+
+export class FakeAsyncSettingsStorage implements IAsyncSettingsStorage {
+    private storage: { [key: string]: string } = {};
+
+    async getItem(key: string): Promise<string | null> {
+        return Promise.resolve(this.storage[key] || null);
+    }
+
+    async setItem(key: string, value: string): Promise<void> {
+        this.storage[key] = value;
+        return Promise.resolve();
+    }
+
+    async removeItem(key: string): Promise<void> {
+        delete this.storage[key];
+        return Promise.resolve();
     }
 }
 

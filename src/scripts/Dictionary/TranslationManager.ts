@@ -17,7 +17,7 @@ class TranslationManager {
 
     }
 
-    getTranslation(word: string, direction: TranslationDirection,
+    async getTranslation(word: string, direction: TranslationDirection,
                    languageDirection?: string, skipHistory? : boolean): Promise<string> {
         //  Summary
         //      Returns a translation for the specified word
@@ -26,22 +26,21 @@ class TranslationManager {
             return Promise.reject<string>("word is required");
         }
         
-        const langDirection = languageDirection || this.languageManager.currentLanguage;
+        const langDirection = languageDirection || await this.languageManager.getCurrentLanguage();
         const dictionary = this.dictionaryFactory.getDictionary(langDirection);
         
-        return new Promise<string>((resolve, reject) => {
-            dictionary.getTranslation(word, langDirection, direction).then((data) => {
-                resolve(data);
-                Tracker.translation(langDirection);
-                if (!skipHistory) {
-                    const translations = dictionary.parseTranslation(data, langDirection);
-                    this.historyManager.addToHistory(langDirection, translations);
-                }
-            }).catch((error) => {
-                reject(error);
-                Tracker.translationError(langDirection);
-            });
-        });
+        try {
+            const data = await dictionary.getTranslation(word, langDirection, direction);
+            Tracker.translation(langDirection);
+            if (!skipHistory) {
+                const translations = dictionary.parseTranslation(data, langDirection);
+                await this.historyManager.addToHistory(langDirection, translations);
+            }
+            return data;
+        } catch (error) {
+            Tracker.translationError(langDirection);
+            throw error;
+        }
     }
 }
 

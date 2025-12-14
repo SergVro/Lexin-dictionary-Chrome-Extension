@@ -1,10 +1,10 @@
-import { ITranslationParser, IHistoryManager, IHistoryItem } from "../common/Interfaces.js";
+import { ITranslationParser, IHistoryManager, IHistoryItem, IAsyncStorage } from "../common/Interfaces.js";
 import Tracker from "../common/Tracker.js";
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
     translationParser: ITranslationParser;
-    private storage: Storage;
+    private storage: IAsyncStorage;
     private maxHistoryBuffer: number;
     private maxHistoryLength: number;
 
@@ -13,50 +13,50 @@ class HistoryManager implements IHistoryManager {
         this.maxHistoryBuffer = Math.floor(this.maxHistoryLength / 5);
     }
 
-    constructor(translationParser: ITranslationParser, storage: Storage) {
+    constructor(translationParser: ITranslationParser, storage: IAsyncStorage) {
         this.translationParser = translationParser;
         this.storage = storage;
         this.maxHistory = 1000;
     }
 
-    getHistory(langDirection: string): IHistoryItem[] {
+    async getHistory(langDirection: string): Promise<IHistoryItem[]> {
         //  Summary
         //      Returns translation history for the specified language direction.
 
-        const history = this.loadHistory(langDirection);
+        const history = await this.loadHistory(langDirection);
         // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
         this.compress(history);
-        this.saveHistory(langDirection,  history);
+        await this.saveHistory(langDirection,  history);
         return history;
     }
 
-    private loadHistory(langDirection: string): IHistoryItem[] {
+    private async loadHistory(langDirection: string): Promise<IHistoryItem[]> {
         const key = this.getStorageKey(langDirection);
-        const storedHistory = this.storage.getItem(key);
+        const storedHistory = await this.storage.getItem(key);
         const history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
         return history;
     }
 
-    private saveHistory(langDirection: string, history: IHistoryItem[]): void {
+    private async saveHistory(langDirection: string, history: IHistoryItem[]): Promise<void> {
         const key = this.getStorageKey(langDirection);
-        this.storage.setItem(key, JSON.stringify(history));
+        await this.storage.setItem(key, JSON.stringify(history));
     }
 
     private getStorageKey(langDirection: string) {
         return this.storageKey + langDirection;
     }
 
-    clearHistory(langDirection: string): void {
+    async clearHistory(langDirection: string): Promise<void> {
         //  Summary
         //      Clears translation history for the specified language direction
-        this.storage.removeItem(this.getStorageKey(langDirection));
+        await this.storage.removeItem(this.getStorageKey(langDirection));
     }
 
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
+    async addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
         //  Summary
         //      Adds a new word and translation to the translation history
 
-        let history = this.loadHistory(langDirection);
+        let history = await this.loadHistory(langDirection);
         if (!history) {
             history = [];
         }
@@ -65,7 +65,7 @@ class HistoryManager implements IHistoryManager {
             this.compress(history);
         }
         const serializedHistory = JSON.stringify(history);
-        this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
+        await this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
     }
 
     private _removeDuplicates(history: IHistoryItem[]): void {

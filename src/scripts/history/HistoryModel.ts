@@ -1,35 +1,72 @@
-import { IMessageService, ISettingsStorage, ILanguage, IHistoryItem } from "../common/Interfaces.js";
+import { IMessageService, IAsyncSettingsStorage, ILanguage, IHistoryItem } from "../common/Interfaces.js";
 import LanguageManager from "../common/LanguageManager.js";
 
 class HistoryModel {
-    private settingsStorage: ISettingsStorage;
+    private settingsStorage: IAsyncSettingsStorage;
     private messageService: IMessageService;
     private languageManager: LanguageManager;
+    private cachedLanguage: string | null = null;
+    private cachedShowDate: boolean | null = null;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager, storage: ISettingsStorage) {
+    constructor(MessageService: IMessageService, languageManager: LanguageManager, storage: IAsyncSettingsStorage) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
-        this.settingsStorage = storage || localStorage;
+        this.settingsStorage = storage;
+    }
+
+    async getLanguage(): Promise<string> {
+        return await this.languageManager.getCurrentLanguage();
     }
 
     get language() : string {
-        return this.languageManager.currentLanguage;
+        // Synchronous getter for backward compatibility - returns cached value or default
+        if (this.cachedLanguage !== null) {
+            return this.cachedLanguage;
+        }
+        return "swe_swe"; // default
     }
-    set language(value : string) {
-        this.languageManager.currentLanguage = value;
+
+    async setLanguage(value: string): Promise<void> {
+        await this.languageManager.setCurrentLanguage(value);
+        this.cachedLanguage = value;
         this.fireOnChange();
+    }
+
+    set language(value : string) {
+        // Synchronous setter for backward compatibility
+        this.setLanguage(value).catch(err => {
+            console.error("Error setting language:", err);
+        });
+    }
+
+    async getShowDate(): Promise<boolean> {
+        const value = await this.settingsStorage.getItem("showDate");
+        return !!value;
     }
 
     get showDate() : boolean {
-        return !!this.settingsStorage["showDate"];
+        // Synchronous getter for backward compatibility - returns cached value or false
+        if (this.cachedShowDate !== null) {
+            return this.cachedShowDate;
+        }
+        return false; // default
     }
-    set showDate(value: boolean) {
-        this.settingsStorage["showDate"] = value;
+
+    async setShowDate(value: boolean): Promise<void> {
+        await this.settingsStorage.setItem("showDate", value ? "true" : "false");
+        this.cachedShowDate = value;
         this.fireOnChange();
     }
 
-    loadLanguages(): ILanguage[] {
-        const languages = this.languageManager.getEnabledLanguages();
+    set showDate(value: boolean) {
+        // Synchronous setter for backward compatibility
+        this.setShowDate(value).catch(err => {
+            console.error("Error setting showDate:", err);
+        });
+    }
+
+    async loadLanguages(): Promise<ILanguage[]> {
+        const languages = await this.languageManager.getEnabledLanguages();
         return languages.filter((item) => item.value !== "swe_swe");
     }
 

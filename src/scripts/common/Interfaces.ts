@@ -21,10 +21,25 @@ export interface ISettingsStorage {
     [key: string]: any;
 }
 
+export interface IAsyncStorage {
+    getItem(key: string): Promise<string | null>;
+    setItem(key: string, value: string): Promise<void>;
+    removeItem(key: string): Promise<void>;
+    clear(): Promise<void>;
+    getLength(): Promise<number>;
+    key(index: number): Promise<string | null>;
+}
+
+export interface IAsyncSettingsStorage {
+    getItem(key: string): Promise<string | null>;
+    setItem(key: string, value: string): Promise<void>;
+    removeItem(key: string): Promise<void>;
+}
+
 export interface IHistoryManager {
-    getHistory(langDirection: string): IHistoryItem[];
-    clearHistory(langDirection: string): void;
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void;
+    getHistory(langDirection: string): Promise<IHistoryItem[]>;
+    clearHistory(langDirection: string): Promise<void>;
+    addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void>;
 }
 
 export interface IMessageService {
@@ -71,11 +86,11 @@ export interface GetTranslationHandler {
 }
 
 export interface LoadHistoryHandler {
-    (langDirection: string): IHistoryItem[];
+    (langDirection: string): Promise<IHistoryItem[]>;
 }
 
 export interface ClearHistoryHandler {
-    (langDirection: string): void;
+    (langDirection: string): Promise<void>;
 }
 
 export interface GetSelectionHandler {
