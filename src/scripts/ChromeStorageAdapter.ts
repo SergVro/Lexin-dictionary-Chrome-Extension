@@ -127,7 +127,7 @@ class ChromeSettingsStorage implements ISettingsStorage {
     static create(adapter: ChromeStorageAdapter): ISettingsStorage {
         return new Proxy(new ChromeSettingsStorage(adapter), {
             get(target, prop: string) {
-                if (prop in target && typeof prop !== 'string') {
+                if (prop in target && typeof prop !== "string") {
                     return (target as any)[prop];
                 }
                 return target.adapter.getItem(prop);

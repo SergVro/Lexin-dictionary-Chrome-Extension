@@ -3,7 +3,7 @@ import MessageService from "./Messaging/MessageService.js";
 import LanguageManager from "./LanguageManager.js";
 import PopupPage from "./PopupPage.js";
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     const messageService = new MessageService();
     const dictionaryFactory = new DictionaryFactory();
     const languageManager = new LanguageManager(localStorage, dictionaryFactory);

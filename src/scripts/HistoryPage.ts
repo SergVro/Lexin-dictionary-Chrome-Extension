@@ -124,8 +124,8 @@ class HistoryPage {
                 });
                 const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
                 const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
-                if (clearHistoryButton) clearHistoryButton.disabled = false;
-                if (showDateCheckbox) showDateCheckbox.disabled = false;
+                if (clearHistoryButton) {clearHistoryButton.disabled = false;}
+                if (showDateCheckbox) {showDateCheckbox.disabled = false;}
             } else {
                 const noTranslationsTd = DomUtils.createElement("td", undefined, "No translations in history");
                 if (showDate) {
@@ -138,8 +138,8 @@ class HistoryPage {
                 DomUtils.append(table, tr);
                 const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
                 const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
-                if (clearHistoryButton) clearHistoryButton.disabled = true;
-                if (showDateCheckbox) showDateCheckbox.disabled = true;
+                if (clearHistoryButton) {clearHistoryButton.disabled = true;}
+                if (showDateCheckbox) {showDateCheckbox.disabled = true;}
             }
 
         });

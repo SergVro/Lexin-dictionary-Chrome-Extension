@@ -4,7 +4,7 @@ import LanguageManager from "./LanguageManager.js";
 import HistoryModel from "./HistoryModel.js";
 import HistoryPage from "./HistoryPage.js";
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     const messageService = new MessageService();
     const dictionaryFactory = new DictionaryFactory();
     const languageManager = new LanguageManager(localStorage, dictionaryFactory);

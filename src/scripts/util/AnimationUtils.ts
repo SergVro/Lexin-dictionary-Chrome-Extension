@@ -10,7 +10,7 @@
  */
 export function fadeOut(element: HTMLElement | null, duration: number = 400, callback?: () => void): void {
     if (!element) {
-        if (callback) callback();
+        if (callback) {callback();}
         return;
     }
 
@@ -30,9 +30,9 @@ export function fadeOut(element: HTMLElement | null, duration: number = 400, cal
         if (progress < 1) {
             requestAnimationFrame(animate);
         } else {
-            element.style.display = 'none';
-            element.style.opacity = '';
-            if (callback) callback();
+            element.style.display = "none";
+            element.style.opacity = "";
+            if (callback) {callback();}
         }
     }
 
@@ -47,11 +47,11 @@ export function fadeOut(element: HTMLElement | null, duration: number = 400, cal
  */
 export function fadeIn(element: HTMLElement | null, duration: number = 400, callback?: () => void): void {
     if (!element) {
-        if (callback) callback();
+        if (callback) {callback();}
         return;
     }
 
-    element.style.display = '';
+    element.style.display = "";
     const startOpacity = parseFloat(window.getComputedStyle(element).opacity) || 0;
     const targetOpacity = 1;
     const opacityDiff = targetOpacity - startOpacity;
@@ -70,8 +70,8 @@ export function fadeIn(element: HTMLElement | null, duration: number = 400, call
         if (progress < 1) {
             requestAnimationFrame(animate);
         } else {
-            element.style.opacity = '';
-            if (callback) callback();
+            element.style.opacity = "";
+            if (callback) {callback();}
         }
     }
 

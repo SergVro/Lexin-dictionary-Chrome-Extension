@@ -41,18 +41,18 @@ export function createElement(tag: string, attributes?: Record<string, string>, 
  * Get value from form element
  */
 export function getValue(element: Element | null): string {
-    if (!element) return '';
+    if (!element) {return "";}
     if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) {
         return element.value;
     }
-    return '';
+    return "";
 }
 
 /**
  * Set value on form element
  */
 export function setValue(element: Element | null, value: string): void {
-    if (!element) return;
+    if (!element) {return;}
     if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) {
         element.value = value;
     }
@@ -62,7 +62,7 @@ export function setValue(element: Element | null, value: string): void {
  * Get HTML content
  */
 export function getHtml(element: Element | null): string {
-    return element ? element.innerHTML : '';
+    return element ? element.innerHTML : "";
 }
 
 /**
@@ -78,7 +78,7 @@ export function setHtml(element: Element | null, html: string): void {
  * Get text content
  */
 export function getText(element: Element | null): string {
-    return element ? (element.textContent || '') : '';
+    return element ? (element.textContent || "") : "";
 }
 
 /**
@@ -119,7 +119,7 @@ export function removeAttr(element: Element | null, name: string): void {
  * Get property value
  */
 export function getProp(element: Element | null, prop: string): any {
-    if (!element) return undefined;
+    if (!element) {return undefined;}
     return (element as any)[prop];
 }
 
@@ -170,9 +170,9 @@ export function setCss(element: HTMLElement | null, property: string, value: str
  * Get CSS style property
  */
 export function getCss(element: HTMLElement | null, property: string): string {
-    if (!element) return '';
+    if (!element) {return "";}
     const style = window.getComputedStyle(element);
-    return (style as any)[property] || '';
+    return (style as any)[property] || "";
 }
 
 /**
@@ -217,7 +217,7 @@ export function remove(element: Element | null): void {
  * Get next sibling element
  */
 export function next(element: Element | null): Element | null {
-    if (!element) return null;
+    if (!element) {return null;}
     let sibling = element.nextSibling;
     while (sibling && sibling.nodeType !== Node.ELEMENT_NODE) {
         sibling = sibling.nextSibling;
@@ -245,9 +245,9 @@ export function each<T>(array: ArrayLike<T>, callback: (index: number, item: T) 
  * Check if element exists and has length > 0
  */
 export function exists(element: Element | NodeListOf<Element> | null): boolean {
-    if (!element) return false;
+    if (!element) {return false;}
     // Check if it's a NodeList by checking for 'item' method (NodeList characteristic)
-    if ('item' in element && typeof (element as any).item === 'function') {
+    if ("item" in element && typeof (element as any).item === "function") {
         return (element as NodeListOf<Element>).length > 0;
     }
     return true;
@@ -257,9 +257,9 @@ export function exists(element: Element | NodeListOf<Element> | null): boolean {
  * Get length of element or NodeList
  */
 export function length(element: Element | NodeListOf<Element> | null): number {
-    if (!element) return 0;
+    if (!element) {return 0;}
     // Check if it's a NodeList by checking for 'item' method (NodeList characteristic)
-    if ('item' in element && typeof (element as any).item === 'function') {
+    if ("item" in element && typeof (element as any).item === "function") {
         return (element as NodeListOf<Element>).length;
     }
     return 1;
