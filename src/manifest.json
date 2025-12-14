@@ -45,8 +45,6 @@
         "https://*/*"
       ],
       "js": [
-        "scripts/jquery.min.js",
-        "scripts/jquery-ui.min.js",
         "scripts/content-main.js"
       ],
       "css": [

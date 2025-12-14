@@ -12,19 +12,6 @@ const bundledEntryPoints = [
   'dist/temp/scripts/content-main.js'
 ];
 
-// Content script needs jQuery as external since it's injected separately
-const contentScriptEntry = 'dist/temp/scripts/content-main.js';
-
-async function copyJQueryFiles() {
-  const jquerySource = 'node_modules/jquery/dist/jquery.min.js';
-  const jqueryUiSource = 'node_modules/jquery-ui-dist/jquery-ui.min.js';
-  const targetDir = 'dist/scripts';
-  
-  await fs.mkdir(targetDir, { recursive: true });
-  await fs.copyFile(jquerySource, path.join(targetDir, 'jquery.min.js'));
-  await fs.copyFile(jqueryUiSource, path.join(targetDir, 'jquery-ui.min.js'));
-}
-
 async function build() {
   try {
     console.log('Building extension...');
@@ -32,11 +19,6 @@ async function build() {
     // Build main entry points with esbuild
     for (const entry of bundledEntryPoints) {
       const outfile = entry.replace('/temp/', '/');
-      const isContentScript = entry === contentScriptEntry;
-      
-      // Only externalize jQuery for content scripts (loaded via manifest)
-      // Bundle jQuery for all other scripts (popup, options, history, help, background)
-      const shouldExternalizeJQuery = isContentScript;
       
       await esbuild.build({
         entryPoints: [entry],
@@ -46,16 +28,11 @@ async function build() {
         platform: 'browser',
         target: 'es2020',
         sourcemap: true,
-        external: shouldExternalizeJQuery ? ['jquery', 'jquery-ui'] : [],
         globalName: path.basename(entry, '.js').replace(/-/g, '_'),
       });
       
       console.log(`Built ${entry} -> ${outfile}`);
     }
-    
-    // Copy jQuery files
-    await copyJQueryFiles();
-    console.log('Copied jQuery libraries');
     
     // Copy all other compiled JS files that aren't entry points
     async function copyDir(src, dest) {

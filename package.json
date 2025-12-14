@@ -17,13 +17,9 @@
     "dev": "npm run build && npm run watch"
   },
   "dependencies": {
-    "jquery": "^3.7.1",
-    "jquery-ui-dist": "^1.13.2"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
-    "@types/jquery": "^3.5.29",
-    "@types/jqueryui": "^1.12.22",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "esbuild": "^0.23.0",

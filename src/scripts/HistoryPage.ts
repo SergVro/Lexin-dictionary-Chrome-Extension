@@ -1,7 +1,7 @@
 import HistoryModel from "./HistoryModel.js";
 import Tracker from "./Tracker.js";
 import { IHistoryItem, ILanguage } from "./Interfaces.js";
-import $ from "jquery";
+import * as DomUtils from "./util/DomUtils.js";
 
 class HistoryPage {
 
@@ -20,42 +20,53 @@ class HistoryPage {
 
     private subscribeOnEvents() {
         const self = this;
-        $("#language").change(function () {
-            self.updateHistory();
+        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
+        if (languageSelect) {
+            languageSelect.addEventListener("change", function () {
+                self.updateHistory();
+                Tracker.track("language", "changed", this.value);
+            });
+        }
 
-            Tracker.track("language", "changed", $(this).val() as string);
-        });
+        const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
+        if (showDateCheckbox) {
+            showDateCheckbox.addEventListener("change", function () {
+                self.model.showDate = self.showDate;
+                self.updateHistory();
+                Tracker.track("showDate", "changed", self.showDate.toString());
+            });
+        }
 
-        $("#showDate").change(function () {
-            self.model.showDate = self.showDate;
-            self.updateHistory();
-
-            Tracker.track("showDate", "changed", self.showDate.toString());
-        });
-
-        $("#clearHistory").click(function () {
-            const langDirection = self.currentLanguage;
-            const langName = $("#language option[value='${langDirection}']").text();
-            if (confirm("Are you sure you want to clear history for language " + langName)) {
-                self.model.clearHistory(langDirection).then(() => self.updateHistory());
-
-                Tracker.track("history", "cleared");
-            }
-        });
+        const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
+        if (clearHistoryButton) {
+            clearHistoryButton.addEventListener("click", function () {
+                const langDirection = self.currentLanguage;
+                const langOption = DomUtils.$(`#language option[value='${langDirection}']`) as HTMLOptionElement;
+                const langName = langOption ? langOption.text : langDirection;
+                if (confirm("Are you sure you want to clear history for language " + langName)) {
+                    self.model.clearHistory(langDirection).then(() => self.updateHistory());
+                    Tracker.track("history", "cleared");
+                }
+            });
+        }
     }
 
     get currentLanguage() : string {
-        return $("#language").val() as string;
+        return DomUtils.getValue(DomUtils.$("#language"));
     }
     set currentLanguage(value: string) {
-        $("#language").val(value);
+        DomUtils.setValue(DomUtils.$("#language"), value);
     }
 
     get showDate() : boolean {
-        return $("#showDate").prop("checked");
+        const checkbox = DomUtils.$("#showDate") as HTMLInputElement;
+        return checkbox ? checkbox.checked : false;
     }
     set showDate(value : boolean) {
-        $("#showDate").prop("checked", value);
+        const checkbox = DomUtils.$("#showDate") as HTMLInputElement;
+        if (checkbox) {
+            checkbox.checked = value;
+        }
     }
 
     updateHistory() {
@@ -63,65 +74,72 @@ class HistoryPage {
     }
 
     renderHistory(langDirection: string, showDate: boolean) {
-        $("#history").empty();
+        const historyContainer = DomUtils.$("#history") as HTMLElement;
+        DomUtils.empty(historyContainer);
         this.model.loadHistory(langDirection).then((history: IHistoryItem[]) => {
 
-            const table = $("<table></table>");
-            const thead = $("<thead></thead>");
-            table.append(thead);
+            const table = DomUtils.createElement("table");
+            const thead = DomUtils.createElement("thead");
+            DomUtils.append(table, thead);
 
-            const dateHead = $("<th>Date</th>");
-            const wordHead = $("<th>Word</th>");
-            const translationHead = $("<th>Translation</th>");
+            const dateHead = DomUtils.createElement("th", undefined, "Date");
+            const wordHead = DomUtils.createElement("th", undefined, "Word");
+            const translationHead = DomUtils.createElement("th", undefined, "Translation");
 
             if (showDate) {
-                thead.append(dateHead);
+                DomUtils.append(thead, dateHead);
             }
-            thead.append(wordHead);
-            thead.append(translationHead);
+            DomUtils.append(thead, wordHead);
+            DomUtils.append(thead, translationHead);
 
-            $("#history").append(table);
+            DomUtils.append(historyContainer, table);
             if (history && history.length > 0) {
                 let prevAddedDateStr = "";
-                $.each(history, function (i, item) {
+                history.forEach((item) => {
 
-                    const tr = $("<tr></tr>");
-                    const tdWord = $("<td></td>");
-                    const tdTrans = $("<td></td>");
-                    const tdAdded = $("<td></td>");
+                    const tr = DomUtils.createElement("tr");
+                    const tdWord = DomUtils.createElement("td");
+                    const tdTrans = DomUtils.createElement("td");
+                    const tdAdded = DomUtils.createElement("td");
 
-                    tdWord.html(item.word);
-                    tdTrans.html(item.translation);
+                    DomUtils.setHtml(tdWord, item.word);
+                    DomUtils.setHtml(tdTrans, item.translation);
                     let addedDateStr = new Date(item.added).toDateString();
                     if (addedDateStr === prevAddedDateStr) {
                         addedDateStr = "";
-                        tdAdded.addClass("noBottomBorder");
+                        DomUtils.addClass(tdAdded, "noBottomBorder");
                     } else {
                         prevAddedDateStr = addedDateStr;
                     }
-                    tdAdded.html(addedDateStr);
+                    DomUtils.setHtml(tdAdded, addedDateStr);
 
                     if (showDate) {
-                        tr.append(tdAdded);
+                        DomUtils.append(tr, tdAdded);
                     }
-                    tr.append(tdWord);
-                    tr.append(tdTrans);
+                    DomUtils.append(tr, tdWord);
+                    DomUtils.append(tr, tdTrans);
 
-                    table.append(tr);
+                    DomUtils.append(table, tr);
 
                 });
-                $("#clearHistory").removeAttr("disabled");
-                $("#showDate").removeAttr("disabled");
+                const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
+                const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
+                if (clearHistoryButton) clearHistoryButton.disabled = false;
+                if (showDateCheckbox) showDateCheckbox.disabled = false;
             } else {
-                const noTranslationsTd = $("<td>No translations in history</td>");
+                const noTranslationsTd = DomUtils.createElement("td", undefined, "No translations in history");
                 if (showDate) {
-                    noTranslationsTd.attr("colspan", 3);
+                    DomUtils.setAttr(noTranslationsTd, "colspan", "3");
                 } else {
-                    noTranslationsTd.attr("colspan", 2);
+                    DomUtils.setAttr(noTranslationsTd, "colspan", "2");
                 }
-                table.append( $("<tr></tr>").append(noTranslationsTd));
-                $("#clearHistory").attr("disabled", "disabled");
-                $("#showDate").attr("disabled", "disabled");
+                const tr = DomUtils.createElement("tr");
+                DomUtils.append(tr, noTranslationsTd);
+                DomUtils.append(table, tr);
+                const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
+                const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
+                if (clearHistoryButton) clearHistoryButton.disabled = true;
+                if (showDateCheckbox) showDateCheckbox.disabled = true;
             }
 
         });
@@ -129,14 +147,18 @@ class HistoryPage {
     }
 
     renderLanguageSelector() : void {
-        $("#language").empty();
-        if (this.languages.length > 0) {
-            for (const lang of this.languages) {
-                const option = $("<option></option>").attr("value", lang.value).append(lang.text);
-                $("#language").append(option);
+        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
+        if (languageSelect) {
+            DomUtils.empty(languageSelect);
+            if (this.languages.length > 0) {
+                for (const lang of this.languages) {
+                    const option = DomUtils.createElement("option", { value: lang.value }, lang.text);
+                    DomUtils.append(languageSelect, option);
+                }
+                languageSelect.disabled = false;
+            } else {
+                languageSelect.disabled = true;
             }
-        } else {
-            $("#language").attr("disabled", "disabled");
         }
     }
 }

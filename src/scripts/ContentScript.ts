@@ -1,6 +1,7 @@
 import { IMessageService, IMessageHandlers } from "./Interfaces.js";
 import LinkAdapter from "./LinkAdapter.js";
-import $ from "jquery";
+import * as DomUtils from "./util/DomUtils.js";
+import { position } from "./util/PositionUtils.js";
 
 class ContentScript {
 
@@ -13,8 +14,8 @@ class ContentScript {
     }
 
     getSelection(): string {
-        let selection = window.getSelection().toString();
-        selection = $.trim(selection);
+        let selection = window.getSelection()?.toString() || "";
+        selection = DomUtils.trim(selection);
         return selection;
     }
 
@@ -34,35 +35,41 @@ class ContentScript {
         const self = this;
         let insideTranslation = false;
         let zIndex = 10000;
-        $(document).click(function (evt) {
-            const mainContainer = $(".lexinExtensionMainContainer");
-            if (mainContainer.length > 0 && !insideTranslation) {
-                mainContainer.remove();
+        document.addEventListener("click", function (evt: MouseEvent) {
+            const mainContainer = document.querySelector(".lexinExtensionMainContainer") as HTMLElement;
+            if (mainContainer && !insideTranslation) {
+                DomUtils.remove(mainContainer);
                 zIndex = 10000;
             }
             insideTranslation = false;
             const selection = self.getSelection();
             if (selection && evt.altKey) {
-                const absoluteContainer = $("<div></div>")
-                    .addClass("yui3-cssreset")
-                    .addClass("lexinExtensionMainContainer")
-                    .css("position", "absolute")
-                    .insertAfter("body");
-                const container = $("<div></div>")
-                    .addClass("yui3-cssreset").addClass("lexinTranslationContainer")
-                    .css("zIndex", zIndex++)
-                    .appendTo(absoluteContainer).click(function(_e) {
-
-                        container.css("zIndex", zIndex++);
-                        insideTranslation = true;
-                    });
-                const translationBlock = $("<div></div>").attr("id", "translation")
-                    .addClass("yui3-cssreset").addClass("lexinTranslationContent")
-                    .html("Searching for '" + selection + "'...");
-                translationBlock.appendTo(container);
+                const absoluteContainer = DomUtils.createElement("div");
+                DomUtils.addClass(absoluteContainer, "yui3-cssreset");
+                DomUtils.addClass(absoluteContainer, "lexinExtensionMainContainer");
+                DomUtils.setCss(absoluteContainer, "position", "absolute");
+                document.body.appendChild(absoluteContainer);
+                
+                const container = DomUtils.createElement("div");
+                DomUtils.addClass(container, "yui3-cssreset");
+                DomUtils.addClass(container, "lexinTranslationContainer");
+                DomUtils.setCss(container, "zIndex", (zIndex++).toString());
+                absoluteContainer.appendChild(container);
+                
+                container.addEventListener("click", function(_e: MouseEvent) {
+                    DomUtils.setCss(container, "zIndex", (zIndex++).toString());
+                    insideTranslation = true;
+                });
+                
+                const translationBlock = DomUtils.createElement("div");
+                DomUtils.setAttr(translationBlock, "id", "translation");
+                DomUtils.addClass(translationBlock, "yui3-cssreset");
+                DomUtils.addClass(translationBlock, "lexinTranslationContent");
+                DomUtils.setHtml(translationBlock, "Searching for '" + selection + "'...");
+                container.appendChild(translationBlock);
 
                 // Position the popup near the click event
-                (container as any).position({
+                position(container, {
                     of: evt,
                     my: "center+10 bottom-20",
                     at: "center top",
@@ -70,8 +77,8 @@ class ContentScript {
                 });
 
                 self.messageService.getTranslation(selection).then((response) => {
-                    translationBlock.html(response.translation || response.error);
-                    LinkAdapter.AdaptLinks($("#translation"));
+                    DomUtils.setHtml(translationBlock, response.translation || response.error);
+                    LinkAdapter.AdaptLinks(translationBlock);
                 });
 
             }

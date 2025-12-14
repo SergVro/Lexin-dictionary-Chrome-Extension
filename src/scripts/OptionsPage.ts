@@ -1,4 +1,5 @@
-import $ from "jquery";
+import * as DomUtils from "./util/DomUtils.js";
+import { fadeOut } from "./util/AnimationUtils.js";
 import LanguageManager from "./LanguageManager.js";
 import Tracker from "./Tracker.js";
 
@@ -16,78 +17,108 @@ class OptionsPage {
     // Saves options to localStorage.
     save_options(): void {
 
-        this.languageManager.currentLanguage = $("input[name='langs']:checked").val() as string;
+        const checkedLang = DomUtils.$("input[name='langs']:checked") as HTMLInputElement;
+        if (checkedLang) {
+            this.languageManager.currentLanguage = checkedLang.value;
+        }
 
-        const checked = $("input[name='enabled']:checked");
+        const checked = DomUtils.$$("input[name='enabled']:checked") as NodeListOf<HTMLInputElement>;
         const enabled: string[] = [];
         for (let i = 0; i < checked.length; i++) {
-            enabled.push($(checked[i]).val() as string);
+            enabled.push(checked[i].value);
         }
         this.languageManager.setEnabledByValues(enabled);
         // Update status to let user know options were saved.
-        $("#status").html("Options saved");
-        $("#status").show();
-        setTimeout(function () {
-            $("#status").fadeOut("fast");
+        const status = DomUtils.$("#status") as HTMLElement;
+        DomUtils.setHtml(status, "Options saved");
+        status.style.display = "block";
+        setTimeout(() => {
+            fadeOut(status, 200);
         }, 750);
     }
 
     // Restores select box state to saved value from localStorage.
     restore_options(): void {
-        $("input[name='langs']").val([this.languageManager.currentLanguage]);
+        const langInput = DomUtils.$(`input[name='langs'][value='${this.languageManager.currentLanguage}']`) as HTMLInputElement;
+        if (langInput) {
+            langInput.checked = true;
+        }
     }
 
     fillLanguages(): void {
         const languages = this.languageManager.getLanguages();
-        $("#languageButtons").empty();
+        const languageButtons = DomUtils.$("#languageButtons") as HTMLElement;
+        DomUtils.empty(languageButtons);
         for (const lang of languages) {
-            const li = $("<li></li>");
-            const input = $("<input />")
-                .attr("type", "radio")
-                .attr("name", "langs")
-                .attr("value", lang.value)
-                .attr("id", lang.value);
-            const span = $("<label></label>")
-                .attr("for", lang.value)
-                .text(lang.text);
-            li.append(input);
-            li.append(span);
-            const checkBox = $("<input />").attr("type", "checkbox")
-                .attr("name", "enabled")
-                .attr("title", "Enabled")
-                .attr("value", lang.value)
-                .attr("id", "enabled_" + lang.value);
+            const li = DomUtils.createElement("li");
+            const input = DomUtils.createElement("input", {
+                type: "radio",
+                name: "langs",
+                value: lang.value,
+                id: lang.value
+            });
+            const span = DomUtils.createElement("label", { for: lang.value }, lang.text);
+            DomUtils.append(li, input);
+            DomUtils.append(li, span);
+            const checkBox = DomUtils.createElement("input", {
+                type: "checkbox",
+                name: "enabled",
+                title: "Enabled",
+                value: lang.value,
+                id: "enabled_" + lang.value
+            }) as HTMLInputElement;
 
             if (this.languageManager.isEnabled(lang.value)) {
-                checkBox.prop("checked", true);
+                checkBox.checked = true;
             }
 
             if (lang.value === this.languageManager.currentLanguage) {
-                checkBox.prop("disabled", true);
+                checkBox.disabled = true;
             }
 
-            li.append(checkBox);
-            $("#languageButtons").append(li);
+            DomUtils.append(li, checkBox);
+            DomUtils.append(languageButtons, li);
         }
 
         const self = this;
-        $("input[name='langs']").change(function() {
-            $("input[name='enabled']:disabled").prop("disabled", false).prop("checked", false);
-            $("#enabled_" + $(this).val()).prop("checked", true).prop("disabled", true);
-            self.save_options();
-            Tracker.track("language", "changed");
-        });
-        $("input[name='enabled']").change(function() {
-            self.save_options();
-            Tracker.track("enabled_language", "changed", $(this).val() as string);
+        const langInputs = DomUtils.$$("input[name='langs']") as NodeListOf<HTMLInputElement>;
+        langInputs.forEach((input) => {
+            input.addEventListener("change", function() {
+                const disabledInputs = DomUtils.$$("input[name='enabled']:disabled") as NodeListOf<HTMLInputElement>;
+                disabledInputs.forEach((disabledInput) => {
+                    disabledInput.disabled = false;
+                    disabledInput.checked = false;
+                });
+                const enabledInput = DomUtils.$(`#enabled_${this.value}`) as HTMLInputElement;
+                if (enabledInput) {
+                    enabledInput.checked = true;
+                    enabledInput.disabled = true;
+                }
+                self.save_options();
+                Tracker.track("language", "changed");
+            });
         });
 
-        $("#checkAll").change(function() {
-            const checkbox = this as HTMLInputElement;
-            $("input[name='enabled']:enabled").prop("checked", checkbox.checked);
-            self.save_options();
-            Tracker.track("enabled_language", "changed_all", checkbox.checked.toString());
+        const enabledInputs = DomUtils.$$("input[name='enabled']") as NodeListOf<HTMLInputElement>;
+        enabledInputs.forEach((input) => {
+            input.addEventListener("change", function() {
+                self.save_options();
+                Tracker.track("enabled_language", "changed", this.value);
+            });
         });
+
+        const checkAll = DomUtils.$("#checkAll") as HTMLInputElement;
+        if (checkAll) {
+            checkAll.addEventListener("change", function() {
+                const checkbox = this as HTMLInputElement;
+                const enabledInputs = DomUtils.$$("input[name='enabled']:enabled") as NodeListOf<HTMLInputElement>;
+                enabledInputs.forEach((input) => {
+                    input.checked = checkbox.checked;
+                });
+                self.save_options();
+                Tracker.track("enabled_language", "changed_all", checkbox.checked.toString());
+            });
+        }
     }
 }
 

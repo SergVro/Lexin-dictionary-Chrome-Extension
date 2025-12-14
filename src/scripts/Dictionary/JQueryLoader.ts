@@ -1,17 +1,26 @@
 import { ILoader } from "../Interfaces.js";
-import $ from "jquery";
 
 /**
- * JQueryLoader implements ILoader using jQuery's $.get() method
- * This is used in contexts where jQuery is available (popup, options, history pages)
+ * JQueryLoader implements ILoader using native fetch() API
+ * Note: Keeping the class name for backward compatibility, but it no longer uses jQuery
  */
 class JQueryLoader implements ILoader {
     get(url: string): Promise<any> {
-        return new Promise((resolve, reject) => {
-            $.get(url)
-                .done((data) => resolve(data))
-                .fail((error) => reject(error));
-        });
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(text => {
+                // Try to parse as JSON, fallback to text
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    return text;
+                }
+            });
     }
 }
 

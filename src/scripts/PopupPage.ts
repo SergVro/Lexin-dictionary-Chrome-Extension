@@ -3,7 +3,8 @@ import LanguageManager from "./LanguageManager.js";
 import TranslationDirection from "./Dictionary/TranslationDirection.js";
 import { IMessageService, ITranslation } from "./Interfaces.js";
 import Tracker from "./Tracker.js";
-import $ from "jquery";
+import * as DomUtils from "./util/DomUtils.js";
+import { fadeOut } from "./util/AnimationUtils.js";
 
 class PopupPage {
     private history = [];
@@ -24,35 +25,35 @@ class PopupPage {
     }
 
     set currentLanguage(value: string) {
-        $("#language").val(value);
+        DomUtils.setValue(DomUtils.$("#language"), value);
     }
 
     get currentLanguage(): string {
-        return $("#language").val() as string;
+        return DomUtils.getValue(DomUtils.$("#language"));
     }
 
     getTranslation(direction?: TranslationDirection): void {
-        let word = $("#word").val() as string;
-        word = $.trim(word);
+        let word = DomUtils.getValue(DomUtils.$("#word"));
+        word = DomUtils.trim(word);
         if (!word || word === "") {
             return;
         }
-        const translationBox = $("#translation");
-        translationBox.html("Searching for '" + word + "'...");
+        const translationBox = DomUtils.$("#translation") as HTMLElement;
+        DomUtils.setHtml(translationBox, "Searching for '" + word + "'...");
         this.messageService.getTranslation(word, direction).then((response: ITranslation) => {
             if (word === this.currentWord) {
-                translationBox.html(response.translation || response.error);
+                DomUtils.setHtml(translationBox, response.translation || response.error);
                 LinkAdapter.AdaptLinks(translationBox);
             }
         });
     }
 
     setCurrentWord(word: string, skipHistory?: boolean, skipInput?: boolean) {
-        this.currentWord = word = $.trim(word);
-        $("#word").val(word);
+        this.currentWord = word = DomUtils.trim(word);
+        DomUtils.setValue(DomUtils.$("#word"), word);
 
         if (!skipInput) {
-            $("#wordInput").val(word);
+            DomUtils.setValue(DomUtils.$("#wordInput"), word);
         }
         if (!skipHistory) {
             this.history.push(word);
@@ -62,10 +63,11 @@ class PopupPage {
 
     fillLanguages() {
         const languages = this.languageManager.getEnabledLanguages();
-        $("#language").empty();
+        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
+        DomUtils.empty(languageSelect);
         for (const lang of languages) {
-            const option = $("<option></option>").attr("value", lang.value).append(lang.text);
-            $("#language").append(option);
+            const option = DomUtils.createElement("option", { value: lang.value }, lang.text);
+            DomUtils.append(languageSelect, option);
         }
     }
 
@@ -77,7 +79,7 @@ class PopupPage {
 
                 Tracker.track("translation", "popup");
             } else {
-                $("#translation").html("No word selected");
+                DomUtils.setHtml(DomUtils.$("#translation"), "No word selected");
             }
         });
     }
@@ -86,87 +88,104 @@ class PopupPage {
 
         const self = this;
 
-        $("#language").change(() => {
-            Tracker.track("language", "changed", this.currentLanguage);
-            this.languageManager.currentLanguage = this.currentLanguage;
-            this.getTranslation();
-        });
+        const languageSelect = DomUtils.$("#language");
+        if (languageSelect) {
+            languageSelect.addEventListener("change", () => {
+                Tracker.track("language", "changed", this.currentLanguage);
+                this.languageManager.currentLanguage = this.currentLanguage;
+                this.getTranslation();
+            });
+        }
 
-        $("a#historyLink").click(() => {
-            Tracker.track("history", "clicked");
-            this.messageService.createNewTab("html/history.html");
-            return false;
-        });
+        const historyLink = DomUtils.$("a#historyLink");
+        if (historyLink) {
+            historyLink.addEventListener("click", (e) => {
+                e.preventDefault();
+                Tracker.track("history", "clicked");
+                this.messageService.createNewTab("html/history.html");
+            });
+        }
 
         // if something was clicked inside the translation article
-        $("#translation").click(() => {
-            Tracker.track("translation", "clicked");
-            const selection = window.getSelection().toString();
-            if (selection !== "") {
-                this.setCurrentWord(selection);
-                this.getTranslation();
-            }
-        });
+        const translationBox = DomUtils.$("#translation");
+        if (translationBox) {
+            translationBox.addEventListener("click", () => {
+                Tracker.track("translation", "clicked");
+                const selection = window.getSelection()?.toString() || "";
+                if (selection !== "") {
+                    this.setCurrentWord(selection);
+                    this.getTranslation();
+                }
+            });
+        }
 
         // manual word search
-        let timer = null;
-        const wordInput = $("#wordInput");
-        wordInput.keyup(function(e){
-            if (e.altKey) {
-                return;
-            }
-            clearTimeout(timer);
-            const word = $(this).val() as string;
-            if (word.length >= 2) {
-                timer = setTimeout(() => {
-                    Tracker.track("word", "typed", "from_sv");
-                    self.setCurrentWord(word, false, true);
-                    self.getTranslation(TranslationDirection.to);
-                }, 500);
-            }
-        });
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const wordInput = DomUtils.$("#wordInput") as HTMLInputElement;
+        if (wordInput) {
+            wordInput.addEventListener("keyup", function(e: KeyboardEvent) {
+                if (e.altKey) {
+                    return;
+                }
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                const word = (this as HTMLInputElement).value;
+                if (word.length >= 2) {
+                    timer = setTimeout(() => {
+                        Tracker.track("word", "typed", "from_sv");
+                        self.setCurrentWord(word, false, true);
+                        self.getTranslation(TranslationDirection.to);
+                    }, 500);
+                }
+            });
+            wordInput.focus();
+        }
 
-        wordInput[0].focus();
+        const fromWordInput = DomUtils.$("#fromWordInput") as HTMLInputElement;
+        if (fromWordInput) {
+            fromWordInput.addEventListener("keyup", function(e: KeyboardEvent) {
+                if (e.altKey) {
+                    return;
+                }
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                const word = (this as HTMLInputElement).value;
+                if (word.length >= 2) {
+                    timer = setTimeout(() => {
+                        Tracker.track("word", "typed", "to_sv");
+                        self.setCurrentWord(word, false, true);
+                        self.getTranslation(TranslationDirection.from);
+                    }, 500);
+                }
+            });
+        }
 
-        $("#fromWordInput").keyup(function(e){
-            if (e.altKey) {
-                return;
-            }
-            clearTimeout(timer);
-            const word = $(this).val() as string;
-            if (word.length >= 2) {
-                timer = setTimeout(() => {
-                    Tracker.track("word", "typed", "to_sv");
-                    self.setCurrentWord(word, false, true);
-                    self.getTranslation(TranslationDirection.from);
-                }, 500);
-            }
-        });
-
-        $(document).keyup((e) => { // TODO: Fix me?
+        document.addEventListener("keyup", (e: KeyboardEvent) => {
             if (e.ctrlKey) {
-                if (e.which === 37) { // left arrow
+                if (e.key === "ArrowLeft") { // left arrow
                     e.preventDefault();
                     if (this.historyIndex < 0) {
-                        this.historyIndex = history.length - 1;
+                        this.historyIndex = this.history.length - 1;
                     }
                     if (this.historyIndex === 0) {
                         return;
                     }
                     this.historyIndex--;
-                    this.setCurrentWord(history[this.historyIndex], true);
+                    this.setCurrentWord(this.history[this.historyIndex], true);
                     this.getTranslation();
                 }
-                if (e.which === 39) { // right arrow
+                if (e.key === "ArrowRight") { // right arrow
                     e.preventDefault();
-                    if (this.historyIndex === history.length - 1) {
+                    if (this.historyIndex === this.history.length - 1) {
                         this.historyIndex = -1;
                     }
                     if (this.historyIndex < 0) {
                         return;
                     }
                     this.historyIndex++;
-                    this.setCurrentWord(history[this.historyIndex], true);
+                    this.setCurrentWord(this.history[this.historyIndex], true);
                     this.getTranslation();
                 }
             }
@@ -175,14 +194,16 @@ class PopupPage {
         //window.localStorage.setItem("showQuickTip", "Yes");
         const showQuickTip = window.localStorage.getItem("showQuickTip");
         if (showQuickTip !== "No") {
-            const tipContainer = $(".quickTipContainer");
-            tipContainer.css("display", "block");
-            tipContainer.click(function () {
-                $(".quickTipContainer").fadeOut("fast", function () {
-                    $(".quickTipContainer").css("display", "none");
+            const tipContainer = DomUtils.$(".quickTipContainer") as HTMLElement;
+            if (tipContainer) {
+                DomUtils.setCss(tipContainer, "display", "block");
+                tipContainer.addEventListener("click", function () {
+                    fadeOut(tipContainer, 200, () => {
+                        DomUtils.setCss(tipContainer, "display", "none");
+                    });
+                    window.localStorage.setItem("showQuickTip", "No");
                 });
-                window.localStorage.setItem("showQuickTip", "No");
-            });
+            }
         }
     }
 }
