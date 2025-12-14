@@ -64,22 +64,52 @@ function parseAlignment(alignment: string): ParsedAlignment {
 /**
  * Get target position from 'of' option
  */
-function getTargetPosition(of: Element | MouseEvent | { left: number; top: number }): { left: number; top: number; width: number; height: number } {
+function getTargetPosition(of: Element | MouseEvent | { left: number; top: number }, useFixed: boolean = false): { left: number; top: number; width: number; height: number } {
     if ("left" in of && "top" in of && typeof of.left === "number" && typeof of.top === "number") {
         // It's a plain object with coordinates
-        return { left: of.left, top: of.top, width: 0, height: 0 };
+        if (useFixed) {
+            // For fixed positioning, assume coordinates are viewport-relative
+            return { left: of.left, top: of.top, width: 0, height: 0 };
+        } else {
+            // For absolute positioning, assume coordinates are document-relative
+            return { left: of.left, top: of.top, width: 0, height: 0 };
+        }
     } else if (of instanceof MouseEvent) {
-        // It's a mouse event
-        return { left: of.clientX, top: of.clientY, width: 0, height: 0 };
+        // It's a mouse event - use viewport coordinates (clientX/clientY) for fixed positioning
+        // or convert to document coordinates for absolute positioning
+        if (useFixed) {
+            return { 
+                left: of.clientX, 
+                top: of.clientY, 
+                width: 0, 
+                height: 0 
+            };
+        } else {
+            return { 
+                left: of.clientX + window.scrollX, 
+                top: of.clientY + window.scrollY, 
+                width: 0, 
+                height: 0 
+            };
+        }
     } else if (of instanceof Element) {
         // It's an element
         const rect = of.getBoundingClientRect();
-        return {
-            left: rect.left + window.scrollX,
-            top: rect.top + window.scrollY,
-            width: rect.width,
-            height: rect.height
-        };
+        if (useFixed) {
+            return {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        } else {
+            return {
+                left: rect.left + window.scrollX,
+                top: rect.top + window.scrollY,
+                width: rect.width,
+                height: rect.height
+            };
+        }
     }
     
     return { left: 0, top: 0, width: 0, height: 0 };
@@ -148,12 +178,17 @@ function calculatePosition(
 function handleCollision(
     position: { left: number; top: number },
     elementRect: DOMRect,
-    collision: string
+    collision: string,
+    useFixed: boolean = false
 ): { left: number; top: number } {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+    // For fixed positioning, coordinates are viewport-relative (0,0 is top-left of viewport)
+    // For absolute positioning, coordinates are document-relative
+    const minX = useFixed ? 0 : window.scrollX;
+    const minY = useFixed ? 0 : window.scrollY;
+    const maxX = useFixed ? viewportWidth : viewportWidth + window.scrollX;
+    const maxY = useFixed ? viewportHeight : viewportHeight + window.scrollY;
 
     let { left, top } = position;
 
@@ -161,26 +196,26 @@ function handleCollision(
         return { left, top };
     }
 
-    const elementWidth = elementRect.width;
-    const elementHeight = elementRect.height;
+    const elementWidth = elementRect.width || 0;
+    const elementHeight = elementRect.height || 0;
 
     // Horizontal collision detection
     if (collision.includes("flip") || collision.includes("fit")) {
         const rightEdge = left + elementWidth;
         const leftEdge = left;
 
-        if (rightEdge > viewportWidth + scrollX && collision.includes("flip")) {
+        if (rightEdge > maxX && collision.includes("flip")) {
             // Flip horizontally
-            left = viewportWidth + scrollX - elementWidth;
-        } else if (leftEdge < scrollX && collision.includes("flip")) {
-            left = scrollX;
+            left = maxX - elementWidth;
+        } else if (leftEdge < minX && collision.includes("flip")) {
+            left = minX;
         } else if (collision.includes("fit")) {
             // Fit within viewport
-            if (rightEdge > viewportWidth + scrollX) {
-                left = viewportWidth + scrollX - elementWidth;
+            if (rightEdge > maxX) {
+                left = maxX - elementWidth;
             }
-            if (leftEdge < scrollX) {
-                left = scrollX;
+            if (leftEdge < minX) {
+                left = minX;
             }
         }
     }
@@ -190,18 +225,18 @@ function handleCollision(
         const bottomEdge = top + elementHeight;
         const topEdge = top;
 
-        if (bottomEdge > viewportHeight + scrollY && collision.includes("flip")) {
-            // Flip vertically
-            top = viewportHeight + scrollY - elementHeight;
-        } else if (topEdge < scrollY && collision.includes("flip")) {
-            top = scrollY;
+        if (bottomEdge > maxY && collision.includes("flip")) {
+            // Flip vertically - show above instead of below
+            top = maxY - elementHeight;
+        } else if (topEdge < minY && collision.includes("flip")) {
+            top = minY;
         } else if (collision.includes("fit")) {
             // Fit within viewport
-            if (bottomEdge > viewportHeight + scrollY) {
-                top = viewportHeight + scrollY - elementHeight;
+            if (bottomEdge > maxY) {
+                top = maxY - elementHeight;
             }
-            if (topEdge < scrollY) {
-                top = scrollY;
+            if (topEdge < minY) {
+                top = minY;
             }
         }
     }
@@ -220,17 +255,42 @@ export function position(element: HTMLElement, options: PositionOptions): void {
     const at = parseAlignment(options.at || "bottom left");
     const collision = options.collision || "flipfit";
 
-    const targetPos = getTargetPosition(options.of);
-    const elementRect = element.getBoundingClientRect();
+    // For mouse events, use fixed positioning (viewport-relative) for better UX
+    // For elements, we can use either, but fixed is simpler
+    const useFixed = options.of instanceof MouseEvent;
+    
+    const targetPos = getTargetPosition(options.of, useFixed);
+    let elementRect = element.getBoundingClientRect();
+    
+    // If element has no size yet (common when content hasn't loaded), use estimated size
+    if (elementRect.width === 0 || elementRect.height === 0) {
+        // Use estimated dimensions based on CSS (25em width, ~20em height from content.css)
+        const estimatedWidth = 400; // ~25em at default font size
+        const estimatedHeight = 320; // ~20em at default font size
+        elementRect = new DOMRect(
+            elementRect.x,
+            elementRect.y,
+            estimatedWidth,
+            estimatedHeight
+        );
+    }
 
     // Calculate initial position
     let pos = calculatePosition(elementRect, targetPos, my, at);
 
     // Handle collision detection
-    pos = handleCollision(pos, elementRect, collision);
+    pos = handleCollision(pos, elementRect, collision, useFixed);
 
     // Apply position
-    element.style.position = "absolute";
+    if (useFixed) {
+        element.style.position = "fixed";
+    } else {
+        element.style.position = "absolute";
+    }
     element.style.left = pos.left + "px";
     element.style.top = pos.top + "px";
+    
+    // Ensure the element is visible
+    element.style.visibility = "visible";
+    element.style.display = "block";
 }
