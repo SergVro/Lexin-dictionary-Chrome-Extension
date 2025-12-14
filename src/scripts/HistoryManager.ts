@@ -1,6 +1,5 @@
 import { ITranslationParser, IHistoryManager, IHistoryItem } from "./Interfaces.js";
 import Tracker from "./Tracker.js";
-import $ from "jquery";
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
