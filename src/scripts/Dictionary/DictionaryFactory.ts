@@ -1,7 +1,7 @@
 import { IDictionary, ILanguage } from "../Interfaces.js";
 import LexinDictionary from "./LexinDictionary.js";
 import FolketsDictionary from "./FolketsDictionary.js";
-import JQueryLoader from "./JQueryLoader.js";
+import FetchLoader from "./FetchLoader.js";
 
 
 class DictionaryFactory {
@@ -11,8 +11,8 @@ class DictionaryFactory {
         if (dictionaries) {
             this.dictionaries = dictionaries;
         } else {
-            // Use JQueryLoader for contexts where jQuery is available (popup, options, history pages)
-            const loader = new JQueryLoader();
+            // Use FetchLoader for all contexts (service worker and UI pages)
+            const loader = new FetchLoader();
             this.dictionaries = [
                 new LexinDictionary(loader),
                 new FolketsDictionary(loader)

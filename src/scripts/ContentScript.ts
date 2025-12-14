@@ -172,14 +172,6 @@ class ContentScript {
     }
 
      initialize() {
-        // Add a marker to verify script is loaded
-        if (document.body) {
-            // Create a hidden marker element
-            const marker = document.createElement("div");
-            marker.id = "lexin-extension-loaded";
-            marker.style.display = "none";
-            document.body.appendChild(marker);
-        }
         this.handleGetSelection();
         this.subscribeOnClicks();
     }

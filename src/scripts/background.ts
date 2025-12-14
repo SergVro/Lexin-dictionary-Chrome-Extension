@@ -20,10 +20,10 @@ const { storage, settingsStorage } = createChromeStorage();
         // Wait for the storage adapter to load its cache
         await (storage as any).waitForCache();
         
-        // Create a FetchLoader for service worker (jQuery doesn't work in service workers)
+        // Create a FetchLoader for service worker context
         const fetchLoader = new FetchLoader();
         
-        // Create dictionaries with FetchLoader instead of jQuery
+        // Create dictionaries with FetchLoader
         const dictionaries = [
             new LexinDictionary(fetchLoader),
             new FolketsDictionary(fetchLoader)

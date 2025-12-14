@@ -1,8 +1,8 @@
 import { ILoader } from "../Interfaces.js";
 
 /**
- * FetchLoader implements ILoader using the native fetch API
- * This is needed for service workers where jQuery doesn't work
+ * FetchLoader implements ILoader using the native fetch API with encoding detection
+ * Handles both text and JSON responses with automatic charset detection
  */
 class FetchLoader implements ILoader {
     get(url: string): Promise<any> {
@@ -30,10 +30,16 @@ class FetchLoader implements ILoader {
                     const decoder = new TextDecoder(encoding);
                     return decoder.decode(buffer);
                 });
+            })
+            .then(text => {
+                // Try to parse as JSON, fallback to text
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    return text;
+                }
             });
     }
 }
 
 export default FetchLoader;
-
-

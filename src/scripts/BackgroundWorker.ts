@@ -14,7 +14,6 @@ class BackgroundWorker {
     }
 
     getTranslation(word: string, direction: TranslationDirection): Promise<ITranslation> {
-        // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
         return new Promise<ITranslation>((resolve) => {
             this.translationManager.getTranslation(word, direction).then((data) => {
                 const response: ITranslation = {translation: data, error: null};

@@ -69,8 +69,7 @@ npm run package
 - **ES Modules** - Modern JavaScript module system
 - **esbuild** - Fast JavaScript bundler
 - **ESLint** - Code linting
-- **jQuery 3.7** - DOM manipulation (loaded from npm)
-- **jQuery UI 1.13** - UI components (loaded from npm)
+- **Native DOM APIs** - Modern browser APIs for DOM manipulation and positioning
 - **Chrome Extension Manifest V3** - Latest extension platform
 
 ### Modernization (October 2024)
@@ -82,6 +81,7 @@ This extension has been modernized from the legacy build system:
 - ❌ Bower → ✅ npm packages
 - ❌ RequireJS/AMD → ✅ ES modules
 - ❌ TSLint → ✅ ESLint
+- ❌ jQuery/jQuery UI → ✅ Native DOM APIs
 - ❌ Manifest V2 → ✅ Manifest V3
 - ❌ Background pages → ✅ Service workers
 

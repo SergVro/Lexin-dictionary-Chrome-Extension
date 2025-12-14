@@ -35,7 +35,6 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         this.checkLanguage(langDirection);
         const queryUrl: string = this.createQueryUrl(word, langDirection, direction);
         
-        // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
         return new Promise<string>((resolve, reject) => {
             this.loader.get(queryUrl).then((data) => {
                 if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {

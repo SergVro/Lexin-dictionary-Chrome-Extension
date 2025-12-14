@@ -1,5 +1,5 @@
 /**
- * Positioning utilities to replace jQuery UI position() method
+ * Positioning utilities for intelligent element positioning
  */
 
 export interface PositionOptions {
@@ -246,7 +246,7 @@ function handleCollision(
 
 /**
  * Position element relative to another element or event
- * Replaces jQuery UI's position() method
+ * Provides intelligent positioning with collision detection
  */
 export function position(element: HTMLElement, options: PositionOptions): void {
     if (!element) {return;}

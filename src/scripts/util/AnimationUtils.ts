@@ -1,9 +1,9 @@
 /**
- * Animation utilities to replace jQuery animations
+ * Animation utilities using requestAnimationFrame
  */
 
 /**
- * Fade out animation to replace jQuery's fadeOut
+ * Fade out animation with callback
  * @param element Element to fade out
  * @param duration Duration in milliseconds (default: 400ms)
  * @param callback Callback function to execute after animation completes

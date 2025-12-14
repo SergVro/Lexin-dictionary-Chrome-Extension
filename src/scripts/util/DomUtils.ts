@@ -1,5 +1,5 @@
 /**
- * DOM utility functions to replace jQuery functionality
+ * DOM utility functions providing modern browser API wrappers
  */
 
 /**
@@ -196,7 +196,7 @@ export function append(parent: Element | null, child: Node): void {
 }
 
 /**
- * Append element to target (like jQuery's appendTo)
+ * Append element to target
  */
 export function appendTo(child: Node, target: Element | null): void {
     if (target) {
@@ -233,7 +233,7 @@ export function trim(str: string): string {
 }
 
 /**
- * Iterate over array-like object (like jQuery.each)
+ * Iterate over array-like object
  */
 export function each<T>(array: ArrayLike<T>, callback: (index: number, item: T) => void): void {
     for (let i = 0; i < array.length; i++) {

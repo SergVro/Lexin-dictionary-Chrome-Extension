@@ -21,8 +21,7 @@ class TranslationManager {
                    languageDirection?: string, skipHistory? : boolean): Promise<string> {
         //  Summary
         //      Returns a translation for the specified word
-        // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
-        word = word.trim(); // Use native trim instead of $.trim()
+        word = word.trim();
         if (!word) {
             return Promise.reject<string>("word is required");
         }
