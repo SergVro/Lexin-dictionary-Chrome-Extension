@@ -29,7 +29,6 @@ class LanguageManager {
     }
 
     getLanguages(): ILanguage[] {
-        console.log("getLanguages", this.languages);
         return this.languages;
     }
 
@@ -54,7 +53,6 @@ class LanguageManager {
             enabledLanguages.push(currentLang);
         }
         const result = this.getLanguages().filter((lang) => enabledLanguages.indexOf(lang.value) >= 0);
-        console.log("getEnabledLanguages", result);
         return result;
     }
 
