@@ -1,5 +1,5 @@
-import MessageService from "./Messaging/MessageService.js";
-import MessageHandlers from "./Messaging/MessageHandlers.js";
+import MessageService from "../messaging/MessageService.js";
+import MessageHandlers from "../messaging/MessageHandlers.js";
 import ContentScript from "./ContentScript.js";
 
 const messageService = new MessageService();

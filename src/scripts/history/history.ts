@@ -1,6 +1,6 @@
-import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
-import MessageService from "./Messaging/MessageService.js";
-import LanguageManager from "./LanguageManager.js";
+import DictionaryFactory from "../dictionary/DictionaryFactory.js";
+import MessageService from "../messaging/MessageService.js";
+import LanguageManager from "../common/LanguageManager.js";
 import HistoryModel from "./HistoryModel.js";
 import HistoryPage from "./HistoryPage.js";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import FetchLoader from "../../src/scripts/Dictionary/FetchLoader.js";
+import FetchLoader from "../../src/scripts/dictionary/FetchLoader.js";
 
 describe("FetchLoader", () => {
     let loader: FetchLoader;

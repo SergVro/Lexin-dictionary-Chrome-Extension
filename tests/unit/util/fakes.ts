@@ -12,8 +12,8 @@ import {
     LoadHistoryHandler,
     ClearHistoryHandler,
     GetSelectionHandler
-} from "../../../src/scripts/Interfaces.js";
-import TranslationDirection from "../../../src/scripts/Dictionary/TranslationDirection.js";
+} from "../../../src/scripts/common/Interfaces.js";
+import TranslationDirection from "../../../src/scripts/dictionary/TranslationDirection.js";
 
 export class FakeLoader implements ILoader {
     data: string[] = [];

@@ -4,12 +4,12 @@ import path from 'path';
 
 // Entry points that need bundling
 const bundledEntryPoints = [
-  'dist/temp/scripts/background-main.js',
-  'dist/temp/scripts/popup-main.js',
-  'dist/temp/scripts/options-main.js',
-  'dist/temp/scripts/history-main.js',
+  'dist/temp/scripts/worker/background-main.js',
+  'dist/temp/scripts/popup/popup-main.js',
+  'dist/temp/scripts/options/options-main.js',
+  'dist/temp/scripts/history/history-main.js',
   'dist/temp/scripts/help-main.js',
-  'dist/temp/scripts/content-main.js'
+  'dist/temp/scripts/content/content-main.js'
 ];
 
 async function build() {
@@ -18,7 +18,10 @@ async function build() {
     
     // Build main entry points with esbuild
     for (const entry of bundledEntryPoints) {
-      const outfile = entry.replace('/temp/', '/');
+      // Output bundled files to root of dist/scripts/ (not in subfolders)
+      // e.g., dist/temp/scripts/worker/background-main.js -> dist/scripts/background-main.js
+      const entryName = path.basename(entry);
+      const outfile = `dist/scripts/${entryName}`;
       
       await esbuild.build({
         entryPoints: [entry],

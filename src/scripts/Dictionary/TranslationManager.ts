@@ -1,7 +1,7 @@
 import DictionaryFactory from "./DictionaryFactory.js";
-import LanguageManager from "../LanguageManager.js";
-import Tracker from "../Tracker.js";
-import { IHistoryManager } from "../Interfaces.js";
+import LanguageManager from "../common/LanguageManager.js";
+import Tracker from "../common/Tracker.js";
+import { IHistoryManager } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 
 class TranslationManager {

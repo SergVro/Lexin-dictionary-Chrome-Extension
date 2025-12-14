@@ -1,4 +1,4 @@
-import { IDictionary, ILanguage } from "../Interfaces.js";
+import { IDictionary, ILanguage } from "../common/Interfaces.js";
 import LexinDictionary from "./LexinDictionary.js";
 import FolketsDictionary from "./FolketsDictionary.js";
 import FetchLoader from "./FetchLoader.js";

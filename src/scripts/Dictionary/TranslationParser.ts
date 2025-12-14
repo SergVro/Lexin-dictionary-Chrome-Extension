@@ -1,4 +1,4 @@
-import { ITranslationParser, IHistoryItem } from "../Interfaces.js";
+import { ITranslationParser, IHistoryItem } from "../common/Interfaces.js";
 
 class TranslationParser implements ITranslationParser{
 

@@ -1,5 +1,5 @@
-import DictionaryBase from "../../src/scripts/Dictionary/DictionaryBase.js";
-import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
+import DictionaryBase from "../../src/scripts/dictionary/DictionaryBase.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import { FakeLoader } from "./util/fakes.js";
 
 describe("DictionaryBase", () => {

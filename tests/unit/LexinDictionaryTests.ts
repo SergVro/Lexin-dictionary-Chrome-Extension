@@ -1,6 +1,6 @@
 import { FakeLoader } from "./util/fakes.js";
-import LexinDictionary from "../../src/scripts/Dictionary/LexinDictionary.js";
-import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
+import LexinDictionary from "../../src/scripts/dictionary/LexinDictionary.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import swe_rus_translation_multi from "./data/swe_rus_translation_multi.html";
 
 describe("LexinDictionary", () => {

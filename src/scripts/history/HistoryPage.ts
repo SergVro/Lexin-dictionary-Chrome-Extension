@@ -1,7 +1,7 @@
 import HistoryModel from "./HistoryModel.js";
-import Tracker from "./Tracker.js";
-import { IHistoryItem, ILanguage } from "./Interfaces.js";
-import * as DomUtils from "./util/DomUtils.js";
+import Tracker from "../common/Tracker.js";
+import { IHistoryItem, ILanguage } from "../common/Interfaces.js";
+import * as DomUtils from "../util/DomUtils.js";
 
 class HistoryPage {
 

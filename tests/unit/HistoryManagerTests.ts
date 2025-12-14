@@ -1,6 +1,6 @@
-import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
-import HistoryManager from "../../src/scripts/HistoryManager.js";
-import TranslationParser from "../../src/scripts/Dictionary/TranslationParser.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import HistoryManager from "../../src/scripts/history/HistoryManager.js";
+import TranslationParser from "../../src/scripts/dictionary/TranslationParser.js";
 
 describe("HistoryManager", () => {
     let historyManager: HistoryManager;

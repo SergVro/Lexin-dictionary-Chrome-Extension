@@ -1,4 +1,4 @@
-import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import DictionaryFactory from "../dictionary/DictionaryFactory.js";
 import { ILanguage, ISettingsStorage } from "./Interfaces.js";
 
 class LanguageManager {

@@ -1,6 +1,6 @@
-import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
+import DictionaryFactory from "../dictionary/DictionaryFactory.js";
 import OptionsPage from "./OptionsPage.js";
-import LanguageManager from "./LanguageManager.js";
+import LanguageManager from "../common/LanguageManager.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     const dictionaryFactory = new DictionaryFactory();

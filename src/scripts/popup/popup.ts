@@ -1,6 +1,6 @@
-import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
-import MessageService from "./Messaging/MessageService.js";
-import LanguageManager from "./LanguageManager.js";
+import DictionaryFactory from "../dictionary/DictionaryFactory.js";
+import MessageService from "../messaging/MessageService.js";
+import LanguageManager from "../common/LanguageManager.js";
 import PopupPage from "./PopupPage.js";
 
 document.addEventListener("DOMContentLoaded", () => {

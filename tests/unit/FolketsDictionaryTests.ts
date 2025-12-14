@@ -1,6 +1,6 @@
 import { FakeLoader } from "./util/fakes.js";
-import FolketsDictionary from "../../src/scripts/Dictionary/FolketsDictionary.js";
-import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
+import FolketsDictionary from "../../src/scripts/dictionary/FolketsDictionary.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import swe_eng_translation_multi from "./data/swe_eng_translation_multi.html";
 
 describe("FolketsDictionary", () => {

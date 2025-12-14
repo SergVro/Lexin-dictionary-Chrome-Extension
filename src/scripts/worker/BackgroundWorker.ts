@@ -1,5 +1,5 @@
-import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "./Interfaces.js";
-import TranslationDirection from "./Dictionary/TranslationDirection.js";
+import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "../common/Interfaces.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
 
 class BackgroundWorker {
 

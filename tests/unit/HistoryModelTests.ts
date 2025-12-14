@@ -1,8 +1,8 @@
-import HistoryModel from "../../src/scripts/HistoryModel.js";
-import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
-import LanguageManager from "../../src/scripts/LanguageManager.js";
+import HistoryModel from "../../src/scripts/history/HistoryModel.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
 import { TestMessageService } from "./util/fakes.js";
-import { ISettingsStorage } from "../../src/scripts/Interfaces.js";
+import { ISettingsStorage } from "../../src/scripts/common/Interfaces.js";
 
 describe("HistoryModel", () => {
     let mockMessageService: TestMessageService;

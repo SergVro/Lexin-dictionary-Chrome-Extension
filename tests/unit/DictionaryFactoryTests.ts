@@ -1,4 +1,4 @@
-import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
 
 describe("DictionaryFactory", () => {
     let factory: DictionaryFactory;

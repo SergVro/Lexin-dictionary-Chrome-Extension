@@ -1,10 +1,10 @@
-import LinkAdapter from "./LinkAdapter.js";
-import LanguageManager from "./LanguageManager.js";
-import TranslationDirection from "./Dictionary/TranslationDirection.js";
-import { IMessageService, ITranslation } from "./Interfaces.js";
-import Tracker from "./Tracker.js";
-import * as DomUtils from "./util/DomUtils.js";
-import { fadeOut } from "./util/AnimationUtils.js";
+import LinkAdapter from "../common/LinkAdapter.js";
+import LanguageManager from "../common/LanguageManager.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
+import { IMessageService, ITranslation } from "../common/Interfaces.js";
+import Tracker from "../common/Tracker.js";
+import * as DomUtils from "../util/DomUtils.js";
+import { fadeOut } from "../util/AnimationUtils.js";
 
 class PopupPage {
     private history = [];

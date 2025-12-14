@@ -1,5 +1,5 @@
-import BackgroundWorker from "../../src/scripts/BackgroundWorker.js";
-import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
+import BackgroundWorker from "../../src/scripts/worker/BackgroundWorker.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import {
     FakeHistoryManager,
     FakeTranslationManager,

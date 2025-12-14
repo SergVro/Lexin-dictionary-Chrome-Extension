@@ -1,9 +1,9 @@
-import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
-import TranslationParser from "../../src/scripts/Dictionary/TranslationParser.js";
-import TranslationManager from "../../src/scripts/Dictionary/TranslationManager.js";
-import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
-import HistoryManager from "../../src/scripts/HistoryManager.js";
-import LanguageManager from "../../src/scripts/LanguageManager.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import TranslationParser from "../../src/scripts/dictionary/TranslationParser.js";
+import TranslationManager from "../../src/scripts/dictionary/TranslationManager.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
+import HistoryManager from "../../src/scripts/history/HistoryManager.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
 import { FakeDictionary } from "./util/fakes.js";
 
 describe("TranslationManager", () => {

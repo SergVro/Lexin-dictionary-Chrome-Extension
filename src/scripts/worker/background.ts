@@ -1,14 +1,14 @@
-import TranslationParser from "./Dictionary/TranslationParser.js";
-import DictionaryFactory from "./Dictionary/DictionaryFactory.js";
-import TranslationManager from "./Dictionary/TranslationManager.js";
-import HistoryManager from "./HistoryManager.js";
-import LanguageManager from "./LanguageManager.js";
+import TranslationParser from "../dictionary/TranslationParser.js";
+import DictionaryFactory from "../dictionary/DictionaryFactory.js";
+import TranslationManager from "../dictionary/TranslationManager.js";
+import HistoryManager from "../history/HistoryManager.js";
+import LanguageManager from "../common/LanguageManager.js";
 import BackgroundWorker from "./BackgroundWorker.js";
-import MessageHandlers from "./Messaging/MessageHandlers.js";
-import { createChromeStorage } from "./ChromeStorageAdapter.js";
-import FetchLoader from "./Dictionary/FetchLoader.js";
-import LexinDictionary from "./Dictionary/LexinDictionary.js";
-import FolketsDictionary from "./Dictionary/FolketsDictionary.js";
+import MessageHandlers from "../messaging/MessageHandlers.js";
+import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
+import FetchLoader from "../dictionary/FetchLoader.js";
+import LexinDictionary from "../dictionary/LexinDictionary.js";
+import FolketsDictionary from "../dictionary/FolketsDictionary.js";
 
 // Initialize storage adapters for service worker context
 // Service workers don't have access to localStorage, so we use chrome.storage

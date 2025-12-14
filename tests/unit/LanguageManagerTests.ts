@@ -1,6 +1,6 @@
-import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
-import LanguageManager from "../../src/scripts/LanguageManager.js";
-import { ILanguage, ISettingsStorage } from "../../src/scripts/Interfaces.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import { ILanguage, ISettingsStorage } from "../../src/scripts/common/Interfaces.js";
 
 describe("LanguageManager", () => {
     let mockSettingsStorage: ISettingsStorage;

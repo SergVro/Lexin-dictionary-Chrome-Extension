@@ -1,4 +1,4 @@
-import { ILoader } from "../Interfaces.js";
+import { ILoader } from "../common/Interfaces.js";
 
 /**
  * FetchLoader implements ILoader using the native fetch API with encoding detection

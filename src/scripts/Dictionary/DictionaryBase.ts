@@ -1,4 +1,4 @@
-import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../Interfaces.js";
+import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import TranslationParser from "./TranslationParser.js";
 

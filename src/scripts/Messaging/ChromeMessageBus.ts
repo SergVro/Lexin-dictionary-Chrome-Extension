@@ -1,4 +1,4 @@
-import { IMessageBus, MessageHandler } from "../Interfaces.js";
+import { IMessageBus, MessageHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 
 class ChromeMessageBus implements IMessageBus {

@@ -1,7 +1,7 @@
-import { IMessageService, IMessageHandlers } from "./Interfaces.js";
-import LinkAdapter from "./LinkAdapter.js";
-import * as DomUtils from "./util/DomUtils.js";
-import { position } from "./util/PositionUtils.js";
+import { IMessageService, IMessageHandlers } from "../common/Interfaces.js";
+import LinkAdapter from "../common/LinkAdapter.js";
+import * as DomUtils from "../util/DomUtils.js";
+import { position } from "../util/PositionUtils.js";
 
 class ContentScript {
 

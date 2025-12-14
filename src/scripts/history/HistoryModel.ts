@@ -1,5 +1,5 @@
-import { IMessageService, ISettingsStorage, ILanguage, IHistoryItem } from "./Interfaces.js";
-import LanguageManager from "./LanguageManager.js";
+import { IMessageService, ISettingsStorage, ILanguage, IHistoryItem } from "../common/Interfaces.js";
+import LanguageManager from "../common/LanguageManager.js";
 
 class HistoryModel {
     private settingsStorage: ISettingsStorage;

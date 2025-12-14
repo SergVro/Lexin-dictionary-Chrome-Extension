@@ -1,4 +1,4 @@
-import { ILanguage } from "../Interfaces.js";
+import { ILanguage } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import DictionaryBase from "./DictionaryBase.js";
 

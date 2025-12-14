@@ -30,8 +30,8 @@
     {
       "resources": [
         "scripts/*.js",
-        "scripts/Dictionary/*.js",
-        "scripts/Messaging/*.js"
+        "scripts/dictionary/*.js",
+        "scripts/messaging/*.js"
       ],
       "matches": ["<all_urls>"]
     }

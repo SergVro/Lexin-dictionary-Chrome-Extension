@@ -1,7 +1,7 @@
-import * as DomUtils from "./util/DomUtils.js";
-import { fadeOut } from "./util/AnimationUtils.js";
-import LanguageManager from "./LanguageManager.js";
-import Tracker from "./Tracker.js";
+import * as DomUtils from "../util/DomUtils.js";
+import { fadeOut } from "../util/AnimationUtils.js";
+import LanguageManager from "../common/LanguageManager.js";
+import Tracker from "../common/Tracker.js";
 
 class OptionsPage {
 

@@ -1,4 +1,4 @@
-import { IMessageBus } from "../Interfaces.js";
+import { IMessageBus } from "../common/Interfaces.js";
 import ChromeMessageBus from "./ChromeMessageBus.js";
 
 class MessageBus {

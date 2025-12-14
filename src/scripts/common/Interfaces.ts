@@ -1,5 +1,5 @@
-import TranslationDirection from "./Dictionary/TranslationDirection.js";
-import MessageType from "./Messaging/MessageType.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
+import MessageType from "../messaging/MessageType.js";
 
 export interface ILanguage {
     value: string;

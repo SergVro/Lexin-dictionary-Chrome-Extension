@@ -1,6 +1,6 @@
-import { IMessageService, IHistoryItem, ITranslation } from "../Interfaces.js";
+import { IMessageService, IHistoryItem, ITranslation } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
-import TranslationDirection from "../Dictionary/TranslationDirection.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
 import MessageBus from "./MessageBus.js";
 
 class MessageService implements IMessageService{
