@@ -146,7 +146,6 @@ sdist
 develop-eggs
 .installed.cfg
 
-# Installe*.map
 src/scripts/**/*.js
 src/lib/*/*.js
 node_modules/
