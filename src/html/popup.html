@@ -18,17 +18,18 @@
         <input id="fromWordInput" type="text" title="Enter a word to get its translation to Swedish from the language selected above " />
     </div>
     <div class="languageSelectorContainer">
-        <label for="language" class="inputLabel">Language:</label>
-        <select id="language" title="Select a language of translation">
-        </select>
-        <a id="historyLink" href="history.html" class="historyIcon" title="Open translations history">&nbsp;</a>
+        <div class="languageSelectorWrapper">
+            <label for="language" class="inputLabel">Language:</label>
+            <select id="language" title="Select a language of translation">
+            </select>
+        </div>
+        <a id="historyLink" href="history.html" class="historyIcon" title="Open translations history" aria-label="Open translations history">&nbsp;</a>
     </div>
     <div class="quickTipContainer">
         <div id="quickTip">
-            Tip: Try to use 'Alt + Double Click' on a word to get a translation.
-            <span class="closeMe">hide tip</span>
+            <span>Tip: Try to use 'Alt + Double Click' on a word to get a translation.</span>
+            <span class="closeMe">×</span>
         </div>
-        
     </div>
     <div class="lexinTranslationContainer">
         <div id="translation" class="lexinTranslationPopup">
