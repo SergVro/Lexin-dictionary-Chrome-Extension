@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "module": "ES2020",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "baseUrl": "..",
+    "paths": {
+      "*": ["src/*", "tests/*", "node_modules/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "../src/**/*.ts"
+  ]
+}

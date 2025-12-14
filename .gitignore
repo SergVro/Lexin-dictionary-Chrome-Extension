@@ -146,13 +146,15 @@ sdist
 develop-eggs
 .installed.cfg
 
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-
+src/scripts/**/*.js
+src/lib/*/*.js
+node_modules/
+tests/unit/**/*.js
+dist/
+bower_components/
+*.zip
+.DS_Store
+.idea/
 #Translations
 *.mo
 

@@ -1,9 +1,5 @@
-//# sourceURL=MessageBus.js
-
-import interfaces = require("../Interfaces");
-import IMessageBus = interfaces.IMessageBus;
-
-import ChromeMessageBus = require("./ChromeMessageBus");
+import { IMessageBus } from "../common/Interfaces.js";
+import ChromeMessageBus from "./ChromeMessageBus.js";
 
 class MessageBus {
     private static instance: IMessageBus;
@@ -22,4 +18,4 @@ class MessageBus {
     }
 }
 
-export = MessageBus;
+export default MessageBus;

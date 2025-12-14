@@ -1,80 +1,75 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
-/// <reference path="../../src/lib/jquery/jquery.d.ts" />
+import HistoryModel from "../../src/scripts/history/HistoryModel.js";
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import { TestMessageService, FakeAsyncSettingsStorage } from "./util/fakes.js";
+import { IAsyncSettingsStorage } from "../../src/scripts/common/Interfaces.js";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("HistoryModel", () => {
+    let mockMessageService: TestMessageService;
+    let mockSettingsStorage: IAsyncSettingsStorage;
+    let dictionaryFactory: DictionaryFactory;
+    let languageManager: LanguageManager;
+    let historyModel: HistoryModel;
 
-import HistoryModel = require("src/scripts/HistoryModel");
-import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-import LanguageManager = require("src/scripts/LanguageManager");
-
-import interfaces = require("src/scripts/Interfaces");
-import IHistoryItem = interfaces.IHistoryItem;
-import IMessageService  = interfaces.IMessageService;
-import ILanguage = interfaces.ILanguage;
-import ITranslation = interfaces.ITranslation;
-import ISettingsStorage = interfaces.ISettingsStorage;
-
-import fakes = require("tests/unit/util/fakes");
-import TestMessageService = fakes.TestMessageService;
-
-var mockMessageService: TestMessageService,
-    mockSettingsStorage: ISettingsStorage,
-    dictionaryFactory: DictionaryFactory,
-    languageManager: LanguageManager,
-    historyModel: HistoryModel;
-
-
-registerSuite({
-    name: "HistoryModel",
-    beforeEach() {
+    beforeEach(async () => {
         mockMessageService = new TestMessageService();
-        mockSettingsStorage = {};
+        mockSettingsStorage = new FakeAsyncSettingsStorage();
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
+        await languageManager.waitForInitialization();
         historyModel = new HistoryModel(mockMessageService, languageManager, mockSettingsStorage);
-    },
-    // Assume we have a promises interface defined
-    "default data"() {
+    });
 
-        assert.strictEqual(historyModel.language, "swe_swe", "default language should be Swedish");
-        assert.strictEqual(historyModel.showDate, false, "default value for showDate should be false");
+    it("should have default data", async () => {
+        expect(await historyModel.getLanguage()).toBe("swe_swe");
+        expect(await historyModel.getShowDate()).toBe(false);
+    });
 
-    },
-    "setters": {
-        "language"() {
-            var testLanguage = "swe_eng";
+    describe("setters", () => {
+        it("should set language", async () => {
+            const testLanguage = "swe_eng";
+            let onChangeCalled = false;
+            
+            historyModel.onChange = (model) => {
+                expect(model.language).toBe(testLanguage);
+                onChangeCalled = true;
+            };
+            await historyModel.setLanguage(testLanguage);
 
-            historyModel.onChange = (model) => assert.strictEqual(model.language, testLanguage);
-            historyModel.language = testLanguage;
+            expect(await historyModel.getLanguage()).toBe(testLanguage);
+            expect(onChangeCalled).toBe(true);
+        });
 
-            assert.strictEqual(historyModel.language, testLanguage);
-        },
-        "show date"() {
-            historyModel.onChange = (model) => assert.strictEqual(model.showDate, true);
-            historyModel.showDate = true;
+        it("should set show date", async () => {
+            let onChangeCalled = false;
+            
+            historyModel.onChange = (model) => {
+                expect(model.showDate).toBe(true);
+                onChangeCalled = true;
+            };
+            await historyModel.setShowDate(true);
 
-            assert.strictEqual(historyModel.showDate, true);
-            assert.strictEqual(mockSettingsStorage["showDate"], true);
-        }
+            expect(await historyModel.getShowDate()).toBe(true);
+            const showDateValue = await mockSettingsStorage.getItem("showDate");
+            expect(showDateValue).toBe("true");
+            expect(onChangeCalled).toBe(true);
+        });
+    });
 
-    },
-    "methods": {
-        "load languages"() {
-            var languages = historyModel.loadLanguages();
-            assert.equal(languages.length, 19, "By default languages list should be all languages except swe_swe");
-        },
+    describe("methods", () => {
+        it("should load languages", async () => {
+            const languages = await historyModel.loadLanguages();
+            expect(languages.length).toBe(19);
+        });
 
-        "load history"() {
+        it("should load history", () => {
             historyModel.loadHistory("swe_eng");
-            assert.strictEqual(mockMessageService.loadHistoryCalls, 1);
-        },
+            expect(mockMessageService.loadHistoryCalls).toBe(1);
+        });
 
-        "clear history"() {
+        it("should clear history", () => {
             historyModel.clearHistory("swe_eng");
-            assert.strictEqual(mockMessageService.clearHistoryCalls, 1);
-        }
-    }
-
+            expect(mockMessageService.clearHistoryCalls).toBe(1);
+        });
+    });
 });

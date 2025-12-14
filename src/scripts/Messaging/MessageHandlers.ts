@@ -1,15 +1,6 @@
-import interfaces = require("../Interfaces");
-
-import IMessageHandlers = interfaces.IMessageHandlers;
-
-import GetTranslationHandler = interfaces.GetTranslationHandler;
-import LoadHistoryHandler = interfaces.LoadHistoryHandler;
-import ClearHistoryHandler = interfaces.ClearHistoryHandler;
-import GetSelectionHandler = interfaces.GetSelectionHandler;
-
-import MessageType = require("./MessageType");
-import TranslationDirection = require("../Dictionary/TranslationDirection");
-import MessageBus = require("./MessageBus");
+import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler, GetSelectionHandler } from "../common/Interfaces.js";
+import MessageType from "./MessageType.js";
+import MessageBus from "./MessageBus.js";
 
 
 class MessageHandlers implements IMessageHandlers{
@@ -26,16 +17,16 @@ class MessageHandlers implements IMessageHandlers{
     }
 
     registerClearHistoryHandler(handler: ClearHistoryHandler): void {
-        MessageBus.Instance.registerHandler(MessageType.clearHistory, (args) => {
-            handler(args.langDirection);
+        MessageBus.Instance.registerHandler(MessageType.clearHistory, (args: any) => {
+            return handler(args.langDirection);
         });
     }
 
     registerGetSelectionHandler(handler: GetSelectionHandler): void {
-        MessageBus.Instance.registerHandler(MessageType.getSelection, (args) => {
+        MessageBus.Instance.registerHandler(MessageType.getSelection, (_args) => {
             return handler();
         }, true);
     }
 }
 
-export = MessageHandlers;
+export default MessageHandlers;

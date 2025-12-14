@@ -1,19 +1,12 @@
-//# sourceURL=ChromeMessageBus.js
-
-/// <reference path="../../lib/chrome/chrome.d.ts" />
-/// <reference path="../../lib/jquery/jquery.d.ts" />
-
-import interfaces = require("../Interfaces");
-import IMessageBus = interfaces.IMessageBus;
-import MessageHandler = interfaces.MessageHandler;
-import MessageType = require("./MessageType");
+import { IMessageBus, MessageHandler } from "../common/Interfaces.js";
+import MessageType from "./MessageType.js";
 
 class ChromeMessageBus implements IMessageBus {
 
     registerHandler(method: MessageType, handler: MessageHandler, ignoreEmptyResult?: boolean): void {
         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (request.method === method) {
-                var result = handler(request.args);
+                const result = handler(request.args);
                 if (result && result.then) {
                     result.then((response) => {
                         sendResponse(response);
@@ -26,25 +19,24 @@ class ChromeMessageBus implements IMessageBus {
         });
     }
 
-    sendMessage(method: MessageType, args: any): JQueryPromise<any> {
-        var deferred = $.Deferred();
-        chrome.runtime.sendMessage({ method: method, args: args }, function (response: any) {
-            deferred.resolve(response);
-        });
-        return deferred.promise();
-
-    }
-
-    sendMessageToActiveTab(method: MessageType, args: any): JQueryPromise<any> {
-        var deferred = $.Deferred();
-        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
-                if (response) {
-                    deferred.resolve(response);
-                }
+    sendMessage(method: MessageType, args: any): Promise<any> {
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage({ method: method, args: args }, function (response: any) {
+                resolve(response);
             });
         });
-        return deferred.promise();
+    }
+
+    sendMessageToActiveTab(method: MessageType, args: any): Promise<any> {
+        return new Promise((resolve) => {
+            chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
+                    if (response) {
+                        resolve(response);
+                    }
+                });
+            });
+        });
     }
 
     createNewTab(url: string): void {
@@ -52,5 +44,5 @@ class ChromeMessageBus implements IMessageBus {
     }
 }
 
-export = ChromeMessageBus;
+export default ChromeMessageBus;
 

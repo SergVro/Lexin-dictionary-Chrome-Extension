@@ -1,88 +1,58 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import TranslationParser from "../../src/scripts/dictionary/TranslationParser.js";
+import TranslationManager from "../../src/scripts/dictionary/TranslationManager.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
+import HistoryManager from "../../src/scripts/history/HistoryManager.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import { FakeDictionary, FakeAsyncStorage, FakeAsyncSettingsStorage } from "./util/fakes.js";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("TranslationManager", () => {
+    let translationManager: TranslationManager;
+    let fakeDictionary: FakeDictionary;
+    let languageManager: LanguageManager;
+    let historyManager: HistoryManager;
+    let fakeStorage: FakeAsyncStorage;
+    let fakeSettingsStorage: FakeAsyncSettingsStorage;
 
-import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
-import TranslationParser = require("src/scripts/Dictionary/TranslationParser");
-import TranslationManager = require("src/scripts/Dictionary/TranslationManager");
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-
-import BackgroundWorker = require("src/scripts/BackgroundWorker");
-import HistoryManager = require("src/scripts/HistoryManager");
-import LanguageManager = require("src/scripts/LanguageManager");
-
-import interfaces = require("src/scripts/Interfaces");
-import ISettingsStorage = interfaces.ISettingsStorage;
-
-import fakes = require("tests/unit/util/fakes");
-import FakeDictionary = fakes.FakeDictionary;
-
-var translationManager: TranslationManager,
-    fakeDictionary: FakeDictionary,
-    languageManager: LanguageManager,
-    historyManager: HistoryManager;
-
-
-registerSuite({
-    name: "TranslationManager",
-    beforeEach() {
-
+    beforeEach(async () => {
         fakeDictionary = new FakeDictionary();
+        fakeStorage = new FakeAsyncStorage();
+        fakeSettingsStorage = new FakeAsyncSettingsStorage();
 
-        var translationParser = new TranslationParser(),
-            dictionaryFactory = new DictionaryFactory([fakeDictionary]);
+        const translationParser = new TranslationParser();
+        const dictionaryFactory = new DictionaryFactory([fakeDictionary]);
 
-        languageManager = new LanguageManager(localStorage, dictionaryFactory);
-        historyManager = new HistoryManager(translationParser, localStorage);
+        languageManager = new LanguageManager(fakeSettingsStorage, dictionaryFactory);
+        await languageManager.waitForInitialization();
+        historyManager = new HistoryManager(translationParser, fakeStorage);
         translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
+    });
 
-        localStorage.clear();
-    },
+    describe("getTranslation", () => {
+        it("should get word translation", async () => {
+            const translation = await translationManager.getTranslation("aword", TranslationDirection.to);
+            expect(translation).toBe("atranslation");
+        });
 
-    teardown() {
-        localStorage.clear();
-    },
+        it("should add word to history", async () => {
+            await translationManager.getTranslation("aword", TranslationDirection.to);
+            const currentLang = await languageManager.getCurrentLanguage();
+            const history = await historyManager.getHistory(currentLang);
+            expect(history.length).toBe(1);
+            expect(history[0].word).toBe("aword");
+            expect(history[0].translation).toBe("atranslation");
+        });
 
-    "getTranslation": {
-        "get word translation"() {
-            var dfd = this.async();
-            translationManager.getTranslation("aword", TranslationDirection.to).then((translation) => {
-                assert.equal(translation, "atranslation");
-                dfd.resolve();
-            });
-        },
+        it("should skip adding word to history when skipHistory is true", async () => {
+            await translationManager.getTranslation("aword", TranslationDirection.to, undefined, true);
+            const currentLang = await languageManager.getCurrentLanguage();
+            const history = await historyManager.getHistory(currentLang);
+            expect(history.length).toBe(0);
+        });
 
-        "add word to history"() {
-            var dfd = this.async();
-            translationManager.getTranslation("aword", TranslationDirection.to).then((translation) => {
-                var history = historyManager.getHistory(languageManager.currentLanguage);
-                assert.equal(history.length, 1);
-                assert.equal(history[0].word, "aword");
-                assert.equal(history[0].translation, "atranslation");
-                dfd.resolve();
-            });
-        },
-
-        "skip add word to history"() {
-            var dfd = this.async();
-            translationManager.getTranslation("aword", TranslationDirection.to, null, true).then((translation) => {
-                var history = historyManager.getHistory(languageManager.currentLanguage);
-                assert.equal(history.length, 0);
-                dfd.resolve();
-            });
-        },
-
-        "get translation empty word"() {
-            var dfd = this.async();
-            translationManager.getTranslation(" ", TranslationDirection.to).done((translation) => {
-                dfd.reject(new Error("getTranslation should reject"));
-            }).fail((e) => {
-                assert.equal(e, "word is required");
-                dfd.resolve();
-            });
-
-        }
-
-    }
+        it("should reject for empty word", async () => {
+            await expect(translationManager.getTranslation(" ", TranslationDirection.to))
+                .rejects.toBe("word is required");
+        });
+    });
 });

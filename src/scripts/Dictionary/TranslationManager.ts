@@ -1,15 +1,8 @@
-/// <reference path="../../lib/jquery/jquery.d.ts" />
-
-import $ = require("jquery");
-import DictionaryFactory = require("./DictionaryFactory");
-import LanguageManager = require("../LanguageManager");
-import Tracker = require("../Tracker");
-import interfaces = require("../Interfaces");
-import IHistoryManager = interfaces.IHistoryManager;
-import ILanguage = interfaces.ILanguage;
-import ITranslation = interfaces.ITranslation;
-
-import TranslationDirection = require("./TranslationDirection");
+import DictionaryFactory from "./DictionaryFactory.js";
+import LanguageManager from "../common/LanguageManager.js";
+import Tracker from "../common/Tracker.js";
+import { IHistoryManager } from "../common/Interfaces.js";
+import TranslationDirection from "./TranslationDirection.js";
 
 class TranslationManager {
 
@@ -24,33 +17,31 @@ class TranslationManager {
 
     }
 
-    getTranslation(word: string, direction: TranslationDirection,
-                   languageDirection?: string, skipHistory? : boolean): JQueryPromise<string> {
+    async getTranslation(word: string, direction: TranslationDirection,
+                   languageDirection?: string, skipHistory? : boolean): Promise<string> {
         //  Summary
         //      Returns a translation for the specified word
-        var deferred = $.Deferred(), self = this;
-        word = $.trim(word);
+        word = word.trim();
         if (!word) {
-            deferred.reject("word is required");
-            return deferred;
+            return Promise.reject<string>("word is required");
         }
-        var langDirection = languageDirection || this.languageManager.currentLanguage;
-        var dictionary = this.dictionaryFactory.getDictionary(langDirection);
-        dictionary.getTranslation(word, langDirection, direction).done((data) => {
-            deferred.resolve(data);
-
+        
+        const langDirection = languageDirection || await this.languageManager.getCurrentLanguage();
+        const dictionary = this.dictionaryFactory.getDictionary(langDirection);
+        
+        try {
+            const data = await dictionary.getTranslation(word, langDirection, direction);
             Tracker.translation(langDirection);
             if (!skipHistory) {
-                var translations = dictionary.parseTranslation(data, langDirection);
-                this.historyManager.addToHistory(langDirection, translations);
+                const translations = dictionary.parseTranslation(data, langDirection);
+                await this.historyManager.addToHistory(langDirection, translations);
             }
-        }).fail((error) => {
-            deferred.reject(error);
-
+            return data;
+        } catch (error) {
             Tracker.translationError(langDirection);
-        });
-        return deferred.promise();
+            throw error;
+        }
     }
 }
 
-export = TranslationManager;
+export default TranslationManager;

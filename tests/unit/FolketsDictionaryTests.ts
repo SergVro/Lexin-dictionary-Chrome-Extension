@@ -1,73 +1,58 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
-/// <reference path="./data/texttemplates.d.ts" />
+import { FakeLoader } from "./util/fakes.js";
+import FolketsDictionary from "../../src/scripts/dictionary/FolketsDictionary.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
+import swe_eng_translation_multi from "./data/swe_eng_translation_multi.html";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("FolketsDictionary", () => {
+    let dictionary: FolketsDictionary;
+    let loader: FakeLoader;
 
-import fakes = require("tests/unit/util/fakes");
-import FakeLoader = fakes.FakeLoader;
-
-import FolketsDictionary = require("src/scripts/Dictionary/FolketsDictionary");
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-
-import swe_eng_translation_multi = require("intern/dojo/text!tests/unit/data/swe_eng_translation_multi.html");
-
-var dictionary: FolketsDictionary,
-    loader: FakeLoader;
-
-registerSuite({
-    name: "FolketsDictionary",
-
-    beforeEach() {
+    beforeEach(() => {
         loader = new FakeLoader();
         dictionary = new FolketsDictionary(loader);
-    },
-    // Assume we have a promises interface defined
-    "getLanguages"() {
-        var languages = dictionary.getSupportedLanguages();
-        assert.strictEqual (languages.length, 1, "getLanguages should return list of 1 languages");
-    },
+    });
 
-    "isLanguageSupported"() {
-            assert.isFalse(dictionary.isLanguageSupported("swe_swe"));
-            assert.isTrue(dictionary.isLanguageSupported("swe_eng"));
-    },
+    it("should return supported languages", () => {
+        const languages = dictionary.getSupportedLanguages();
+        expect(languages.length).toBe(1);
+    });
 
-    "queryUrl": {
-        "bil_swe_eng_to"() {
-            assert.equal(dictionary.createQueryUrl("bil", "swe_eng", TranslationDirection.to),
-                "http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=bil");
-        },
+    it("should check if language is supported", () => {
+        expect(dictionary.isLanguageSupported("swe_swe")).toBe(false);
+        expect(dictionary.isLanguageSupported("swe_eng")).toBe(true);
+    });
 
-        "katt_swe_eng_from"() {
-            assert.equal(dictionary.createQueryUrl("katt", "swe_eng", TranslationDirection.from),
-                "http://folkets-lexikon.csc.kth.se/folkets/service?lang=en&interface=en&word=katt");
-        }
-    },
-
-    "isWordFound"() {
-
-        assert.isFalse(dictionary.isWordFound("test", "test - No hit"),
-            "isWordFound should return  false if response contains No hit");
-    },
-
-    "getTranslation"() {
-        var dfd = this.async(1000);
-        loader.data = [swe_eng_translation_multi];
-        var translation = dictionary.getTranslation("hem", "swe_eng", TranslationDirection.to);
-        return translation.done((data) => {
-            assert.isTrue(data.length > 0, "getTranslation should return html with translation");
-            dfd.resolve();
+    describe("queryUrl", () => {
+        it("should create query URL for bil swe_eng to", () => {
+            expect(dictionary.createQueryUrl("bil", "swe_eng", TranslationDirection.to))
+                .toBe("http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=bil");
         });
-    },
 
-    "parse"() {
-        var history = dictionary.parseTranslation(swe_eng_translation_multi, "swe_eng");
+        it("should create query URL for katt swe_eng from", () => {
+            expect(dictionary.createQueryUrl("katt", "swe_eng", TranslationDirection.from))
+                .toBe("http://folkets-lexikon.csc.kth.se/folkets/service?lang=en&interface=en&word=katt");
+        });
+    });
 
-        assert.equal(history.length, 3);
-        assert.equal(history[0].word, "hem");    assert.equal(history[0].translation, "home");
-        assert.equal(history[1].word, "hem");    assert.equal(history[1].translation, "home");
-        assert.equal(history[2].word, "hem");    assert.equal(history[2].translation, "house");
-    }
+    it("should check if word is found", () => {
+        expect(dictionary.isWordFound("test", "test - No hit")).toBe(false);
+    });
 
+    it("should get translation", async () => {
+        loader.data = [swe_eng_translation_multi];
+        const translation = await dictionary.getTranslation("hem", "swe_eng", TranslationDirection.to);
+        expect(translation.length).toBeGreaterThan(0);
+    });
+
+    it("should parse translation", () => {
+        const history = dictionary.parseTranslation(swe_eng_translation_multi, "swe_eng");
+
+        expect(history.length).toBe(3);
+        expect(history[0].word).toBe("hem");
+        expect(history[0].translation).toBe("home");
+        expect(history[1].word).toBe("hem");
+        expect(history[1].translation).toBe("home");
+        expect(history[2].word).toBe("hem");
+        expect(history[2].translation).toBe("house");
+    });
 });

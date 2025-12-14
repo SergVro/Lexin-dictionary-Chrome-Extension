@@ -1,32 +1,24 @@
-//# sourceURL=MessageService.js
-/// <reference path="../../lib/jquery/jquery.d.ts" />
-
-import interfaces = require("../Interfaces");
-import IMessageService = interfaces.IMessageService;
-import ILanguage = interfaces.ILanguage;
-import IHistoryItem = interfaces.IHistoryItem;
-import ITranslation = interfaces.ITranslation;
-
-import MessageType = require("./MessageType");
-import TranslationDirection = require("../Dictionary/TranslationDirection");
-import MessageBus = require("./MessageBus");
+import { IMessageService, IHistoryItem, ITranslation } from "../common/Interfaces.js";
+import MessageType from "./MessageType.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
+import MessageBus from "./MessageBus.js";
 
 class MessageService implements IMessageService{
 
-    loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
+    loadHistory(language: string) : Promise<IHistoryItem[]> {
         return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});
     }
 
-    clearHistory(language: string) : JQueryPromise<{}> {
+    clearHistory(language: string) : Promise<void> {
         return MessageBus.Instance.sendMessage(MessageType.clearHistory, {langDirection: language});
     }
 
-    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
+    getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation> {
         return MessageBus.Instance.sendMessage(MessageType.getTranslation,
             {word: word, direction: direction ? direction : TranslationDirection.to });
     }
 
-    getSelectedText(): JQueryPromise<string> {
+    getSelectedText(): Promise<string> {
         return MessageBus.Instance.sendMessageToActiveTab(MessageType.getSelection);
     }
 
@@ -35,4 +27,4 @@ class MessageService implements IMessageService{
     }
 }
 
-export = MessageService;
+export default MessageService;

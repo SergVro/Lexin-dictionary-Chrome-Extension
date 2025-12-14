@@ -1,33 +1,30 @@
-import interfaces = require("src/scripts/Interfaces");
-import IHistoryItem = interfaces.IHistoryItem;
-import IMessageService  = interfaces.IMessageService;
-import ILanguage = interfaces.ILanguage;
-import ITranslation = interfaces.ITranslation;
-import ILoader = interfaces.ILoader;
-import IDictionary = interfaces.IDictionary;
-import ITranslationManager = interfaces.ITranslationManager;
-import IHistoryManager = interfaces.IHistoryManager;
-import IMessageHandlers = interfaces.IMessageHandlers;
-
-import GetTranslationHandler = interfaces.GetTranslationHandler;
-import LoadHistoryHandler = interfaces.LoadHistoryHandler;
-import ClearHistoryHandler = interfaces.ClearHistoryHandler;
-import GetSelectionHandler = interfaces.GetSelectionHandler;
-
-
-
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-import jquery = require("jquery");
+import {
+    IHistoryItem,
+    IMessageService,
+    ILanguage,
+    ITranslation,
+    ILoader,
+    IDictionary,
+    ITranslationManager,
+    IHistoryManager,
+    IMessageHandlers,
+    GetTranslationHandler,
+    LoadHistoryHandler,
+    ClearHistoryHandler,
+    GetSelectionHandler,
+    IAsyncStorage,
+    IAsyncSettingsStorage
+} from "../../../src/scripts/common/Interfaces.js";
+import TranslationDirection from "../../../src/scripts/dictionary/TranslationDirection.js";
 
 export class FakeLoader implements ILoader {
-    data: string[];
+    data: string[] = [];
     urls: string[] = [];
-    get(url: string): JQueryPromise<any> {
+    
+    get(url: string): Promise<any> {
         this.urls.push(url);
-        var result = $.Deferred();
-        var responseData = this.data.shift();
-        result.resolve(responseData);
-        return result.promise();
+        const responseData = this.data.shift();
+        return Promise.resolve(responseData);
     }
 }
 
@@ -36,27 +33,26 @@ export class TestMessageService implements IMessageService {
     clearHistoryCalls = 0;
     selectedText: string = "";
 
-    loadHistory(language: string): JQueryPromise<IHistoryItem[]> {
+    loadHistory(language: string): Promise<IHistoryItem[]> {
         this.loadHistoryCalls++;
-        return jquery.Deferred();
+        return Promise.resolve([]);
     }
 
-    clearHistory(language: string): JQueryPromise<{}> {
+    clearHistory(language: string): Promise<void> {
         this.clearHistoryCalls++;
-        return jquery.Deferred();
+        return Promise.resolve();
     }
 
-    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
-        return jquery.Deferred();
+    getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation> {
+        return Promise.resolve({ translation: null, error: null });
     }
 
-    getSelectedText(): JQueryPromise<string> {
-        var dfd = $.Deferred<string>();
-        dfd.resolve(this.selectedText);
-        return dfd.promise();
+    getSelectedText(): Promise<string> {
+        return Promise.resolve(this.selectedText);
     }
 
-    createNewTab(url: string) {
+    createNewTab(url: string): void {
+        // No-op
     }
 }
 
@@ -65,10 +61,9 @@ export class FakeDictionary implements IDictionary {
     isLangSupported: boolean = true;
     supportedLanguages: ILanguage[] = [];
     historyItems: IHistoryItem[] = [{word: "aword", translation: "atranslation", added: new Date().getTime()}];
-    getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> {
-        var deferred = $.Deferred<string>();
-        deferred.resolve(this.translation);
-        return deferred.promise();
+    
+    getTranslation(word: string, langDirection: string, direction: TranslationDirection): Promise<string> {
+        return Promise.resolve(this.translation);
     }
 
     isLanguageSupported(langDirection: string): boolean {
@@ -90,39 +85,90 @@ export class FakeDictionary implements IDictionary {
 
 export class FakeTranslationManager implements ITranslationManager {
     translation: string = "atranslation";
-    reject: any;
-    getTranslation(word: string, direction: TranslationDirection, languageDirection: string, skipHistory: boolean): JQueryPromise<string> {
-        var deferred = $.Deferred<string>();
+    reject: any = null;
+    
+    getTranslation(word: string, direction: TranslationDirection, languageDirection?: string, skipHistory?: boolean): Promise<string> {
         if (this.reject) {
-            deferred.reject(this.reject);
+            return Promise.reject(this.reject);
         } else {
-            deferred.resolve(this.translation);
+            return Promise.resolve(this.translation);
         }
-        return deferred.promise();
     }
 }
 
 export class FakeHistoryManager implements IHistoryManager {
     history: IHistoryItem[] = [];
-    getHistory(langDirection: string): IHistoryItem[] {
-        return this.history;
+    
+    async getHistory(langDirection: string): Promise<IHistoryItem[]> {
+        return Promise.resolve(this.history);
     }
 
-    clearHistory(langDirection: string): void {
+    async clearHistory(langDirection: string): Promise<void> {
         this.history = [];
+        return Promise.resolve();
     }
 
-    addToHistory(langDirection: string, translations: IHistoryItem[]): void {
+    async addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
         this.history = this.history.concat(translations);
+        return Promise.resolve();
+    }
+}
+
+export class FakeAsyncStorage implements IAsyncStorage {
+    private storage: { [key: string]: string } = {};
+
+    async getItem(key: string): Promise<string | null> {
+        return Promise.resolve(this.storage[key] || null);
     }
 
+    async setItem(key: string, value: string): Promise<void> {
+        this.storage[key] = value;
+        return Promise.resolve();
+    }
+
+    async removeItem(key: string): Promise<void> {
+        delete this.storage[key];
+        return Promise.resolve();
+    }
+
+    async clear(): Promise<void> {
+        this.storage = {};
+        return Promise.resolve();
+    }
+
+    async getLength(): Promise<number> {
+        return Promise.resolve(Object.keys(this.storage).length);
+    }
+
+    async key(index: number): Promise<string | null> {
+        const keys = Object.keys(this.storage);
+        return Promise.resolve(index >= 0 && index < keys.length ? keys[index] : null);
+    }
+}
+
+export class FakeAsyncSettingsStorage implements IAsyncSettingsStorage {
+    private storage: { [key: string]: string } = {};
+
+    async getItem(key: string): Promise<string | null> {
+        return Promise.resolve(this.storage[key] || null);
+    }
+
+    async setItem(key: string, value: string): Promise<void> {
+        this.storage[key] = value;
+        return Promise.resolve();
+    }
+
+    async removeItem(key: string): Promise<void> {
+        delete this.storage[key];
+        return Promise.resolve();
+    }
 }
 
 export class FakeMessageHandlers implements IMessageHandlers {
-    getTranslationHandler: GetTranslationHandler = null;
-    loadHistoryHandler: LoadHistoryHandler = null;
-    clearHistoryHandler: ClearHistoryHandler = null;
-    getSelectionHandler: GetSelectionHandler = null;
+    getTranslationHandler: GetTranslationHandler | null = null;
+    loadHistoryHandler: LoadHistoryHandler | null = null;
+    clearHistoryHandler: ClearHistoryHandler | null = null;
+    getSelectionHandler: GetSelectionHandler | null = null;
 
     registerGetTranslationHandler(handler: GetTranslationHandler): void {
         this.getTranslationHandler = handler;
@@ -139,5 +185,4 @@ export class FakeMessageHandlers implements IMessageHandlers {
     registerGetSelectionHandler(handler: GetSelectionHandler): void {
         this.getSelectionHandler = handler;
     }
-
 }

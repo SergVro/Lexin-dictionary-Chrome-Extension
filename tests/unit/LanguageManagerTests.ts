@@ -1,122 +1,116 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
+import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
+import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import { ILanguage, IAsyncSettingsStorage } from "../../src/scripts/common/Interfaces.js";
+import { FakeAsyncSettingsStorage } from "./util/fakes.js";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("LanguageManager", () => {
+    let mockSettingsStorage: IAsyncSettingsStorage;
+    let dictionaryFactory: DictionaryFactory;
+    let languageManager: LanguageManager;
 
-import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
-import LanguageManager = require("src/scripts/LanguageManager");
-
-import interfaces = require("src/scripts/Interfaces");
-import ILanguage = interfaces.ILanguage;
-import ISettingsStorage = interfaces.ISettingsStorage;
-
-var mockSettingsStorage: ISettingsStorage,
-    dictionaryFactory: DictionaryFactory,
-    languageManager: LanguageManager;
-
-registerSuite({
-    name: "LanguageManager",
-
-    beforeEach() {
-        mockSettingsStorage = {};
+    beforeEach(async () => {
+        mockSettingsStorage = new FakeAsyncSettingsStorage();
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
-    },
-    // Assume we have a promises interface defined
-    "getLanguages"() {
-        var languages = languageManager.getLanguages();
-        assert.strictEqual(languages.length, 20, "getLanguages should return list of 20 languages");
-    },
+        await languageManager.waitForInitialization();
+    });
 
-    "enabled languages": {
-        "setEnabledLanguages"() {
-            var languages = languageManager.getLanguages(),
-                enabledLanguages = [
-                    languageManager.getLanguage("swe_rus"),
-                    languageManager.getLanguage("swe_eng"),
-                    languageManager.getLanguage("swe_swe")
-                ];
+    it("should return all languages", () => {
+        const languages = languageManager.getLanguages();
+        expect(languages.length).toBe(20);
+    });
 
-            languageManager.setEnabledLanguages(enabledLanguages);
-            assert.sameMembers(enabledLanguages, languageManager.getEnabledLanguages(),
-                "setEnabledLanguages should set the list of enabled languages");
-        },
+    describe("enabled languages", () => {
+        it("should set enabled languages", async () => {
+            const languages = languageManager.getLanguages();
+            const enabledLanguages = [
+                languageManager.getLanguage("swe_rus"),
+                languageManager.getLanguage("swe_eng"),
+                languageManager.getLanguage("swe_swe")
+            ];
 
-        "setEnabledByValue"() {
-            languageManager.setEnabledByValues(["swe_eng", "swe_rus"]);
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-            assert.isTrue(languageManager.isEnabled("swe_rus"));
-        },
+            await languageManager.setEnabledLanguages(enabledLanguages);
+            const enabled = await languageManager.getEnabledLanguages();
+            expect(enabled).toEqual(expect.arrayContaining(enabledLanguages));
+            expect(enabled.length).toBe(enabledLanguages.length);
+        });
 
-        "setEnabledByValue invalid"() {
-            assert.throw(() => languageManager.setEnabledByValues(["swe_eng", "swe_rus", "swe_xxx"]),
-                "swe_xxx is not a valid language value");
-        },
+        it("should set enabled by value", async () => {
+            await languageManager.setEnabledByValues(["swe_eng", "swe_rus"]);
+            expect(await languageManager.isEnabled("swe_eng")).toBe(true);
+            expect(await languageManager.isEnabled("swe_rus")).toBe(true);
+        });
 
-        "getEnabledLanguages"() {
-            var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
+        it("should throw error for invalid language value", async () => {
+            await expect(languageManager.setEnabledByValues(["swe_eng", "swe_rus", "swe_xxx"])).rejects.toThrow("swe_xxx is not a valid language value");
+        });
 
-            languageManager.currentLanguage = "swe_eng";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            assert.deepEqual(myEnabledLanguages, languageManager.getEnabledLanguages());
-        },
+        it("should get enabled languages", async () => {
+            const myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-        "getEnabledLanguages default"() {
-            assert.deepEqual(languageManager.getLanguages(), languageManager.getEnabledLanguages());
-        },
+            await languageManager.setCurrentLanguage("swe_eng");
+            await languageManager.setEnabledLanguages(myEnabledLanguages);
+            expect(await languageManager.getEnabledLanguages()).toEqual(myEnabledLanguages);
+        });
 
-        "isEnabled"() {
-            var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
+        it("should return all languages as default enabled languages", async () => {
+            expect(await languageManager.getEnabledLanguages()).toEqual(languageManager.getLanguages());
+        });
 
-            languageManager.currentLanguage = "swe_rus";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-            assert.isTrue(languageManager.isEnabled("swe_rus"));
-            assert.isFalse(languageManager.isEnabled("swe_swe"));
-        },
+        it("should check if language is enabled", async () => {
+            const myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-        "setEnabled"() {
-            languageManager.setEnabledLanguages([]);
-            languageManager.setEnabled("swe_eng");
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-        },
+            await languageManager.setCurrentLanguage("swe_rus");
+            await languageManager.setEnabledLanguages(myEnabledLanguages);
+            expect(await languageManager.isEnabled("swe_eng")).toBe(true);
+            expect(await languageManager.isEnabled("swe_rus")).toBe(true); // current language is always enabled
+            expect(await languageManager.isEnabled("swe_swe")).toBe(false);
+        });
 
-        "setDisabled"() {
-            languageManager.setEnabledLanguages([]);
-            languageManager.setEnabled("swe_eng");
-            languageManager.setDisabled("swe_eng");
-            assert.isFalse(languageManager.isEnabled("swe_eng"));
-        },
+        it("should set enabled", async () => {
+            await languageManager.setEnabledLanguages([]);
+            await languageManager.setEnabled("swe_eng");
+            expect(await languageManager.isEnabled("swe_eng")).toBe(true);
+        });
 
-        "setEnabled already"() {
-            var myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
+        it("should set disabled", async () => {
+            await languageManager.setEnabledLanguages([]);
+            await languageManager.setEnabled("swe_eng");
+            await languageManager.setDisabled("swe_eng");
+            expect(await languageManager.isEnabled("swe_eng")).toBe(false);
+        });
 
-            languageManager.currentLanguage = "swe_rus";
-            languageManager.setEnabledLanguages(myEnabledLanguages);
-            languageManager.setEnabled("swe_eng");
-            assert.isTrue(languageManager.isEnabled("swe_eng"));
-        }
+        it("should handle setting already enabled language", async () => {
+            const myEnabledLanguages: ILanguage[] = [{text: "English", value: "swe_eng"}];
 
-    },
+            await languageManager.setCurrentLanguage("swe_rus");
+            await languageManager.setEnabledLanguages(myEnabledLanguages);
+            await languageManager.setEnabled("swe_eng");
+            expect(await languageManager.isEnabled("swe_eng")).toBe(true);
+        });
+    });
 
-    "getLanguage": {
-        "getLangauge valid language"() {
-            var lang = languageManager.getLanguage("swe_swe");
-            assert.strictEqual(lang.text, "Swedish", "getLanguageName for swe_swe should return Swedish");
-        },
+    describe("getLanguage", () => {
+        it("should get valid language", () => {
+            const lang = languageManager.getLanguage("swe_swe");
+            expect(lang.text).toBe("Swedish");
+        });
 
-        "getLangauge invalid language"() {
-            assert.throw(() => languageManager.getLanguage("swe_xyz"), "swe_xyz is not a valid language value");
-        }
-    },
-    "currentLanguage": {
-        "setCurrentLanguage valid"() {
-            languageManager.currentLanguage = "swe_eng";
-            assert.strictEqual(languageManager.currentLanguage, "swe_eng");
-        },
+        it("should throw error for invalid language", () => {
+            expect(() => languageManager.getLanguage("swe_xyz")).toThrow("swe_xyz is not a valid language value");
+        });
+    });
 
-        "setCurrentLanguage invalid"() {
-            assert.throw(() => languageManager.currentLanguage = "swe_aaa", "swe_aaa is not a valid language value");
-        }
-    }
+    describe("currentLanguage", () => {
+        it("should set current language", async () => {
+            await languageManager.setCurrentLanguage("swe_eng");
+            expect(await languageManager.getCurrentLanguage()).toBe("swe_eng");
+        });
+
+        it("should throw error for invalid current language", async () => {
+            await expect(async () => {
+                await languageManager.setCurrentLanguage("swe_aaa");
+            }).rejects.toThrow("swe_aaa is not a valid language value");
+        });
+    });
 });

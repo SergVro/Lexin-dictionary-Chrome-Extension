@@ -1,0 +1,30 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "plugins": ["@typescript-eslint"],
+  "env": {
+    "browser": true,
+    "es2020": true,
+    "webextensions": true
+  },
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-this-alias": "off",
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "curly": "error",
+    "eqeqeq": ["error", "allow-null"],
+    "no-debugger": "error",
+    "semi": ["error", "always"],
+    "quotes": ["error", "double", { "avoidEscape": true }]
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "bower_components/", "src/lib/**/*", "*.js", "build.js"]
+}

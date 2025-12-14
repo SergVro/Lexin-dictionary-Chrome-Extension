@@ -1,26 +1,27 @@
-/// <reference path="..\..\lib\jquery\jquery.d.ts" />
-
-import interfaces = require("./../Interfaces");
-import IDictionary = interfaces.IDictionary;
-import ILanguage = interfaces.ILanguage;
-
-// All dictionaries should be registered within the factory
-import LexinDictionary = require("./LexinDictionary");
-import FolketsDictionary = require("./FolketsDictionary");
+import { IDictionary, ILanguage } from "../common/Interfaces.js";
+import LexinDictionary from "./LexinDictionary.js";
+import FolketsDictionary from "./FolketsDictionary.js";
+import FetchLoader from "./FetchLoader.js";
 
 
 class DictionaryFactory {
     private dictionaries: IDictionary[];
 
     constructor(dictionaries? : IDictionary[]) {
-        this.dictionaries = dictionaries || [
-            new LexinDictionary($),
-            new FolketsDictionary($)
-        ];
+        if (dictionaries) {
+            this.dictionaries = dictionaries;
+        } else {
+            // Use FetchLoader for all contexts (service worker and UI pages)
+            const loader = new FetchLoader();
+            this.dictionaries = [
+                new LexinDictionary(loader),
+                new FolketsDictionary(loader)
+            ];
+        }
     }
 
     getDictionary(langDirection: string): IDictionary {
-        var compatibleDictionaries = this.dictionaries.filter((d) => d.isLanguageSupported(langDirection));
+        const compatibleDictionaries = this.dictionaries.filter((d) => d.isLanguageSupported(langDirection));
         if (compatibleDictionaries.length > 0) {
             return compatibleDictionaries[0];
         } else {
@@ -29,7 +30,7 @@ class DictionaryFactory {
     }
 
     getAllSupportedLanguages(): ILanguage[] {
-        var result: ILanguage[] = [];
+        let result: ILanguage[] = [];
         this.dictionaries.forEach((d) => result = result.concat(d.getSupportedLanguages()));
         result.sort((first, second) => {
             if (first.text < second.text) {
@@ -44,4 +45,4 @@ class DictionaryFactory {
     }
 }
 
-export = DictionaryFactory;
+export default DictionaryFactory;
