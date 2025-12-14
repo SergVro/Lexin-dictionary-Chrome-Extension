@@ -75,4 +75,25 @@ describe("LexinDictionary", () => {
         expect(history[6].word).toBe("succé");
         expect(history[6].translation).toBe("успех");
     });
+
+    it("should preserve Swedish characters (å, ä, ö) in translation HTML", async () => {
+        // Test data with Swedish characters similar to the bug report
+        const translationWithSwedishChars = `<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><p><div><b><span lang=sv_SE>bil</span></b> [bi:l] <a href="#"><small>LYSSNA</small></a> subst.</div><div>〈bilen, bilar, bilarna〉</div><div>ett fordon för ett litet antal personer</div><div>BILD SVENSKA, BILD SVENSKA</div><div><p><span lang=sv_SE>Sammansättningar: </span></p><ul><li><span lang=sv_SE>bil|buren</span></li><li><span lang=sv_SE>bil|fri</span></li><li><span lang=sv_SE>bil|körning</span></li><li><span lang=sv_SE>bil|skatt</span></li><li><span lang=sv_SE>bil|trafik</span></li><li><span lang=sv_SE>last|bil</span></li><li><span lang=sv_SE>person|bil</span></li></ul></div><div><p><span lang=sv_SE>Exempel: </span></p><ul><li><span lang=sv_SE>hon tycker det är roligt att köra bil</span></li><li><span lang=sv_SE>han åkte bil till jobbet</span></li></ul></div></p></body></html>`;
+        
+        loader.data = [translationWithSwedishChars];
+        const translation = await dictionary.getTranslation("bil", "swe_swe", TranslationDirection.to);
+        
+        // Verify Swedish characters are preserved
+        expect(translation).toContain("för");
+        expect(translation).toContain("körning");
+        expect(translation).toContain("kör");
+        expect(translation).toContain("åkte");
+        expect(translation).toContain("Sammansättningar");
+        expect(translation).toContain("är");
+        
+        // Verify no replacement characters () are present - check that Swedish chars are actual chars, not replacement
+        // If encoding is broken, we'd see replacement chars instead of proper Swedish letters
+        const hasReplacementChar = translation.includes("\uFFFD");
+        expect(hasReplacementChar).toBe(false);
+    });
 });
