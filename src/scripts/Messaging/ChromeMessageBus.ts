@@ -1,6 +1,5 @@
 import { IMessageBus, MessageHandler } from "../Interfaces.js";
 import MessageType from "./MessageType.js";
-import $ from "jquery";
 
 class ChromeMessageBus implements IMessageBus {
 
@@ -20,25 +19,24 @@ class ChromeMessageBus implements IMessageBus {
         });
     }
 
-    sendMessage(method: MessageType, args: any): JQueryPromise<any> {
-        const deferred = $.Deferred();
-        chrome.runtime.sendMessage({ method: method, args: args }, function (response: any) {
-            deferred.resolve(response);
-        });
-        return deferred.promise();
-
-    }
-
-    sendMessageToActiveTab(method: MessageType, args: any): JQueryPromise<any> {
-        const deferred = $.Deferred();
-        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
-                if (response) {
-                    deferred.resolve(response);
-                }
+    sendMessage(method: MessageType, args: any): Promise<any> {
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage({ method: method, args: args }, function (response: any) {
+                resolve(response);
             });
         });
-        return deferred.promise();
+    }
+
+    sendMessageToActiveTab(method: MessageType, args: any): Promise<any> {
+        return new Promise((resolve) => {
+            chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
+                    if (response) {
+                        resolve(response);
+                    }
+                });
+            });
+        });
     }
 
     createNewTab(url: string): void {

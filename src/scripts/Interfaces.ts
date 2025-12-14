@@ -28,16 +28,16 @@ export interface IHistoryManager {
 }
 
 export interface IMessageService {
-    loadHistory(language: string) : JQueryPromise<IHistoryItem[]>;
-    clearHistory(language: string) : JQueryPromise<void>;
-    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation>;
-    getSelectedText(): JQueryPromise<string>;
+    loadHistory(language: string) : Promise<IHistoryItem[]>;
+    clearHistory(language: string) : Promise<void>;
+    getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation>;
+    getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
 }
 
 export interface ITranslationManager {
     getTranslation(word: string, direction: TranslationDirection,
-                   languageDirection?: string, skipHistory? : boolean): JQueryPromise<string>;
+                   languageDirection?: string, skipHistory? : boolean): Promise<string>;
 }
 
 export interface ITranslationParser {
@@ -45,14 +45,14 @@ export interface ITranslationParser {
 }
 
 export interface IDictionary extends ITranslationParser{
-    getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> ;
+    getTranslation(word: string, langDirection: string, direction: TranslationDirection): Promise<string> ;
     isLanguageSupported(langDirection: string): boolean;
     getSupportedLanguages(): ILanguage[];
     parseTranslation(translation: string, langDirection: string): IHistoryItem[];
 }
 
 export interface ILoader {
-    get(url: string): JQueryPromise<any>;
+    get(url: string): Promise<any>;
 }
 
 export interface MessageHandler {
@@ -61,13 +61,13 @@ export interface MessageHandler {
 
 export interface IMessageBus {
     registerHandler(method: MessageType, handler: MessageHandler, ignoreEmptyResult?: boolean);
-    sendMessage(method: MessageType, args?: any): JQueryPromise<any>;
-    sendMessageToActiveTab(method: MessageType, args?: any): JQueryPromise<any>;
+    sendMessage(method: MessageType, args?: any): Promise<any>;
+    sendMessageToActiveTab(method: MessageType, args?: any): Promise<any>;
     createNewTab(url: string): void;
 }
 
 export interface GetTranslationHandler {
-    (word: string,  direction: TranslationDirection): JQueryPromise<ITranslation>;
+    (word: string,  direction: TranslationDirection): Promise<ITranslation>;
 }
 
 export interface LoadHistoryHandler {

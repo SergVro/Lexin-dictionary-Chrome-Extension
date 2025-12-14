@@ -3,7 +3,6 @@ import LanguageManager from "../LanguageManager.js";
 import Tracker from "../Tracker.js";
 import { IHistoryManager } from "../Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
-import { promiseToJQueryPromise } from "../PromiseAdapter.js";
 
 class TranslationManager {
 
@@ -19,34 +18,31 @@ class TranslationManager {
     }
 
     getTranslation(word: string, direction: TranslationDirection,
-                   languageDirection?: string, skipHistory? : boolean): JQueryPromise<string> {
+                   languageDirection?: string, skipHistory? : boolean): Promise<string> {
         //  Summary
         //      Returns a translation for the specified word
         // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
         word = word.trim(); // Use native trim instead of $.trim()
         if (!word) {
-            const rejectedPromise = Promise.reject<string>("word is required");
-            return promiseToJQueryPromise(rejectedPromise);
+            return Promise.reject<string>("word is required");
         }
         
         const langDirection = languageDirection || this.languageManager.currentLanguage;
         const dictionary = this.dictionaryFactory.getDictionary(langDirection);
         
-        const promise = new Promise<string>((resolve, reject) => {
-            dictionary.getTranslation(word, langDirection, direction).done((data) => {
+        return new Promise<string>((resolve, reject) => {
+            dictionary.getTranslation(word, langDirection, direction).then((data) => {
                 resolve(data);
                 Tracker.translation(langDirection);
                 if (!skipHistory) {
                     const translations = dictionary.parseTranslation(data, langDirection);
                     this.historyManager.addToHistory(langDirection, translations);
                 }
-            }).fail((error) => {
+            }).catch((error) => {
                 reject(error);
                 Tracker.translationError(langDirection);
             });
         });
-        
-        return promiseToJQueryPromise(promise);
     }
 }
 

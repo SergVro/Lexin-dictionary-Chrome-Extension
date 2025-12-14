@@ -33,11 +33,11 @@ class HistoryModel {
         return languages.filter((item) => item.value !== "swe_swe");
     }
 
-    loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
+    loadHistory(language: string) : Promise<IHistoryItem[]> {
         return this.messageService.loadHistory(language);
     }
 
-    clearHistory(language : string) : JQueryPromise<void> {
+    clearHistory(language : string) : Promise<void> {
         return this.messageService.clearHistory(language);
     }
 

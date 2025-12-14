@@ -1,17 +1,23 @@
 import { IDictionary, ILanguage } from "../Interfaces.js";
 import LexinDictionary from "./LexinDictionary.js";
 import FolketsDictionary from "./FolketsDictionary.js";
-import $ from "jquery";
+import JQueryLoader from "./JQueryLoader.js";
 
 
 class DictionaryFactory {
     private dictionaries: IDictionary[];
 
     constructor(dictionaries? : IDictionary[]) {
-        this.dictionaries = dictionaries || [
-            new LexinDictionary($),
-            new FolketsDictionary($)
-        ];
+        if (dictionaries) {
+            this.dictionaries = dictionaries;
+        } else {
+            // Use JQueryLoader for contexts where jQuery is available (popup, options, history pages)
+            const loader = new JQueryLoader();
+            this.dictionaries = [
+                new LexinDictionary(loader),
+                new FolketsDictionary(loader)
+            ];
+        }
     }
 
     getDictionary(langDirection: string): IDictionary {

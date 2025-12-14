@@ -70,7 +70,7 @@ class PopupPage {
     }
 
     translateSelectedWord(): void {
-        this.messageService.getSelectedText().done((response) => {
+        this.messageService.getSelectedText().then((response) => {
             if (response) {
                 this.setCurrentWord(response);
                 this.getTranslation();

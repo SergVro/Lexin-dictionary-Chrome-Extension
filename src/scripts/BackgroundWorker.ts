@@ -1,6 +1,5 @@
 import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "./Interfaces.js";
 import TranslationDirection from "./Dictionary/TranslationDirection.js";
-import { promiseToJQueryPromise } from "./PromiseAdapter.js";
 
 class BackgroundWorker {
 
@@ -14,20 +13,19 @@ class BackgroundWorker {
         this.messageHandlers = messageHandlers;
     }
 
-    getTranslation(word: string, direction: TranslationDirection): JQueryPromise<ITranslation> {
+    getTranslation(word: string, direction: TranslationDirection): Promise<ITranslation> {
         // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
-        const promise = new Promise<ITranslation>((resolve) => {
+        return new Promise<ITranslation>((resolve) => {
             this.translationManager.getTranslation(word, direction).then((data) => {
                 const response: ITranslation = {translation: data, error: null};
                 resolve(response);
-            }).fail((error: any) => {
+            }).catch((error: any) => {
                 const errorMessage = "Error connecting to the dictionary service: " +
                     (error && error.status ? error.status : "Unknown");
                 const response: ITranslation = {translation: null, error: errorMessage};
                 resolve(response);
             });
         });
-        return promiseToJQueryPromise(promise);
     }
 
     initialize(): void {

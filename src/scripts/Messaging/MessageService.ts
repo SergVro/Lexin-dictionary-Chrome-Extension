@@ -5,20 +5,20 @@ import MessageBus from "./MessageBus.js";
 
 class MessageService implements IMessageService{
 
-    loadHistory(language: string) : JQueryPromise<IHistoryItem[]> {
+    loadHistory(language: string) : Promise<IHistoryItem[]> {
         return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});
     }
 
-    clearHistory(language: string) : JQueryPromise<void> {
+    clearHistory(language: string) : Promise<void> {
         return MessageBus.Instance.sendMessage(MessageType.clearHistory, {langDirection: language});
     }
 
-    getTranslation(word: string, direction?: TranslationDirection): JQueryPromise<ITranslation> {
+    getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation> {
         return MessageBus.Instance.sendMessage(MessageType.getTranslation,
             {word: word, direction: direction ? direction : TranslationDirection.to });
     }
 
-    getSelectedText(): JQueryPromise<string> {
+    getSelectedText(): Promise<string> {
         return MessageBus.Instance.sendMessageToActiveTab(MessageType.getSelection);
     }
 

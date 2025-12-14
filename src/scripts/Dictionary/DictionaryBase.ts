@@ -1,7 +1,6 @@
 import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import TranslationParser from "./TranslationParser.js";
-import { promiseToJQueryPromise } from "../PromiseAdapter.js";
 
 class DictionaryBase extends TranslationParser implements IDictionary{
 
@@ -32,24 +31,22 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         return this.supportedLanguages;
     }
 
-    getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> {
+    getTranslation(word: string, langDirection: string, direction: TranslationDirection): Promise<string> {
         this.checkLanguage(langDirection);
         const queryUrl: string = this.createQueryUrl(word, langDirection, direction);
         
         // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
-        const promise = new Promise<string>((resolve, reject) => {
-            this.loader.get(queryUrl).done((data) => {
+        return new Promise<string>((resolve, reject) => {
+            this.loader.get(queryUrl).then((data) => {
                 if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {
-                    this.getTranslation(word.toLowerCase(), langDirection, direction).done((dataLower) => {
+                    this.getTranslation(word.toLowerCase(), langDirection, direction).then((dataLower) => {
                         resolve(dataLower);
-                    }).fail((error) => reject(error));
+                    }).catch((error) => reject(error));
                 } else {
                     resolve(data);
                 }
-            }).fail((error) => reject(error));
+            }).catch((error) => reject(error));
         });
-
-        return promiseToJQueryPromise(promise);
     }
 
     isWordFound(_word: string, _translation: string): boolean {
