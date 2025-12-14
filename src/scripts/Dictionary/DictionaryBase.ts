@@ -1,7 +1,7 @@
-import $ from "jquery";
 import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import TranslationParser from "./TranslationParser.js";
+import { promiseToJQueryPromise } from "../PromiseAdapter.js";
 
 class DictionaryBase extends TranslationParser implements IDictionary{
 
@@ -35,17 +35,21 @@ class DictionaryBase extends TranslationParser implements IDictionary{
     getTranslation(word: string, langDirection: string, direction: TranslationDirection): JQueryPromise<string> {
         this.checkLanguage(langDirection);
         const queryUrl: string = this.createQueryUrl(word, langDirection, direction);
-        const deferred = $.Deferred();
-        this.loader.get(queryUrl).done((data) => {
-            if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {
-                this.getTranslation(word.toLowerCase(), langDirection, direction).done((dataLower) => {
-                    deferred.resolve(dataLower);
-                }).fail((error) => deferred.reject(error));
-            }
-            deferred.resolve(data);
-        }).fail((error) => deferred.reject(error));
+        
+        // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
+        const promise = new Promise<string>((resolve, reject) => {
+            this.loader.get(queryUrl).done((data) => {
+                if (!this.isWordFound(word, data) && word.toLowerCase() !== word) {
+                    this.getTranslation(word.toLowerCase(), langDirection, direction).done((dataLower) => {
+                        resolve(dataLower);
+                    }).fail((error) => reject(error));
+                } else {
+                    resolve(data);
+                }
+            }).fail((error) => reject(error));
+        });
 
-        return deferred.promise();
+        return promiseToJQueryPromise(promise);
     }
 
     isWordFound(_word: string, _translation: string): boolean {
@@ -68,7 +72,41 @@ class DictionaryBase extends TranslationParser implements IDictionary{
     }
 
     htmlDecode(value: string): string {
-        return $("<div />").html(value).text();
+        // Decode HTML entities without using DOM (service workers don't have DOMParser)
+        // Use a pure JavaScript implementation
+        
+        // Create a mapping of common HTML entities
+        const entityMap: { [key: string]: string } = {
+            "&amp;": "&",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&quot;": "\"",
+            "&#39;": "'",
+            "&apos;": "'",
+            "&nbsp;": " ",
+            "&copy;": "©",
+            "&reg;": "®",
+            "&trade;": "™"
+        };
+        
+        // Replace named entities
+        let decoded = value;
+        for (const entity in entityMap) {
+            if (entityMap.hasOwnProperty(entity)) {
+                decoded = decoded.replace(new RegExp(entity, "g"), entityMap[entity]);
+            }
+        }
+        
+        // Replace numeric entities (&#123; and &#x1F;)
+        decoded = decoded.replace(/&#(\d+);/g, (match, dec) => {
+            return String.fromCharCode(parseInt(dec, 10));
+        });
+        
+        decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+            return String.fromCharCode(parseInt(hex, 16));
+        });
+        
+        return decoded;
     }
 }
 

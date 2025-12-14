@@ -1,6 +1,6 @@
-import $ from "jquery";
 import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "./Interfaces.js";
 import TranslationDirection from "./Dictionary/TranslationDirection.js";
+import { promiseToJQueryPromise } from "./PromiseAdapter.js";
 
 class BackgroundWorker {
 
@@ -15,17 +15,19 @@ class BackgroundWorker {
     }
 
     getTranslation(word: string, direction: TranslationDirection): JQueryPromise<ITranslation> {
-        const result = $.Deferred<ITranslation>();
-        this.translationManager.getTranslation(word, direction).then((data) => {
-            const response: ITranslation = {translation: data, error: null};
-            result.resolve(response);
-        }).fail((error: any) => {
-            const errorMessage = "Error connecting to the dictionary service: " +
-                (error && error.status ? error.status : "Unknown");
-            const response: ITranslation = {translation: null, error: errorMessage};
-            result.resolve(response);
+        // Use native Promise instead of jQuery Deferred (jQuery doesn't work in service workers)
+        const promise = new Promise<ITranslation>((resolve) => {
+            this.translationManager.getTranslation(word, direction).then((data) => {
+                const response: ITranslation = {translation: data, error: null};
+                resolve(response);
+            }).fail((error: any) => {
+                const errorMessage = "Error connecting to the dictionary service: " +
+                    (error && error.status ? error.status : "Unknown");
+                const response: ITranslation = {translation: null, error: errorMessage};
+                resolve(response);
+            });
         });
-        return result.promise();
+        return promiseToJQueryPromise(promise);
     }
 
     initialize(): void {
