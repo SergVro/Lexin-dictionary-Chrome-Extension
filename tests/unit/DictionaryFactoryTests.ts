@@ -1,39 +1,30 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
+import DictionaryFactory from "../../src/scripts/Dictionary/DictionaryFactory.js";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("DictionaryFactory", () => {
+    let factory: DictionaryFactory;
 
-import DictionaryFactory = require("src/scripts/Dictionary/DictionaryFactory");
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-
-var factory: DictionaryFactory;
-
-registerSuite({
-    name: "DictionaryFactory",
-
-    beforeEach() {
+    beforeEach(() => {
         factory = new DictionaryFactory();
-    },
-    // Assume we have a promises interface defined
-    "getAllSupportedLanguages"() {
-        var languages = factory.getAllSupportedLanguages();
-        assert.strictEqual (languages.length, 20, "getLanguages should return list of 20 languages");
-    },
+    });
 
-    "getDictionary": {
-        "getLexikon"() {
-            var dictionary = factory.getDictionary("swe_swe");
-            assert.equal(dictionary.getSupportedLanguages().length, 19);
-        },
+    it("should return all supported languages", () => {
+        const languages = factory.getAllSupportedLanguages();
+        expect(languages.length).toBe(20);
+    });
 
-        "getFolkets"() {
-            var dictionary = factory.getDictionary("swe_eng");
-            assert.equal(dictionary.getSupportedLanguages()[0].value, "swe_eng");
-        },
+    describe("getDictionary", () => {
+        it("should get Lexikon dictionary", () => {
+            const dictionary = factory.getDictionary("swe_swe");
+            expect(dictionary.getSupportedLanguages().length).toBe(19);
+        });
 
-        "getUnknown"() {
-            assert.throw(() => factory.getDictionary("swe_bbb"), "There is no dictionary with support of swe_bbb");
-        }
-    }
+        it("should get Folkets dictionary", () => {
+            const dictionary = factory.getDictionary("swe_eng");
+            expect(dictionary.getSupportedLanguages()[0].value).toBe("swe_eng");
+        });
 
+        it("should throw error for unknown dictionary", () => {
+            expect(() => factory.getDictionary("swe_bbb")).toThrow("There is no dictionary with support of swe_bbb");
+        });
+    });
 });

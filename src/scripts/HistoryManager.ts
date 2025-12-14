@@ -96,9 +96,9 @@ class HistoryManager implements IHistoryManager {
     private combineTranslations(translations1: string[], translations2: string[]): string[] {
         //  Summary
         //      Combines two translation arrays in a single array and removes duplicate entries
-        const result = $.merge([], translations1);
+        const result = [...translations1];
         for (let i = 0; i < translations2.length; i++) {
-            if ($.inArray(translations2[i], result) === -1) {
+            if (!result.includes(translations2[i])) {
                 result.push(translations2[i]);
             }
         }

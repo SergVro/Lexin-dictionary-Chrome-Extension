@@ -83,7 +83,13 @@ class DictionaryBase extends TranslationParser implements IDictionary{
             "&nbsp;": " ",
             "&copy;": "©",
             "&reg;": "®",
-            "&trade;": "™"
+            "&trade;": "™",
+            "&auml;": "ä",
+            "&ouml;": "ö",
+            "&aring;": "å",
+            "&Auml;": "Ä",
+            "&Ouml;": "Ö",
+            "&Aring;": "Å"
         };
         
         // Replace named entities

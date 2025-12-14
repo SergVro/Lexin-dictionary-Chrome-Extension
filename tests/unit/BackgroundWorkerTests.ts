@@ -1,62 +1,44 @@
-/// <reference path="../../node_modules/intern/typings/intern/intern.d.ts" />
+import BackgroundWorker from "../../src/scripts/BackgroundWorker.js";
+import TranslationDirection from "../../src/scripts/Dictionary/TranslationDirection.js";
+import {
+    FakeHistoryManager,
+    FakeTranslationManager,
+    FakeMessageHandlers
+} from "./util/fakes.js";
 
-import registerSuite = require("intern!object");
-import assert = require("intern/chai!assert");
+describe("BackgroundWorker", () => {
+    let backgroundWorker: BackgroundWorker;
+    let fakeHistoryManager: FakeHistoryManager;
+    let fakeTranslationManager: FakeTranslationManager;
+    let fakeMessageHandlers: FakeMessageHandlers;
 
-import BackgroundWorker = require("src/scripts/BackgroundWorker");
-import TranslationDirection = require("src/scripts/Dictionary/TranslationDirection");
-
-import fakes = require("tests/unit/util/fakes");
-import FakeHistoryManager = fakes.FakeHistoryManager;
-import FakeTranslationManager = fakes.FakeTranslationManager;
-import FakeMessageHandlers = fakes.FakeMessageHandlers;
-
-
-var backgroundWorker: BackgroundWorker,
-    fakeHistoryManager: FakeHistoryManager,
-    fakeTranslationManager: FakeTranslationManager,
-    fakeMessageHandlers: FakeMessageHandlers;
-
-registerSuite({
-    name: "BackgroundWorker",
-    // Assume we have a promises interface defined
-    beforeEach() {
+    beforeEach(() => {
         fakeHistoryManager = new FakeHistoryManager();
         fakeTranslationManager = new FakeTranslationManager();
         fakeMessageHandlers = new FakeMessageHandlers();
         backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager, fakeMessageHandlers);
-    },
+    });
 
-    "getTranslation": {
-        "get word translation"() {
-            var dfd = this.async(500);
-            backgroundWorker.getTranslation("aword", TranslationDirection.to).done((translation) => {
-                assert.equal(translation.translation, fakeTranslationManager.translation);
-                assert.isNull(translation.error);
-                dfd.resolve();
-            });
-        },
+    describe("getTranslation", () => {
+        it("should get word translation", async () => {
+            const translation = await backgroundWorker.getTranslation("aword", TranslationDirection.to);
+            expect(translation.translation).toBe(fakeTranslationManager.translation);
+            expect(translation.error).toBeNull();
+        });
 
-        "get translation failure"() {
-            var dfd = this.async(500);
+        it("should handle translation failure", async () => {
             fakeTranslationManager.reject = {status: 404};
-            backgroundWorker.getTranslation("aword", TranslationDirection.to).done((translation) => {
-                assert.equal(translation.error, "Error connecting to the dictionary service: 404");
-                assert.isNull(translation.translation);
-                dfd.resolve();
-            }).fail((translation) => {
-                dfd.reject(new Error("Should not reject"));
-            });
+            const translation = await backgroundWorker.getTranslation("aword", TranslationDirection.to);
+            expect(translation.error).toBe("Error connecting to the dictionary service: 404");
+            expect(translation.translation).toBeNull();
+        });
+    });
 
-        }
-    },
-
-    "initialize should register handlers"() {
+    it("initialize should register handlers", () => {
         backgroundWorker.initialize();
 
-        assert.isNotNull(fakeMessageHandlers.getTranslationHandler);
-        assert.isNotNull(fakeMessageHandlers.clearHistoryHandler);
-        assert.isNotNull(fakeMessageHandlers.loadHistoryHandler);
-    }
-
+        expect(fakeMessageHandlers.getTranslationHandler).not.toBeNull();
+        expect(fakeMessageHandlers.clearHistoryHandler).not.toBeNull();
+        expect(fakeMessageHandlers.loadHistoryHandler).not.toBeNull();
+    });
 });
