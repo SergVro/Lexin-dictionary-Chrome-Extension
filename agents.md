@@ -51,9 +51,10 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Returns selected text to popup only if non-empty
 - Prevents empty callbacks from multiple frames
 
-#### `initialize(): void`
+#### `private async initialize(): Promise<void>`
 - Sets up all event handlers and message listeners
 - Entry point called when content script loads
+- **Async:** Waits for LanguageManager initialization before proceeding
 
 ---
 
@@ -86,10 +87,11 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 **Main Functions:**
 
 #### `translateSelectedWord(): void`
-- Requests selected text from active tab's content script
+- Requests selected text from active tab's content script (async)
 - Automatically translates if text is found
 - Shows "No word selected" message if nothing selected
 - Tracks analytics event for popup translations
+- **Note:** Uses promises for async message handling
 
 #### `getTranslation(direction?): void`
 - Fetches translation for current word in selected language
@@ -104,10 +106,11 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Updates both display field and input field (unless `skipInput=true`)
 - Trims whitespace from word
 
-#### `fillLanguages(): void`
+#### `async fillLanguages(): Promise<void>`
 - Populates language dropdown with enabled languages
-- Gets list from `LanguageManager.getEnabledLanguages()`
+- Gets list from `LanguageManager.getEnabledLanguages()` (async)
 - Creates option elements dynamically
+- **Async:** Must await language loading from storage
 
 #### `subscribeOnEvents(): void`
 - **Language change:** Triggers new translation, saves preference
@@ -126,21 +129,24 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 
 **Main Functions:**
 
-#### `getHistory(langDirection): IHistoryItem[]`
+#### `async getHistory(langDirection): Promise<IHistoryItem[]>`
 - Loads history for specified language direction from storage
 - Compresses history (removes duplicates)
 - Saves compressed version back to storage
 - Returns array of `{word, translation, added}` objects
+- **Async:** Uses async storage API (Chrome Storage or LocalStorage)
 
-#### `addToHistory(langDirection, translations): void`
+#### `async addToHistory(langDirection, translations): Promise<void>`
 - Appends new translations to existing history
 - Compresses if history exceeds threshold (maxHistory + buffer)
-- Serializes and saves to localStorage
+- Serializes and saves to async storage
 - Default max: 1000 items with 200-item buffer
+- **Async:** All storage operations are asynchronous
 
-#### `clearHistory(langDirection): void`
+#### `async clearHistory(langDirection): Promise<void>`
 - Removes all history for specified language direction
-- Deletes from localStorage using composite key
+- Deletes from async storage using composite key
+- **Async:** Storage deletion is asynchronous
 
 #### `compress(history): void`
 - Calls `_removeDuplicates()` to merge duplicate words
@@ -250,29 +256,53 @@ Returns 19 supported languages:
 #### `getLanguages(): ILanguage[]`
 - Returns all available languages from dictionary factory
 - Full list of supported languages regardless of enabled state
+- **Synchronous:** Returns cached language list
 
-#### `getEnabledLanguages(): ILanguage[]`
+#### `async getEnabledLanguages(): Promise<ILanguage[]>`
 - Filters languages to only those enabled by user
 - Always includes current language even if not in enabled list
 - Returns subset of `getLanguages()`
+- **Async:** Loads enabled languages from async storage
 
-#### `setEnabledLanguages(languages): void`
+#### `async setEnabledLanguages(languages): Promise<void>`
 - Saves enabled language list to settings storage
 - Stores as comma-separated values string
+- **Async:** Storage operations are asynchronous
 
-#### `get/set currentLanguage: string`
-- Gets/sets default language for translations
+#### `async getCurrentLanguage(): Promise<string>`
+- Gets default language for translations
 - Defaults to "swe_swe" (Swedish-Swedish) if not set
+- **Async:** Loads from async storage
+- **Note:** Synchronous getter `currentLanguage` exists for backward compatibility but returns default value
+
+#### `async setCurrentLanguage(value): Promise<void>`
+- Sets default language for translations
 - Validates language value exists before setting
+- **Async:** Saves to async storage
+- **Note:** Synchronous setter `currentLanguage` exists for backward compatibility
 
-#### `setEnabled(language) / setDisabled(language): void`
-- Enables or disables a specific language
+#### `async setEnabled(language): Promise<void>`
+- Enables a specific language
 - Updates enabled languages list in storage
-- No-op if already in desired state
+- No-op if already enabled
+- **Async:** Storage operations are asynchronous
 
-#### `isEnabled(languageValue): boolean`
+#### `async setDisabled(language): Promise<void>`
+- Disables a specific language
+- Updates enabled languages list in storage
+- No-op if already disabled
+- **Async:** Storage operations are asynchronous
+
+#### `async isEnabled(languageValue): Promise<boolean>`
 - Checks if specific language is enabled
 - Used for UI checkbox states
+- **Async:** Loads enabled languages from async storage
+
+#### `async waitForInitialization(): Promise<void>`
+- Waits for LanguageManager to complete initialization
+- Should be called before using LanguageManager in constructors
+- Ensures default languages are set if not configured
+- **Async:** Returns promise that resolves when initialization completes
 
 ---
 
@@ -282,17 +312,19 @@ Returns 19 supported languages:
 
 **Main Functions:**
 
-#### `save_options(): void`
+#### `async save_options(): Promise<void>`
 - Saves default language (from radio buttons)
 - Saves enabled languages (from checkboxes)
 - Shows "Options saved" status message (fades out after 750ms)
-- Persists to localStorage via `LanguageManager`
+- Persists to async storage via `LanguageManager`
+- **Async:** All storage operations are asynchronous
 
-#### `restore_options(): void`
+#### `async restore_options(): Promise<void>`
 - Loads saved default language on page load
 - Checks appropriate radio button
+- **Async:** Loads from async storage
 
-#### `fillLanguages(): void`
+#### `async fillLanguages(): Promise<void>`
 - Creates language selection UI dynamically
 - For each language:
   - Radio button for default selection
@@ -302,6 +334,7 @@ Returns 19 supported languages:
   - Radio change: Updates default language, auto-saves, enables previous default's checkbox
   - Checkbox change: Updates enabled languages, auto-saves
   - "Check All" checkbox: Enables all languages at once
+- **Async:** Must await language loading and enabled state checks from async storage
 
 ---
 
@@ -314,6 +347,7 @@ Returns 19 supported languages:
 #### `updateHistory(): void`
 - Reloads and renders history for current language
 - Called when language or display options change
+- **Note:** Uses async `loadHistory()` internally via promises
 
 #### `renderHistory(langDirection, showDate): void`
 - Creates HTML table with translation history
@@ -325,6 +359,7 @@ Returns 19 supported languages:
 #### `renderLanguageSelector(): void`
 - Populates language dropdown
 - Disables dropdown if no languages available
+- **Note:** Languages are loaded asynchronously in `initialize()`
 
 #### `subscribeOnEvents(): void`
 - **Language change:** Updates displayed history
@@ -334,6 +369,9 @@ Returns 19 supported languages:
 **Properties:**
 - `currentLanguage`: Currently selected language for display
 - `showDate`: Boolean flag for date column visibility
+
+**Initialization:**
+- `private async initialize(): Promise<void>` - Async initialization that loads languages and settings
 
 ---
 
@@ -438,12 +476,17 @@ Animation utilities:
 ### Chrome Storage
 - **Settings:** `defaultLanguage`, `enabledLanguages`
 - Managed by `ChromeStorageAdapter` wrapping `chrome.storage.local`
+- **All operations are async:** `getItem()`, `setItem()`, `removeItem()`, `clear()` return Promises
+- Used in service workers where `localStorage` is not available
 
-### LocalStorage
+### LocalStorage / Async Storage
 - **Translation History:** `history{langDirection}` (e.g., `historyswe_eng`)
 - Format: JSON array of `{word, translation, added}` objects
 - Separate history per language direction
 - Max 1000 items per language (with 200-item buffer)
+- **All operations are async:** Uses `IAsyncStorage` interface with Promise-based API
+- In service workers: Uses `ChromeStorageAdapter` (chrome.storage.local)
+- In content scripts/pages: May use LocalStorage adapter (if available)
 
 ---
 
