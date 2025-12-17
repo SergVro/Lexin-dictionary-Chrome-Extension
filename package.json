@@ -14,10 +14,15 @@
     "lint:fix": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && npx playwright test",
+    "test:e2e:headed": "npm run build && npx playwright test --headed",
+    "test:e2e:debug": "npm run build && npx playwright test --debug",
+    "test:e2e:ui": "npm run build && npx playwright test --ui",
     "package": "npm run build && cd dist && zip -r ../lexin-extension.zip .",
     "dev": "npm run build && npm run watch"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/chrome": "^0.0.268",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
