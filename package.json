@@ -14,16 +14,23 @@
     "lint:fix": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && npx playwright test",
+    "test:e2e:headed": "npm run build && npx playwright test --headed",
+    "test:e2e:debug": "npm run build && npx playwright test --debug",
+    "test:e2e:ui": "npm run build && npx playwright test --ui",
+    "test:e2e:docker": "./scripts/run-tests-docker.sh",
     "package": "npm run build && cd dist && zip -r ../lexin-extension.zip .",
     "dev": "npm run build && npm run watch"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/chrome": "^0.0.268",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "@vitest/ui": "^3.2.4",
     "esbuild": "^0.25.0",
     "eslint": "^8.57.0",
+    "serve": "^14.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "vitest": "^3.2.4"

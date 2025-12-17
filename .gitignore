@@ -169,3 +169,9 @@ src/scripts/**/*.js
 src/lib/*/*.js
 node_modules/
 tests/unit/**/*.js
+tests/e2e/**/*.js
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
