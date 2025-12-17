@@ -43,8 +43,13 @@ export default defineConfig({
   // Output directory for test artifacts
   outputDir: 'test-results',
   
-  // We don't use webServer since extension tests don't need a server
-  // The extension works on any page
+  // Web server to serve static test pages
+  // Content scripts only work on http/https URLs, so we need a local server
+  webServer: {
+    command: 'npx serve tests/e2e/test-pages -p 3456 --no-clipboard',
+    port: 3456,
+    reuseExistingServer: !process.env.CI,
+  },
   
   use: {
     // Browser settings

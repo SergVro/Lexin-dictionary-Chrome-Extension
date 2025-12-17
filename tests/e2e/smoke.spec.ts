@@ -273,4 +273,118 @@ test.describe('Extension Smoke Tests', () => {
     
     await page.close();
   });
+
+  test('Alt+Double click on page should show Swedish translation', async ({ context, extensionId }) => {
+    // First, set the language to Swedish via the popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
+    await popupPage.waitForFunction(() => {
+      const select = document.querySelector('#language') as HTMLSelectElement;
+      return select && select.options.length > 0;
+    });
+    await popupPage.selectOption('#language', 'swe_swe');
+    await popupPage.close();
+    
+    // Navigate to the test page
+    const page = await context.newPage();
+    await page.goto('http://localhost:3456/swedish-text.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500);
+    
+    // Find and click on the test word "bil"
+    const testWord = page.locator('#test-word');
+    await expect(testWord).toBeVisible();
+    const boundingBox = await testWord.boundingBox();
+    const clickX = boundingBox!.x + boundingBox!.width / 2;
+    const clickY = boundingBox!.y + boundingBox!.height / 2;
+    
+    // Alt + Double click
+    await page.keyboard.down('Alt');
+    await page.mouse.dblclick(clickX, clickY);
+    await page.keyboard.up('Alt');
+    
+    // Verify translation popup appears with Swedish definition
+    const translationContent = page.locator('.lexinTranslationContent');
+    await expect(translationContent).toBeVisible({ timeout: 15000 });
+    await expect(translationContent).toContainText('ett fordon för ett litet antal personer', { timeout: 10000 });
+    
+    await page.close();
+  });
+
+  test('Alt+Double click on page should show English translation', async ({ context, extensionId }) => {
+    // First, set the language to English via the popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
+    await popupPage.waitForFunction(() => {
+      const select = document.querySelector('#language') as HTMLSelectElement;
+      return select && select.options.length > 0;
+    });
+    await popupPage.selectOption('#language', 'swe_eng');
+    await popupPage.close();
+    
+    // Navigate to the test page
+    const page = await context.newPage();
+    await page.goto('http://localhost:3456/swedish-text.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500);
+    
+    // Find and click on the test word "bil"
+    const testWord = page.locator('#test-word');
+    await expect(testWord).toBeVisible();
+    const boundingBox = await testWord.boundingBox();
+    const clickX = boundingBox!.x + boundingBox!.width / 2;
+    const clickY = boundingBox!.y + boundingBox!.height / 2;
+    
+    // Alt + Double click
+    await page.keyboard.down('Alt');
+    await page.mouse.dblclick(clickX, clickY);
+    await page.keyboard.up('Alt');
+    
+    // Verify translation popup appears with English translation
+    const translationContent = page.locator('.lexinTranslationContent');
+    await expect(translationContent).toBeVisible({ timeout: 15000 });
+    await expect(translationContent).toContainText('motorcar', { timeout: 10000 });
+    
+    await page.close();
+  });
+
+  test('Alt+Double click on page should show Russian translation', async ({ context, extensionId }) => {
+    // First, set the language to Russian via the popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
+    await popupPage.waitForFunction(() => {
+      const select = document.querySelector('#language') as HTMLSelectElement;
+      return select && select.options.length > 0;
+    });
+    await popupPage.selectOption('#language', 'swe_rus');
+    await popupPage.close();
+    
+    // Navigate to the test page
+    const page = await context.newPage();
+    await page.goto('http://localhost:3456/swedish-text.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500);
+    
+    // Find and click on the test word "bil"
+    const testWord = page.locator('#test-word');
+    await expect(testWord).toBeVisible();
+    const boundingBox = await testWord.boundingBox();
+    const clickX = boundingBox!.x + boundingBox!.width / 2;
+    const clickY = boundingBox!.y + boundingBox!.height / 2;
+    
+    // Alt + Double click
+    await page.keyboard.down('Alt');
+    await page.mouse.dblclick(clickX, clickY);
+    await page.keyboard.up('Alt');
+    
+    // Verify translation popup appears with Russian translation
+    const translationContent = page.locator('.lexinTranslationContent');
+    await expect(translationContent).toBeVisible({ timeout: 15000 });
+    await expect(translationContent).toContainText('автомобиль', { timeout: 10000 });
+    
+    await page.close();
+  });
 });
