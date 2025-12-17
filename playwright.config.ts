@@ -27,10 +27,16 @@ export default defineConfig({
   workers: 1,
   
   // Reporter configuration
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list']
-  ],
+  reporter: process.env.CI
+    ? [
+        ['html', { outputFolder: 'playwright-report' }],
+        ['list'],
+        ['github']
+      ]
+    : [
+        ['html', { outputFolder: 'playwright-report' }],
+        ['list']
+      ],
   
   // Test timeout
   timeout: 30000,

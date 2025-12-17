@@ -1,0 +1,56 @@
+# Dockerfile for running Playwright E2E tests
+FROM mcr.microsoft.com/playwright:v1.57.0-noble
+
+WORKDIR /app
+
+# Install system dependencies for Chrome extension testing and virtual display
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11vnc \
+    fluxbox \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files
+COPY package*.json ./
+
+# Install Node.js dependencies
+RUN npm ci
+
+# Install Playwright browsers (if not already installed)
+RUN npx playwright install --with-deps chromium
+
+# Copy source files
+COPY . .
+
+# Build the extension
+RUN npm run build
+
+# Set up display environment for headed mode in CI
+ENV DISPLAY=:99
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Create a script to start Xvfb and run tests
+RUN echo '#!/bin/bash\n\
+set -e\n\
+# Start Xvfb in the background\n\
+Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > /dev/null 2>&1 &\n\
+XVFB_PID=$!\n\
+# Wait for Xvfb to start\n\
+sleep 2\n\
+# Verify Xvfb is running\n\
+if ! kill -0 $XVFB_PID 2>/dev/null; then\n\
+  echo "Failed to start Xvfb"\n\
+  exit 1\n\
+fi\n\
+# Run the tests\n\
+TEST_EXIT_CODE=0\n\
+npm run test:e2e || TEST_EXIT_CODE=$?\n\
+# Clean up Xvfb\n\
+kill $XVFB_PID 2>/dev/null || true\n\
+wait $XVFB_PID 2>/dev/null || true\n\
+exit $TEST_EXIT_CODE\n\
+' > /app/run-tests.sh && chmod +x /app/run-tests.sh
+
+# Default command runs tests
+CMD ["/app/run-tests.sh"]
+

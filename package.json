@@ -18,6 +18,7 @@
     "test:e2e:headed": "npm run build && npx playwright test --headed",
     "test:e2e:debug": "npm run build && npx playwright test --debug",
     "test:e2e:ui": "npm run build && npx playwright test --ui",
+    "test:e2e:docker": "./scripts/run-tests-docker.sh",
     "package": "npm run build && cd dist && zip -r ../lexin-extension.zip .",
     "dev": "npm run build && npm run watch"
   },
