@@ -1,91 +1,152 @@
-.lexinTranslationContainer
-{
-    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
-    background-color: #ffc;
-    color: black;
-    border: solid 1px #e0e0b4;
+/* Modern Translation Container - Card Design */
+.lexinTranslationContainer {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background-color: #FFFFFF;
+    color: #111827;
+    border: 1px solid #E5E7EB;
     text-align: left;
-    padding: 0.2em;
+    padding: 0.5em;
     z-index: 10000;
-    -webkit-border-radius: 6px;
-    width: 25em;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    min-width: 320px;
+    box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Flex properties handled in popup.css */
 }
 
+/* Modern Typography for Headings */
 .lexinTranslationContainer h1,
 .lexinTranslationContainer h2,
-.lexinTranslationContainer h3
-{
-    font: normal 15px Verdana, Arial, Helvetica, sans-serif;
-    text-decoration:underline;
+.lexinTranslationContainer h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    text-decoration: none;
+    margin: 0 0 8px 0;
+    padding: 0;
+    line-height: 1.4;
 }
 
+.lexinTranslationContainer h1:not(:first-child),
+.lexinTranslationContainer h2:not(:first-child),
+.lexinTranslationContainer h3:not(:first-child) {
+    margin-top: 16px;
+}
+
+/* Paragraph and Div Styling */
 .lexinTranslationContainer p,
-.lexinTranslationContainer div
-{
-    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+.lexinTranslationContainer div {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.6;
     padding: 0;
     display: block;
-}
-.lexinTranslationContainer b
-{
-    font: bold 12px Verdana, Arial, Helvetica, sans-serif;
+    color: #374151;
+    margin: 0 0 8px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
+/* Bold Text */
+.lexinTranslationContainer b {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Modern Link Styling */
 .lexinTranslationContainer a,
-.lexinTranslationContainer a:visited,
-.lexinTranslationContainer a:hover
-{
+.lexinTranslationContainer a:visited {
     text-decoration: none;
-    color: #00008b;
-    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
+    color: #2563EB;
+    font-size: 14px;
+    font-weight: 400;
     cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-.lexinTranslationContainer a:hover
-{
-    color: blue;
+.lexinTranslationContainer a:hover {
+    color: #1D4ED8;
+    text-decoration: underline;
 }
 
-.lexinTranslationContainer a small
-{
-    font: normal 10px Verdana, Arial, Helvetica, sans-serif;
+.lexinTranslationContainer a small {
+    font-size: 12px;
 }
 
-div.lexinTranslationContent
-{
+/* Translation Content Area */
+div.lexinTranslationContent {
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 20em;
     max-height: 20em;
-    padding: 0.5em;
+    padding: 16px;
 }
 
-.lexinTranslationPopup
-{
-    overflow-y: auto;
+/* Popup Translation Area */
+.lexinTranslationPopup {
+    overflow-y: visible;
     overflow-x: hidden;
-    min-height: 20em;
-    max-height: 39em;
-    padding: 0.5em;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
 }
 
-.lexinTranslationContainer ul
-{
+/* Modern List Styling */
+.lexinTranslationContainer ul {
     display: block;
     list-style-type: disc;
-    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
-
-    -webkit-margin-before: 1em;
-    -webkit-margin-after: 1em;
-    -webkit-margin-start: 0px;
-    -webkit-margin-end: 0px;
-    -webkit-padding-start: 40px;
+    font-size: 14px;
+    font-weight: 400;
+    margin: 12px 0;
+    padding-left: 24px;
+    line-height: 1.6;
 }
-.lexinTranslationContainer li
-{
-    display: list-item;
-    text-align: -webkit-match-parent;
-    list-style-type: disc;
-    font: normal 12px Verdana, Arial, Helvetica, sans-serif;
 
+.lexinTranslationContainer li {
+    display: list-item;
+    text-align: left;
+    list-style-type: disc;
+    font-size: 14px;
+    font-weight: 400;
+    color: #374151;
+    margin-bottom: 4px;
+    line-height: 1.6;
+}
+
+/* Smooth Scrolling */
+.lexinTranslationPopup,
+div.lexinTranslationContent {
+    scrollbar-width: thin;
+    scrollbar-color: #D1D5DB #F9FAFB;
+}
+
+.lexinTranslationPopup::-webkit-scrollbar,
+div.lexinTranslationContent::-webkit-scrollbar {
+    width: 8px;
+}
+
+.lexinTranslationPopup::-webkit-scrollbar-track,
+div.lexinTranslationContent::-webkit-scrollbar-track {
+    background: #F9FAFB;
+    border-radius: 4px;
+}
+
+.lexinTranslationPopup::-webkit-scrollbar-thumb,
+div.lexinTranslationContent::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 4px;
+}
+
+.lexinTranslationPopup::-webkit-scrollbar-thumb:hover,
+div.lexinTranslationContent::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
 }
