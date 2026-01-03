@@ -46,18 +46,18 @@ class PopupPage {
             // Get screen height (closest proxy for browser window size in extension popups)
             // Extension popups don't have direct access to browser window dimensions
             const screenHeight = window.screen?.height || window.innerHeight || 800;
-            
+
             // Calculate 70% of screen height
             const targetHeight = Math.floor(screenHeight * 0.7);
-            
+
             // Chrome extension popups have a maximum height of 600px (enforced by browser)
             const maxHeight = Math.min(targetHeight, 600);
-            
+
             // Set max-height on body to allow popup to expand up to this size
             const body = document.body;
             if (body) {
                 // Use CSS custom property for dynamic sizing
-                body.style.setProperty('--popup-max-height', `${maxHeight}px`);
+                body.style.setProperty("--popup-max-height", `${maxHeight}px`);
                 body.style.maxHeight = `${maxHeight}px`;
             }
         };
@@ -66,7 +66,7 @@ class PopupPage {
         setTimeout(updatePopupSize, 0);
 
         // Update on resize (though popups rarely resize, this handles edge cases)
-        window.addEventListener('resize', updatePopupSize);
+        window.addEventListener("resize", updatePopupSize);
     }
 
     set currentLanguage(value: string) {
@@ -108,7 +108,7 @@ class PopupPage {
         }
     }
 
-    async fillLanguages(): Promise<void> {        
+    async fillLanguages(): Promise<void> {
         const languages = await this.languageManager.getEnabledLanguages();
         const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
         DomUtils.empty(languageSelect);
@@ -182,7 +182,7 @@ class PopupPage {
         let timer: ReturnType<typeof setTimeout> | null = null;
         const wordInput = DomUtils.$("#wordInput") as HTMLInputElement;
         if (wordInput) {
-            wordInput.addEventListener("keyup", function(e: KeyboardEvent) {
+            wordInput.addEventListener("keyup", function (e: KeyboardEvent) {
                 if (e.altKey) {
                     return;
                 }
@@ -204,7 +204,7 @@ class PopupPage {
 
         const fromWordInput = DomUtils.$("#fromWordInput") as HTMLInputElement;
         if (fromWordInput) {
-            fromWordInput.addEventListener("keyup", function(e: KeyboardEvent) {
+            fromWordInput.addEventListener("keyup", function (e: KeyboardEvent) {
                 if (e.altKey) {
                     return;
                 }
