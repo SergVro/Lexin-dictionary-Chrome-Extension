@@ -1,10 +1,10 @@
-import LinkAdapter from "../common/LinkAdapter.js";
 import LanguageManager from "../common/LanguageManager.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 import { IMessageService, ITranslation } from "../common/Interfaces.js";
 import Tracker from "../common/Tracker.js";
 import * as DomUtils from "../util/DomUtils.js";
 import { fadeOut } from "../util/AnimationUtils.js";
+import { processTranslationHtml } from "../util/TranslationUtils.js";
 
 class PopupPage {
     private history = [];
@@ -89,8 +89,8 @@ class PopupPage {
         DomUtils.setHtml(translationBox, "Searching for '" + word + "'...");
         this.messageService.getTranslation(word, translationDirection).then((response: ITranslation) => {
             if (word === this.currentWord) {
-                DomUtils.setHtml(translationBox, response.translation || response.error);
-                LinkAdapter.AdaptLinks(translationBox);
+                const html = response.translation || response.error;
+                processTranslationHtml(html, translationBox);
             }
         });
     }
