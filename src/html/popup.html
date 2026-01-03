@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Lexin</title>
@@ -6,24 +7,28 @@
     <link href="../css/popup.css" rel="stylesheet" type="text/css" />
 
 </head>
+
 <body>
     <input type="hidden" id="word" />
 
     <div class="customInputContainer">
         <label for="wordInput" class="inputLabel">From Swedish:</label>
-        <input id="wordInput" autofocus="autofocus" type="text" title="Enter a word to get its translation from Swedish to the language selected above" />
+        <input id="wordInput" autofocus="autofocus" type="text"
+            title="Enter a word to get its translation from Swedish to the language selected above" />
     </div>
     <div class="customInputContainer">
         <label for="fromWordInput" class="inputLabel">To Swedish:</label>
-        <input id="fromWordInput" type="text" title="Enter a word to get its translation to Swedish from the language selected above " />
+        <input id="fromWordInput" type="text"
+            title="Enter a word to get its translation to Swedish from the language selected above " />
     </div>
     <div class="languageSelectorContainer">
-        <div class="languageSelectorWrapper">
-            <label for="language" class="inputLabel">Language:</label>
+        <label for="language" class="inputLabel">Language:</label>
+        <div class="languageSelectorRow">
             <select id="language" title="Select a language of translation">
             </select>
+            <a id="historyLink" class="historyIcon" href="history.html" title="Open translations history"
+                aria-label="Open translations history">&#x1F558;</a>
         </div>
-        <a id="historyLink" href="history.html" class="historyIcon" title="Open translations history" aria-label="Open translations history">&nbsp;</a>
     </div>
     <div class="quickTipContainer">
         <div id="quickTip">
@@ -39,4 +44,5 @@
     <script src="../scripts/popup-main.js" type="module"></script>
 
 </body>
+
 </html>

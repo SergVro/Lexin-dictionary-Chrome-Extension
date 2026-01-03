@@ -31,6 +31,42 @@ class PopupPage {
         this.translateSelectedWord();
 
         this.subscribeOnEvents();
+        this.setupResponsiveSizing();
+    }
+
+    /**
+     * Setup responsive popup sizing based on viewport dimensions
+     * 
+     * Note: Chrome extension popups cannot access browser window dimensions directly.
+     * We use screen height as a proxy. Chrome extension popups have a maximum height
+     * of 600px enforced by the browser, so we cap at that limit.
+     */
+    private setupResponsiveSizing(): void {
+        const updatePopupSize = () => {
+            // Get screen height (closest proxy for browser window size in extension popups)
+            // Extension popups don't have direct access to browser window dimensions
+            const screenHeight = window.screen?.height || window.innerHeight || 800;
+            
+            // Calculate 70% of screen height
+            const targetHeight = Math.floor(screenHeight * 0.7);
+            
+            // Chrome extension popups have a maximum height of 600px (enforced by browser)
+            const maxHeight = Math.min(targetHeight, 600);
+            
+            // Set max-height on body to allow popup to expand up to this size
+            const body = document.body;
+            if (body) {
+                // Use CSS custom property for dynamic sizing
+                body.style.setProperty('--popup-max-height', `${maxHeight}px`);
+                body.style.maxHeight = `${maxHeight}px`;
+            }
+        };
+
+        // Set initial size after a brief delay to ensure DOM is ready
+        setTimeout(updatePopupSize, 0);
+
+        // Update on resize (though popups rarely resize, this handles edge cases)
+        window.addEventListener('resize', updatePopupSize);
     }
 
     set currentLanguage(value: string) {

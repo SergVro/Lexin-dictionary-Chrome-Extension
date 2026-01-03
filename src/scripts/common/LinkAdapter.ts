@@ -1,6 +1,6 @@
 class LinkAdapter {
 
-    static playerTemplate: string = "<audio><source src='MP3_FILE_URL' type='audio/mp3' /></audio>";
+    static playerTemplate: string = "<audio src='MP3_FILE_URL' ></audio>";
 
     static AdaptLinks(translationContainer: HTMLElement | DocumentFragment, _adaptFlash?: boolean): void {
         const links = translationContainer.querySelectorAll("a");
@@ -9,37 +9,35 @@ class LinkAdapter {
         });
 
         links.forEach((anchor) => {
+            const onclick = anchor.getAttribute("onclick");
+            if (onclick) {
+                anchor.remove();
+                return;
+            }
             const url = anchor.getAttribute("href");
-            if (url && url.match(/mp3$/)) { // if url is a MP3 file reference - change link to play audio tag
+
+            if (url && url.match(/\.mp3$/)) {
                 const playerHtml = LinkAdapter.playerTemplate.replace("MP3_FILE_URL", url);
                 const tempDiv = document.createElement("div");
                 tempDiv.innerHTML = playerHtml;
-                const audioElement = tempDiv.firstElementChild as HTMLElement;
-                if (audioElement && anchor.parentNode) {
-                    anchor.parentNode.insertBefore(audioElement, anchor.nextSibling);
-                }
-                anchor.setAttribute("href", "#");
-                anchor.addEventListener("click", function (e) {
-                    const nextSibling = anchor.nextElementSibling;
-                    if (nextSibling) {
-                        const audio = nextSibling.querySelector("audio") as HTMLAudioElement;
-                        if (audio) {
-                            audio.play();
-                        }
-                    }
-                    e.preventDefault();
-                });
-            }
+                const audioElement = tempDiv.firstElementChild as HTMLAudioElement;
 
-            // TODO: Flash is deprecated and no longer supported
-            // Keeping this code commented out for historical reference
-            // if (adaptFlash && url.match(/swf$/)) {
-            //     var img = anchor.querySelector("img");
-            //     if (img) {
-            //         img.remove();
-            //         // Flash functionality removed
-            //     }
-            // }
+                const playButton = document.createElement("a");
+                playButton.href = "#";
+                playButton.innerHTML = " &#9654;";
+                playButton.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    audioElement.play();
+                });
+
+                if (anchor.parentNode && audioElement) {
+                    anchor.parentNode.insertBefore(
+                        playButton,
+                        anchor.nextSibling
+                    );
+                }
+                anchor.remove();
+            }
         });
 
         const images = translationContainer.querySelectorAll("img");

@@ -5,7 +5,7 @@
     color: #111827;
     border: 1px solid #E5E7EB;
     text-align: left;
-    padding: 0;
+    padding: 0.5em;
     z-index: 10000;
     border-radius: 12px;
     width: 100%;
@@ -89,7 +89,7 @@ div.lexinTranslationContent {
 
 /* Popup Translation Area */
 .lexinTranslationPopup {
-    overflow-y: auto;
+    overflow-y: visible;
     overflow-x: hidden;
     flex: 1 1 auto;
     min-height: 0;
