@@ -1,7 +1,7 @@
 import { IMessageService, IMessageHandlers } from "../common/Interfaces.js";
-import LinkAdapter from "../common/LinkAdapter.js";
 import * as DomUtils from "../util/DomUtils.js";
 import { position } from "../util/PositionUtils.js";
+import { processTranslationHtml } from "../util/TranslationUtils.js";
 
 class ContentScript {
 
@@ -72,14 +72,8 @@ class ContentScript {
 
         // Reposition after content loads (in case size changes)
         self.messageService.getTranslation(selection).then((response) => {
-            DomUtils.setHtml(translationBlock, response.translation || response.error);
-            LinkAdapter.AdaptLinks(translationBlock);
-            
-            // Reposition after content is loaded and rendered
-            // Use requestAnimationFrame to ensure DOM has updated
-            requestAnimationFrame(() => {
-                positionContainer();
-            });
+            const html = response.translation || response.error;
+            processTranslationHtml(html, translationBlock, positionContainer);
         });
 
         return zIndex;

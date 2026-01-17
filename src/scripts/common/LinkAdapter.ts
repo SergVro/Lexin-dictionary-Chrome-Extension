@@ -1,47 +1,83 @@
 class LinkAdapter {
 
-    static playerTemplate: string = "<audio><source src='MP3_FILE_URL' type='audio/mp3' /></audio>";
-
+    /**
+     * Adapts links in translation content:
+     * 1. Links with onclick="playAudio(...)" - Convert to event listeners (make functional)
+     * 2. All other links - Set target="_blank" to open in new tab
+     */
     static AdaptLinks(translationContainer: HTMLElement | DocumentFragment, _adaptFlash?: boolean): void {
         const links = translationContainer.querySelectorAll("a");
+        
         links.forEach((anchor) => {
+            // Check both onclick and data-onclick (data-onclick is used when we strip onclick from HTML string)
+            const onclick = anchor.getAttribute("onclick") || anchor.getAttribute("data-onclick");
+            const href = anchor.getAttribute("href");
+            
+            // Check if this is a playAudio link by onclick attribute or by checking if it contains LYSSNA text
+            const linkText = anchor.textContent?.trim().toUpperCase() || "";
+            const isLyssnaLink = linkText.includes("LYSSNA");
+            
+            // Links with playAudio onclick handler - convert to event listener
+            // This works in both popup and content script contexts
+            if ((onclick && onclick.includes("playAudio")) || (isLyssnaLink && href && href.match(/\.mp3$/))) {
+                let audioUrl: string | null = null;
+                
+                // Try to extract from onclick handler first
+                if (onclick && onclick.includes("playAudio")) {
+                    // Pattern: playAudio('http://...') or playAudio("http://...") with optional return false;
+                    const match = onclick.match(/playAudio\(['"]([^'"]+)['"]\)/);
+                    if (match && match[1]) {
+                        audioUrl = match[1];
+                    }
+                }
+                
+                // Fallback: if no onclick but it's a LYSSNA link with MP3 href, use the href
+                if (!audioUrl && isLyssnaLink && href && href.match(/\.mp3$/)) {
+                    audioUrl = href;
+                }
+                
+                if (audioUrl) {
+                    // Remove both onclick and data-onclick attributes
+                    anchor.removeAttribute("onclick");
+                    anchor.removeAttribute("data-onclick");
+                    // Remove href entirely to prevent any navigation
+                    anchor.removeAttribute("href");
+                    // Don't set target="_blank" for playAudio links
+                    anchor.removeAttribute("target");
+                    // Add role to indicate it's a button, not a navigation link
+                    anchor.setAttribute("role", "button");
+                    // Add cursor style to indicate it's clickable
+                    anchor.style.cursor = "pointer";
+                    
+                    // Use both onclick property and addEventListener for maximum compatibility
+                    const clickHandler = (e: MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        
+                        // Play audio directly
+                        const audio = new Audio(audioUrl!);
+                        audio.addEventListener("error", (err) => {
+                            console.error("playAudio: Error playing audio", audioUrl, err);
+                        });
+                        audio.play().catch((error) => {
+                            console.error("playAudio: Failed to play audio", audioUrl, error);
+                        });
+                    };
+                    
+                    // Set onclick property directly (harder to override)
+                    (anchor as any).onclick = clickHandler;
+                    // Also add event listener with capture phase as backup
+                    anchor.addEventListener("click", clickHandler, true);
+                    return;
+                }
+            }
+            
+            // Set target="_blank" for all other links to open in new tab
             anchor.setAttribute("target", "_blank");
         });
 
-        links.forEach((anchor) => {
-            const url = anchor.getAttribute("href");
-            if (url && url.match(/mp3$/)) { // if url is a MP3 file reference - change link to play audio tag
-                const playerHtml = LinkAdapter.playerTemplate.replace("MP3_FILE_URL", url);
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = playerHtml;
-                const audioElement = tempDiv.firstElementChild as HTMLElement;
-                if (audioElement && anchor.parentNode) {
-                    anchor.parentNode.insertBefore(audioElement, anchor.nextSibling);
-                }
-                anchor.setAttribute("href", "#");
-                anchor.addEventListener("click", function (e) {
-                    const nextSibling = anchor.nextElementSibling;
-                    if (nextSibling) {
-                        const audio = nextSibling.querySelector("audio") as HTMLAudioElement;
-                        if (audio) {
-                            audio.play();
-                        }
-                    }
-                    e.preventDefault();
-                });
-            }
-
-            // TODO: Flash is deprecated and no longer supported
-            // Keeping this code commented out for historical reference
-            // if (adaptFlash && url.match(/swf$/)) {
-            //     var img = anchor.querySelector("img");
-            //     if (img) {
-            //         img.remove();
-            //         // Flash functionality removed
-            //     }
-            // }
-        });
-
+        // Handle image elements (fix relative paths for Folkets lexikon)
         const images = translationContainer.querySelectorAll("img");
         images.forEach((img) => {
             const url = img.getAttribute("src");

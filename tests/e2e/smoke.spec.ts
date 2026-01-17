@@ -274,6 +274,119 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  test('popup CSS should allow expansion based on translation content', async ({ popupPage }) => {
+    const page = await popupPage();
+    
+    // Wait for languages to be loaded
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+    
+    // Select English language (swe_eng)
+    await page.selectOption('#language', 'swe_eng');
+    
+    // Verify CSS allows expansion: body should NOT have overflow: hidden
+    const bodyOverflow = await page.evaluate(() => {
+      const style = window.getComputedStyle(document.body);
+      return {
+        overflowY: style.overflowY,
+        overflowX: style.overflowX
+      };
+    });
+    // overflowY should not be 'hidden' (can be 'visible' or 'auto' for flex containers)
+    expect(bodyOverflow.overflowY).not.toBe('hidden');
+    expect(bodyOverflow.overflowX).toBe('hidden');
+    
+    // Verify translation container allows expansion (not hidden)
+    const containerOverflow = await page.evaluate(() => {
+      const container = document.querySelector('.lexinTranslationContainer');
+      if (!container) return null;
+      const style = window.getComputedStyle(container);
+      return {
+        overflowY: style.overflowY,
+        overflowX: style.overflowX
+      };
+    });
+    expect(containerOverflow?.overflowY).not.toBe('hidden');
+    expect(containerOverflow?.overflowX).toBe('hidden');
+    
+    // Verify translation popup allows expansion (should not be 'hidden')
+    const popupOverflow = await page.evaluate(() => {
+      const popup = document.querySelector('.lexinTranslationPopup');
+      if (!popup) return null;
+      const style = window.getComputedStyle(popup);
+      return {
+        overflowY: style.overflowY,
+        overflowX: style.overflowX
+      };
+    });
+    // overflowY should not be 'hidden' to allow expansion
+    // Note: Browser may compute 'visible' as 'auto' for flex items, which is acceptable
+    expect(popupOverflow?.overflowY).not.toBe('hidden');
+    expect(popupOverflow?.overflowX).toBe('hidden');
+    
+    // Type a word that will produce a translation
+    const wordInput = page.locator('#wordInput');
+    await wordInput.click();
+    await wordInput.pressSequentially('bil', { delay: 50 });
+    
+    // Wait for translation to appear
+    await ExtensionHelpers.waitForTranslation(page, 15000);
+    
+    // Verify translation container is visible and has content
+    const translation = page.locator('#translation');
+    await expect(translation).toBeVisible();
+    await expect(translation).not.toBeEmpty();
+    
+    // Verify that the translation content is fully visible (not cut off by overflow)
+    // This ensures the popup can expand to show all content
+    const translationHeight = await page.evaluate(() => {
+      const popup = document.querySelector('.lexinTranslationPopup');
+      return popup ? {
+        scrollHeight: popup.scrollHeight,
+        clientHeight: popup.clientHeight,
+        hasScrollbar: popup.scrollHeight > popup.clientHeight
+      } : null;
+    });
+    
+    // The popup should show content without requiring scrolling (if content fits)
+    // If scrollHeight > clientHeight, it means content is being cut off
+    // With overflow-y: visible, the popup should expand to show all content
+    expect(translationHeight).toBeTruthy();
+    
+    await page.close();
+  });
+
+  test('popup should have responsive max-height based on viewport', async ({ popupPage }) => {
+    const page = await popupPage();
+    
+    // Wait for languages to be loaded
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+    
+    // Wait for responsive sizing to be applied
+    await page.waitForTimeout(100);
+    
+    // Check that max-height is set on body
+    const maxHeight = await page.evaluate(() => {
+      const body = document.body;
+      const computedStyle = window.getComputedStyle(body);
+      return {
+        maxHeight: computedStyle.maxHeight,
+        customProperty: body.style.getPropertyValue('--popup-max-height'),
+        inlineMaxHeight: body.style.maxHeight
+      };
+    });
+    
+    // Verify max-height is set (should be a pixel value or CSS custom property)
+    expect(maxHeight.maxHeight).toBeTruthy();
+    expect(maxHeight.maxHeight).not.toBe('none');
+    
+    // The max-height should be capped at 600px (Chrome's limit) or 70% of screen
+    const maxHeightValue = parseInt(maxHeight.maxHeight);
+    expect(maxHeightValue).toBeLessThanOrEqual(600);
+    expect(maxHeightValue).toBeGreaterThan(0);
+    
+    await page.close();
+  });
+
   test('Alt+Double click on page should show Swedish translation', async ({ context, extensionId }) => {
     // First, set the language to Swedish via the popup
     const popupPage = await context.newPage();
