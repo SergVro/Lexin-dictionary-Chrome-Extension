@@ -705,3 +705,107 @@ src/
 ---
 
 This documentation provides a comprehensive overview of the Lexin Dictionary Chrome Extension's architecture, main functions, and data flow. Use it as a reference for understanding, maintaining, and extending the codebase.
+
+---
+
+## Development Commands
+
+```bash
+npm install              # Install dependencies
+npm run build            # Full build: compile TypeScript + bundle + copy assets to dist/
+npm run build:ts         # TypeScript compile only → dist/temp/
+npm run build:bundle     # esbuild bundle only (entry points → dist/scripts/)
+npm run build:copy       # Copy HTML, CSS, icons, manifest → dist/
+npm run watch            # Watch mode for TypeScript (tsc --watch)
+npm run lint             # Run ESLint on src/**/*.{ts,js}
+npm run lint:fix         # ESLint with auto-fix
+npm run test             # Run unit tests with Vitest (no browser needed)
+npm run test:watch       # Vitest in watch mode
+npm run test:e2e         # Playwright e2e tests (requires build + headed Chrome)
+npm run package          # Full build + create lexin-extension.zip for distribution
+npm run dev              # Build then watch
+```
+
+---
+
+## Code Style & Conventions
+
+- **TypeScript only** in `src/scripts/` — do not add plain `.js` files
+- **Double quotes** for all strings (ESLint enforced, `"quotes": ["error", "double"]`)
+- **Semicolons** required at end of statements
+- `any` is allowed — `@typescript-eslint/no-explicit-any` is off
+- Prefix unused variables with `_` to suppress lint warnings
+- `strict: false` in `tsconfig.json` — do not enable strict mode
+- **No jQuery, no RequireJS, no Grunt** — the project was migrated away from all of these
+- Use `DomUtils.ts` helpers for DOM work: `$()`, `$$()`, `createElement()`, `addClass()`, `setHtml()`, etc.
+- Import paths in `.ts` source files use **`.js` extensions** (e.g., `import Foo from "./Foo.js"`) — Vitest aliases resolve them to `.ts` at test time
+
+---
+
+## Architecture Rules
+
+- **Entry points** (`*-main.ts`) should be thin: instantiate the main class, inject dependencies, call `initialize()`
+- **Dependency injection via constructors** — classes receive `IMessageService`, `ILoader`, `IAsyncStorage`, `IAsyncSettingsStorage`, etc.; see `src/scripts/common/Interfaces.ts`
+- **Never call Chrome APIs directly in business logic** — use `ChromeStorageAdapter` for storage and `ChromeMessageBus` for messaging
+- **All storage operations are async** — `IAsyncStorage` and `IAsyncSettingsStorage` methods return Promises; always `await` them
+- In content scripts, call `await LanguageManager.waitForInitialization()` before accessing language data
+- Background service worker has **no DOM access and no `localStorage`** — use `chrome.storage.local` via `ChromeStorageAdapter`
+
+---
+
+## Testing Guide
+
+### Unit Tests (`npm run test`)
+
+- Test files: `tests/unit/*Tests.ts` — matched by `vitest.config.ts` `include` pattern
+- Reuse existing fakes from `tests/unit/util/fakes.ts`:
+  - `FakeLoader` — implements `ILoader`
+  - `FakeAsyncStorage` / `FakeAsyncSettingsStorage` — in-memory storage
+  - `FakeHistoryManager`, `FakeTranslationManager`, `FakeDictionary`
+  - `FakeMessageHandlers`, `TestMessageService`
+- HTML response fixtures live in `tests/unit/data/`
+- Run unit tests after any logic change to `src/scripts/`
+
+### E2E Tests (`npm run test:e2e`)
+
+- **Requires a full build first**: `npm run build`
+- Chrome extensions only work in **headed Chromium** — do not set `headless: true`
+- Test files: `tests/e2e/smoke.spec.ts`; shared fixtures: `tests/e2e/fixtures.ts`
+- A local static server (port 3456) is started automatically by Playwright config
+- Run e2e tests after UI changes, manifest changes, or content script changes
+
+---
+
+## Build Output Structure
+
+```
+dist/                   # Generated — never edit directly
+├── scripts/            # esbuild-bundled entry points (background-main.js, content-main.js, etc.)
+├── html/               # Copied from src/html/
+├── css/                # Copied from src/css/
+├── icons/              # Copied from src/icons/
+└── manifest.json       # Copied from src/manifest.json
+
+dist/temp/              # Intermediate tsc output — not the final product
+```
+
+---
+
+## Common Pitfalls
+
+- **Never edit `dist/`** — it is fully regenerated on every build; edit `src/` instead
+- **Background service worker** has no `localStorage` and no DOM — use `chrome.storage.local` through `ChromeStorageAdapter`
+- **esbuild bundles each entry point independently** — circular imports across entry-point boundaries will silently fail at runtime
+- **E2E tests require headed Chrome** — extensions cannot be loaded in headless mode
+- **Adding a new page or script**: register its entry point in `build.js` esbuild config, add HTML to `src/html/`, CSS to `src/css/`
+
+---
+
+## Adding New Features — Checklist
+
+1. Add or update TypeScript source in `src/scripts/`
+2. New interface? Add it to `src/scripts/common/Interfaces.ts`
+3. New page? Add HTML → `src/html/`, CSS → `src/css/`, register entry in `build.js`
+4. Add unit tests in `tests/unit/`; add fakes in `tests/unit/util/fakes.ts` if a new interface was introduced
+5. Run: `npm run lint && npm run test && npm run build`
+6. For UI or manifest changes also run: `npm run test:e2e`
