@@ -59,18 +59,35 @@ npm run package
 ├── dist/                # Built extension (generated)
 ├── build.js             # Build script using esbuild
 ├── tsconfig.json        # TypeScript configuration
-├── .eslintrc.json       # ESLint configuration
+├── eslint.config.js     # ESLint configuration (flat config)
 └── package.json         # NPM dependencies and scripts
 ```
 
 ### Technology Stack
 
-- **TypeScript 5.5+** - Type-safe JavaScript
+- **TypeScript 7** - Type-safe JavaScript, compiled with the native `tsc`
 - **ES Modules** - Modern JavaScript module system
 - **esbuild** - Fast JavaScript bundler
-- **ESLint** - Code linting
+- **ESLint 10** - Code linting (flat config + typescript-eslint)
 - **Native DOM APIs** - Modern browser APIs for DOM manipulation and positioning
 - **Chrome Extension Manifest V3** - Latest extension platform
+
+#### TypeScript 6 and 7 side by side
+
+`package.json` installs two TypeScript packages on purpose:
+
+```json
+"typescript": "npm:@typescript/typescript6@^6.0.2",
+"@typescript/native": "npm:typescript@^7.0.2"
+```
+
+`tsc` (and `npm run build:ts`) is the native TypeScript 7 compiler. The `typescript`
+entry is aliased to the TypeScript 6 API package because tools that consume the
+compiler programmatically — `typescript-eslint`, `ts-node` — do not support the
+TypeScript 7 API yet ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)).
+This is the side-by-side layout recommended in the TypeScript 7 release notes. Once
+`typescript-eslint` ships TypeScript 7 support, drop the alias and depend on
+`typescript` directly.
 
 ### Modernization (October 2024)
 

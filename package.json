@@ -23,16 +23,19 @@
     "dev": "npm run build && npm run watch"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/chrome": "^0.0.268",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/ui": "^4.1.8",
     "esbuild": "^0.28.1",
-    "eslint": "^8.57.0",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0",
     "serve": "^14.2.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.8"
   },
   "type": "module"

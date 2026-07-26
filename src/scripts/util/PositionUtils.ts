@@ -124,8 +124,8 @@ function calculatePosition(
     my: ParsedAlignment,
     at: ParsedAlignment
 ): { left: number; top: number } {
-    let left = 0;
-    let top = 0;
+    let left: number;
+    let top: number;
 
     // Calculate horizontal position
     if (at.horizontal === "left") {
