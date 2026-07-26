@@ -5,7 +5,7 @@
 The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary tool that provides quick word translations using Lexin and Folkets Lexikon APIs. The extension supports 18+ languages and offers features like translation history, customizable language preferences, and quick translation via Alt+Click or Alt+Double-Click.
 
 **Technology Stack:**
-- TypeScript 5.5+ with ES Modules
+- TypeScript 7 with ES Modules
 - Chrome Extension Manifest V3
 - esbuild for bundling
 - Native DOM APIs for manipulation
@@ -731,7 +731,7 @@ npm run dev              # Build then watch
 ## Code Style & Conventions
 
 - **TypeScript only** in `src/scripts/` — do not add plain `.js` files
-- **Double quotes** for all strings (ESLint enforced, `"quotes": ["error", "double"]`)
+- **Double quotes** for all strings (ESLint enforced, `"@stylistic/quotes": ["error", "double"]`)
 - **Semicolons** required at end of statements
 - `any` is allowed — `@typescript-eslint/no-explicit-any` is off
 - Prefix unused variables with `_` to suppress lint warnings
