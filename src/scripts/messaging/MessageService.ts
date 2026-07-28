@@ -19,7 +19,10 @@ class MessageService implements IMessageService{
     }
 
     getSelectedText(): Promise<string> {
-        return MessageBus.Instance.sendMessageToActiveTab(MessageType.getSelection);
+        // The bus resolves undefined when no frame answered; "no selection" is
+        // the string form of that, and keeps this method true to Promise<string>.
+        return MessageBus.Instance.sendMessageToActiveTab(MessageType.getSelection)
+            .then((selection) => selection ?? "");
     }
 
     createNewTab(url: string): void {

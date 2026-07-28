@@ -30,10 +30,23 @@ class ChromeMessageBus implements IMessageBus {
     sendMessageToActiveTab(method: MessageType, args: any): Promise<any> {
         return new Promise((resolve) => {
             chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, {method: method, args: args}, function (response: any) {
-                    if (response) {
-                        resolve(response);
-                    }
+                // No addressable tab, e.g. devtools or another extension window
+                // is focused. tabs[0] is undefined here, so guard before reading id.
+                const activeTabId = tabs[0]?.id;
+                if (activeTabId === undefined) {
+                    resolve(undefined);
+                    return;
+                }
+                chrome.tabs.sendMessage(activeTabId, {method: method, args: args}, function (response: any) {
+                    // lastError is set whenever no frame answered: a page with
+                    // nothing selected, where every frame stays silent by design
+                    // (see MessageHandlers.registerGetSelectionHandler), or a page
+                    // the content script cannot run on such as chrome:// or the
+                    // Web Store. Both are ordinary outcomes, so resolve instead of
+                    // leaving the promise pending. Reading lastError also marks it
+                    // handled and keeps the console clean.
+                    const unanswered = chrome.runtime.lastError !== undefined;
+                    resolve(unanswered ? undefined : response);
                 });
             });
         });
