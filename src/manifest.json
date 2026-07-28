@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lexin dictionary",
-  "version": "2.0.0.66",
+  "version": "2.0.0.68",
   "description": "Swedish to other languages dictionary. Powered by Lexin and Folkets Lexikon",
   "icons": {
     "16": "icons/icon16.png",
@@ -23,20 +23,7 @@
     "http://folkets-lexikon.csc.kth.se/*"
   ],
   "permissions": [
-    "storage",
-    "tabs"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "scripts/*.js",
-        "scripts/dictionary/*.js",
-        "scripts/messaging/*.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
+    "storage"
   ],
   "content_scripts": [
     {
