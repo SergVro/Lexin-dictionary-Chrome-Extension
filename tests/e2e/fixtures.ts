@@ -148,7 +148,9 @@ export class ExtensionHelpers {
   }
 
   /**
-   * Wait for translation to appear (not empty and not "Searching...")
+   * Wait for a real translation to appear - not empty, and not one of the
+   * placeholders the popup shows first: "Searching..." while a lookup is in
+   * flight, or "No word selected" when the popup opened with no page selection.
    */
   static async waitForTranslation(page: Page, timeout = 10000): Promise<void> {
     await page.waitForFunction(
@@ -156,7 +158,9 @@ export class ExtensionHelpers {
         const el = document.querySelector('#translation');
         if (!el) return false;
         const text = el.textContent || '';
-        return text.length > 0 && !text.includes('Searching');
+        return text.length > 0
+          && !text.includes('Searching')
+          && !text.includes('No word selected');
       },
       { timeout }
     );

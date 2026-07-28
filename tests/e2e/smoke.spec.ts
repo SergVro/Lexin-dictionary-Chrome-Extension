@@ -128,6 +128,19 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  test('popup should report when no word is selected', async ({ popupPage }) => {
+    const page = await popupPage();
+
+    // The popup asks the active tab for its selection on open. Nothing answers
+    // here - the popup is itself the active tab and runs no content script -
+    // which is the same shape as opening the popup on a page with nothing
+    // selected. sendMessageToActiveTab must settle so this branch can render;
+    // it used to leave the promise pending and #translation stayed blank.
+    await expect(page.locator('#translation')).toHaveText('No word selected');
+
+    await page.close();
+  });
+
   test('navigation between extension pages should work', async ({ optionsPage }) => {
     const page = await optionsPage();
     
