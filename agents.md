@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary tool that provides quick word translations using Lexin and Folkets Lexikon APIs. The extension supports 18+ languages and offers features like translation history, customizable language preferences, and quick translation via Alt+Click or Alt+Double-Click.
+The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary tool that provides quick word translations using Lexin and Folkets Lexikon APIs. The extension supports 20+ languages and offers features like translation history, customizable language preferences, and quick translation via Alt+Click or Alt+Double-Click.
 
 **Technology Stack:**
 - TypeScript 7 with ES Modules
@@ -203,12 +203,11 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 
 #### `getAllSupportedLanguages(): ILanguage[]`
 - Aggregates languages from all dictionaries
-- Removes duplicates
 - Sorts alphabetically by language name
 - Returns `{value: "swe_eng", text: "English"}[]`
 
 **Supported Dictionaries:**
-1. **LexinDictionary:** Primary dictionary supporting 19 languages
+1. **LexinDictionary:** Primary dictionary supporting 20 languages
 2. **FolketsDictionary:** Alternative/fallback dictionary
 
 **Loader:**
@@ -234,12 +233,12 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Decodes HTML entities before checking
 
 #### `supportedLanguages: ILanguage[]`
-Returns 19 supported languages:
+Returns 20 supported languages:
 - Albanian, Amharic, Arabic, Azerbaijani
 - Bosnian, Croatian, Finnish, Greek
 - Northern Kurdish, South Kurdish, Pashto, Persian
 - Russian, Serbian (Latin & Cyrillic)
-- Somali, Spanish, Swedish, Turkish
+- Somali, Spanish, Swedish, Turkish, Ukrainian
 
 #### `parsingRegExp: RegExp`
 - Regex pattern to extract word-translation pairs from HTML response
@@ -251,7 +250,22 @@ Returns 19 supported languages:
 
 **Purpose:** Manages language preferences and enabled languages.
 
+**Storage Keys:**
+- `enabledLanguages` — comma-separated codes the user has switched on
+- `defaultLanguage` — current translation language, defaults to `swe_swe`
+- `translationDirection` — `1` (from) or `2` (to), defaults to `2`
+- `knownLanguages` — comma-separated codes the extension has offered so far. Lets `initialize()` tell a
+  newly shipped language apart from one the user deliberately disabled, so new languages are enabled
+  automatically on upgrade without resurrecting the user's opt-outs. Seeded from the
+  `LEGACY_KNOWN_LANGUAGES` constant for users upgrading from a build that predates the key.
+
 **Main Functions:**
+
+#### `private async initialize(): Promise<void>`
+- Runs from the constructor; awaited via `waitForInitialization()`
+- Fresh install (no `enabledLanguages`): enables every supported language
+- Existing install: appends any language absent from `knownLanguages` to the enabled list
+- Idempotent — every context (popup, options, history, service worker) builds its own `LanguageManager`
 
 #### `getLanguages(): ILanguage[]`
 - Returns all available languages from dictionary factory

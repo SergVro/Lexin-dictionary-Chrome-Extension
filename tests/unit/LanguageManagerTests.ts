@@ -17,7 +17,7 @@ describe("LanguageManager", () => {
 
     it("should return all languages", () => {
         const languages = languageManager.getLanguages();
-        expect(languages.length).toBe(20);
+        expect(languages.length).toBe(21);
     });
 
     describe("enabled languages", () => {
@@ -87,6 +87,71 @@ describe("LanguageManager", () => {
             await languageManager.setEnabledLanguages(myEnabledLanguages);
             await languageManager.setEnabled("swe_eng");
             expect(await languageManager.isEnabled("swe_eng")).toBe(true);
+        });
+    });
+
+    describe("newly added languages", () => {
+        let storage: FakeAsyncSettingsStorage;
+
+        // A user upgrading from a build that predates the knownLanguages key, who had turned most
+        // languages off. swe_rus is their default so it is not the current-language special case.
+        const createUpgradedManager = async (): Promise<LanguageManager> => {
+            const manager = new LanguageManager(storage, dictionaryFactory);
+            await manager.waitForInitialization();
+            return manager;
+        };
+
+        beforeEach(async () => {
+            storage = new FakeAsyncSettingsStorage();
+            await storage.setItem("enabledLanguages", "swe_rus,swe_eng");
+            await storage.setItem("defaultLanguage", "swe_rus");
+        });
+
+        it("should enable a language added since the last version, without re-enabling disabled ones", async () => {
+            const manager = await createUpgradedManager();
+
+            expect(await manager.isEnabled("swe_ukr")).toBe(true);
+            expect(await manager.isEnabled("swe_rus")).toBe(true);
+            expect(await manager.isEnabled("swe_eng")).toBe(true);
+            // Legacy languages this user had turned off must stay off
+            expect(await manager.isEnabled("swe_swe")).toBe(false);
+            expect(await manager.isEnabled("swe_tur")).toBe(false);
+        });
+
+        it("should record the known languages so the migration only runs once", async () => {
+            await createUpgradedManager();
+
+            const known = (await storage.getItem("knownLanguages")).split(",");
+            expect(known).toEqual(expect.arrayContaining(["swe_ukr", "swe_swe", "swe_eng"]));
+            expect(known.length).toBe(21);
+        });
+
+        it("should not duplicate entries when initialized repeatedly", async () => {
+            await createUpgradedManager();
+            const afterFirst = await storage.getItem("enabledLanguages");
+
+            const manager = await createUpgradedManager();
+
+            expect(await storage.getItem("enabledLanguages")).toBe(afterFirst);
+            expect((await manager.getEnabledLanguages()).length).toBe(3);
+        });
+
+        it("should keep a language disabled after the migration has run", async () => {
+            const migrated = await createUpgradedManager();
+            await migrated.setDisabled("swe_ukr");
+
+            const manager = await createUpgradedManager();
+
+            expect(await manager.isEnabled("swe_ukr")).toBe(false);
+        });
+
+        it("should enable everything on a fresh install", async () => {
+            const freshStorage = new FakeAsyncSettingsStorage();
+            const manager = new LanguageManager(freshStorage, dictionaryFactory);
+            await manager.waitForInitialization();
+
+            expect(await manager.getEnabledLanguages()).toEqual(manager.getLanguages());
+            expect((await freshStorage.getItem("knownLanguages")).split(",").length).toBe(21);
         });
     });
 

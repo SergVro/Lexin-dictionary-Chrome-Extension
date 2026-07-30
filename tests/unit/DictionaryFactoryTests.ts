@@ -9,13 +9,13 @@ describe("DictionaryFactory", () => {
 
     it("should return all supported languages", () => {
         const languages = factory.getAllSupportedLanguages();
-        expect(languages.length).toBe(20);
+        expect(languages.length).toBe(21);
     });
 
     describe("getDictionary", () => {
         it("should get Lexikon dictionary", () => {
             const dictionary = factory.getDictionary("swe_swe");
-            expect(dictionary.getSupportedLanguages().length).toBe(19);
+            expect(dictionary.getSupportedLanguages().length).toBe(20);
         });
 
         it("should get Folkets dictionary", () => {
