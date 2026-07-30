@@ -235,6 +235,88 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  test('translation should work in popup with Ukrainian language', async ({ popupPage }) => {
+    const page = await popupPage();
+
+    // Wait for languages to be loaded
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    // Select Ukrainian language (swe_ukr)
+    await page.selectOption('#language', 'swe_ukr');
+
+    // Type 'bil' in the "From Swedish" input field (wordInput)
+    const wordInput = page.locator('#wordInput');
+    await wordInput.click();
+    await wordInput.pressSequentially('bil', { delay: 50 });
+
+    // Wait for the debounce (500ms) + network request
+    // Verify translation contains Ukrainian word for car
+    await expect(page.locator('#translation')).toContainText('автомобіль', {
+      timeout: 15000
+    });
+
+    await page.close();
+  });
+
+  test('reverse translation Ukrainian to Swedish should work', async ({ popupPage }) => {
+    const page = await popupPage();
+
+    // Wait for languages to be loaded
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    // Select Ukrainian language (swe_ukr)
+    await page.selectOption('#language', 'swe_ukr');
+
+    // Type 'привіт' in the "To Swedish" input field (fromWordInput)
+    // For Cyrillic characters, we use fill() then trigger keyup event manually
+    const fromInput = page.locator('#fromWordInput');
+    await fromInput.click();
+    await fromInput.fill('привіт');
+    // Trigger keyup event to start the translation (popup listens to keyup)
+    await fromInput.dispatchEvent('keyup');
+
+    // Wait for the debounce (500ms) + network request
+    // Verify translation contains 'hej'
+    await expect(page.locator('#translation')).toContainText('hej', {
+      timeout: 15000
+    });
+
+    await page.close();
+  });
+
+  test('languages added since the last version should be enabled on upgrade', async ({ popupPage }) => {
+    // Rewind storage to what a user of an older build would have: a hand-picked enabled list and
+    // no knownLanguages key. The next popup must pick up Ukrainian without resurrecting the
+    // languages this user turned off.
+    const seedPage = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(seedPage);
+    await seedPage.evaluate(async () => {
+      await chrome.storage.local.remove('knownLanguages');
+      await chrome.storage.local.set({
+        enabledLanguages: 'swe_rus,swe_eng',
+        defaultLanguage: 'swe_rus'
+      });
+    });
+    await seedPage.close();
+
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    const optionValues = await page.locator('#language option').evaluateAll(
+      (options) => options.map((option) => (option as HTMLOptionElement).value)
+    );
+
+    expect(optionValues).toContain('swe_ukr');
+    expect(optionValues).toContain('swe_rus');
+    expect(optionValues).toContain('swe_eng');
+    // Languages this user had disabled must stay disabled
+    expect(optionValues).not.toContain('swe_swe');
+    expect(optionValues).not.toContain('swe_tur');
+    expect(optionValues.length).toBe(3);
+
+    await page.close();
+  });
+
   test('reverse translation English to Swedish should work', async ({ popupPage }) => {
     const page = await popupPage();
     

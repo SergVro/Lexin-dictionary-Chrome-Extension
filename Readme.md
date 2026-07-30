@@ -5,7 +5,7 @@ Swedish to other languages dictionary extension for Chrome. Powered by Lexin and
 ## Features
 
 - Translate Swedish words to multiple languages
-- Support for Albanian, Amharic, Arabic, Azerbaijani, Bosnian, Croatian, English, Finnish, Greek, Kurdish, Pashto, Persian, Russian, Serbian, Somali, Spanish, Swedish, and Turkish
+- Support for Albanian, Amharic, Arabic, Azerbaijani, Bosnian, Croatian, English, Finnish, Greek, Kurdish, Pashto, Persian, Russian, Serbian, Somali, Spanish, Swedish, Turkish, and Ukrainian
 - Quick translation via Alt + Double Click or Alt + Click
 - Translation history with export capabilities
 - Customizable language preferences

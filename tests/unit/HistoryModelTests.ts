@@ -59,7 +59,7 @@ describe("HistoryModel", () => {
     describe("methods", () => {
         it("should load languages", async () => {
             const languages = await historyModel.loadLanguages();
-            expect(languages.length).toBe(19);
+            expect(languages.length).toBe(20);
         });
 
         it("should load history", () => {

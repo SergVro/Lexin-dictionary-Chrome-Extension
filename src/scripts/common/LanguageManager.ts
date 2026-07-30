@@ -1,6 +1,15 @@
 import DictionaryFactory from "../dictionary/DictionaryFactory.js";
 import { ILanguage, IAsyncSettingsStorage } from "./Interfaces.js";
 
+// The languages shipped before the knownLanguages key existed. Used once, to seed that key for
+// users upgrading from such a version, so a language they deliberately disabled is not mistaken
+// for a newly added one. This is a frozen historical record - never add to it.
+const LEGACY_KNOWN_LANGUAGES = [
+    "swe_alb", "swe_amh", "swe_ara", "swe_azj", "swe_bos", "swe_hrv", "swe_eng", "swe_fin",
+    "swe_gre", "swe_kmr", "swe_pus", "swe_per", "swe_rus", "swe_srp", "swe_srp_cyrillic",
+    "swe_som", "swe_sdh", "swe_spa", "swe_swe", "swe_tur"
+];
+
 class LanguageManager {
     private languages: ILanguage[];
     private initialized: Promise<void>;
@@ -8,20 +17,49 @@ class LanguageManager {
     private settingsStorage: IAsyncSettingsStorage;
     enabledKey: string = "enabledLanguages";
     languageKey: string = "defaultLanguage";
+    knownKey: string = "knownLanguages";
 
     constructor(settingsStorage: IAsyncSettingsStorage, dictionaryFactory: DictionaryFactory) {
         this.settingsStorage = settingsStorage;
         this.languages = dictionaryFactory.getAllSupportedLanguages();
 
-        // Initialize asynchronously - enable all languages by default only if the key doesn't exist (not set yet)
+        // Initialize asynchronously - enable all languages on a fresh install, and enable any
+        // newly added ones for existing users
         this.initialized = this.initialize();
     }
 
     private async initialize(): Promise<void> {
+        const allValues = this.languages.map((lang) => lang.value);
+
         const enabledValue = await this.settingsStorage.getItem(this.enabledKey);
         if (enabledValue === null || enabledValue === undefined) {
+            // Fresh install - enable everything we support
             await this.setEnabledLanguages(this.languages);
+            await this.setKnownLanguages(allValues);
+            return;
         }
+
+        // Existing user - enable languages added since the last version they ran, while leaving
+        // the ones they disabled themselves alone. Idempotent, so it is safe for the popup,
+        // options page, history page and service worker to run it concurrently.
+        const knownValue = await this.settingsStorage.getItem(this.knownKey);
+        // Upgrading from a version that predates this key - assume it offered the legacy list
+        const known = (knownValue === null || knownValue === undefined)
+            ? LEGACY_KNOWN_LANGUAGES
+            : knownValue.split(",").filter((value) => value.trim() !== "");
+
+        const added = allValues.filter((value) => known.indexOf(value) === -1);
+        if (added.length > 0) {
+            const enabled = await this.getEnabledLanguages();
+            await this.setEnabledLanguages(enabled.concat(added.map((value) => this.getLanguage(value))));
+        }
+        if (added.length > 0 || knownValue === null || knownValue === undefined) {
+            await this.setKnownLanguages(allValues);
+        }
+    }
+
+    private async setKnownLanguages(languageValues: string[]): Promise<void> {
+        await this.settingsStorage.setItem(this.knownKey, languageValues.join(","));
     }
 
     async waitForInitialization(): Promise<void> {

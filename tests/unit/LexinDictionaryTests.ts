@@ -2,6 +2,7 @@ import { FakeLoader } from "./util/fakes.js";
 import LexinDictionary from "../../src/scripts/dictionary/LexinDictionary.js";
 import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import swe_rus_translation_multi from "./data/swe_rus_translation_multi.html";
+import swe_ukr_translation_multi from "./data/swe_ukr_translation_multi.html";
 
 describe("LexinDictionary", () => {
     let dictionary: LexinDictionary;
@@ -14,7 +15,7 @@ describe("LexinDictionary", () => {
 
     it("should return supported languages", () => {
         const languages = dictionary.getSupportedLanguages();
-        expect(languages.length).toBe(19);
+        expect(languages.length).toBe(20);
     });
 
     it("should check if language is supported", () => {
@@ -74,6 +75,20 @@ describe("LexinDictionary", () => {
         expect(history[5].translation).toBe("роман");
         expect(history[6].word).toBe("succé");
         expect(history[6].translation).toBe("успех");
+    });
+
+    it("should parse Ukrainian translation", () => {
+        const history = dictionary.parseTranslation(swe_ukr_translation_multi, "swe_ukr");
+
+        expect(history.length).toBe(4);
+        expect(history[0].word).toBe("författare");
+        expect(history[0].translation).toBe("письменник");
+        expect(history[1].word).toBe("ordbok");
+        expect(history[1].translation).toBe("словник");
+        expect(history[2].word).toBe("roman");
+        expect(history[2].translation).toBe("роман");
+        expect(history[3].word).toBe("succé");
+        expect(history[3].translation).toBe("успіх");
     });
 
     it("should preserve Swedish characters (å, ä, ö) in translation HTML", async () => {
