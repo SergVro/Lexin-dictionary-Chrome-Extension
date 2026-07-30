@@ -62,6 +62,23 @@ describe("HistoryModel", () => {
             expect(languages.length).toBe(20);
         });
 
+        it("should wait for the language migration before loading languages", async () => {
+            // Simulates the history page being the first extension UI opened during an upgrade:
+            // enabledLanguages predates swe_ukr, so LanguageManager's migration must finish
+            // adding it before loadLanguages() reads getEnabledLanguages().
+            const upgradeStorage = new FakeAsyncSettingsStorage();
+            await upgradeStorage.setItem("enabledLanguages", "swe_rus,swe_eng");
+            await upgradeStorage.setItem("defaultLanguage", "swe_rus");
+
+            const upgradingLanguageManager = new LanguageManager(upgradeStorage, dictionaryFactory);
+            const upgradingHistoryModel = new HistoryModel(mockMessageService, upgradingLanguageManager, upgradeStorage);
+
+            // Deliberately not awaiting waitForInitialization() here - loadLanguages() must do it internally.
+            const languages = await upgradingHistoryModel.loadLanguages();
+
+            expect(languages.some((lang) => lang.value === "swe_ukr")).toBe(true);
+        });
+
         it("should load history", () => {
             historyModel.loadHistory("swe_eng");
             expect(mockMessageService.loadHistoryCalls).toBe(1);

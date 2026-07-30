@@ -66,6 +66,7 @@ class HistoryModel {
     }
 
     async loadLanguages(): Promise<ILanguage[]> {
+        await this.languageManager.waitForInitialization();
         const languages = await this.languageManager.getEnabledLanguages();
         return languages.filter((item) => item.value !== "swe_swe");
     }
