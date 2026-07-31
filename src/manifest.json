@@ -35,10 +35,6 @@
       ],
       "js": [
         "scripts/content-main.js"
-      ],
-      "css": [
-        "css/cssreset-context-min.css",
-        "css/content.css"
       ]
     }
   ],

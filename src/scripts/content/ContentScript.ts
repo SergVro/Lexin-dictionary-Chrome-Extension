@@ -2,6 +2,27 @@ import { IMessageService, IMessageHandlers } from "../common/Interfaces.js";
 import * as DomUtils from "../util/DomUtils.js";
 import { position } from "../util/PositionUtils.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
+import cardCss from "../../css/card.css";
+import translationContentCss from "../../css/translation-content.css";
+
+/**
+ * The Translation Card's stylesheet, built once and shared by every card.
+ *
+ * It is inlined into the bundle rather than linked, because a <link> into a shadow
+ * root needs web_accessible_resources - which ManifestTests forbids, and which would
+ * leak the extension ID to every page. See
+ * docs/adr/0001-shadow-dom-for-translation-card.md.
+ */
+let cardStyleSheet: CSSStyleSheet | undefined;
+
+function getCardStyleSheet(): CSSStyleSheet {
+    if (!cardStyleSheet) {
+        cardStyleSheet = new CSSStyleSheet();
+        // Reset first, then the shared translation styling.
+        cardStyleSheet.replaceSync(cardCss + "\n" + translationContentCss);
+    }
+    return cardStyleSheet;
+}
 
 class ContentScript {
 
@@ -34,25 +55,41 @@ class ContentScript {
     private showTranslation(selection: string, evt: MouseEvent, zIndex: number, insideTranslationRef: { value: boolean }): number {
         const self = this;
         const absoluteContainer = DomUtils.createElement("div");
-        DomUtils.addClass(absoluteContainer, "yui3-cssreset");
         DomUtils.addClass(absoluteContainer, "lexinExtensionMainContainer");
+
+        // This element is the one part of the card that lives in the page's DOM, so it
+        // is the one part the page can style. Neutralise it before anything else.
+        //
+        // Inline *and* important is the only combination a hostile page cannot outrank:
+        // a style attribute beats selector-based author rules, but a page's !important
+        // rule beats a normal inline one. `:host { all: initial }` in card.css would not
+        // do - declarations targeting the host element beat :host rules.
+        //
+        // This is not only about inherited properties. Clearing transform/filter/contain
+        // matters just as much: any of them on an ancestor would make it the containing
+        // block for the card's fixed positioning, and containing blocks propagate through
+        // a shadow boundary. `all` deliberately leaves direction and unicode-bidi alone
+        // (CSS Cascade L4 3.3), so the card keeps inheriting text direction as it always has.
+        absoluteContainer.style.setProperty("all", "initial", "important");
+
+        const shadowRoot = absoluteContainer.attachShadow({ mode: "open" });
+        shadowRoot.adoptedStyleSheets = [getCardStyleSheet()];
+
         // Container doesn't need positioning - child will use fixed positioning
         document.body.appendChild(absoluteContainer);
-        
+
         const container = DomUtils.createElement("div");
-        DomUtils.addClass(container, "yui3-cssreset");
         DomUtils.addClass(container, "lexinTranslationContainer");
         DomUtils.setCss(container, "zIndex", (zIndex++).toString());
-        absoluteContainer.appendChild(container);
-        
+        shadowRoot.appendChild(container);
+
         container.addEventListener("click", function(_e: MouseEvent) {
             DomUtils.setCss(container, "zIndex", (zIndex++).toString());
             insideTranslationRef.value = true;
         });
-        
+
         const translationBlock = DomUtils.createElement("div");
         DomUtils.setAttr(translationBlock, "id", "translation");
-        DomUtils.addClass(translationBlock, "yui3-cssreset");
         DomUtils.addClass(translationBlock, "lexinTranslationContent");
         DomUtils.setHtml(translationBlock, "Searching for '" + selection + "'...");
         container.appendChild(translationBlock);

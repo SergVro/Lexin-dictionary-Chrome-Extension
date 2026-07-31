@@ -12,6 +12,26 @@ const bundledEntryPoints = [
   'dist/temp/scripts/content/content-main.js'
 ];
 
+/**
+ * Resolves `.css` imports back to src/css/ and inlines them as strings.
+ *
+ * The Translation Card renders in a shadow root, which cannot be styled by a
+ * <link> without web_accessible_resources - forbidden by ManifestTests. So its
+ * CSS travels inside the content script bundle instead. See
+ * docs/adr/0001-shadow-dom-for-translation-card.md.
+ *
+ * The remapping is needed because tsc emits import specifiers untouched while
+ * bundling happens from dist/temp/, where no css/ directory exists.
+ */
+const cssTextPlugin = {
+  name: 'css-text',
+  setup(build) {
+    build.onResolve({ filter: /\.css$/ }, (args) => ({
+      path: path.resolve('src/css', path.basename(args.path))
+    }));
+  }
+};
+
 async function build() {
   try {
     console.log('Building extension...');
@@ -32,6 +52,8 @@ async function build() {
         target: 'es2020',
         sourcemap: true,
         globalName: path.basename(entry, '.js').replace(/-/g, '_'),
+        plugins: [cssTextPlugin],
+        loader: { '.css': 'text' },
       });
       
       console.log(`Built ${entry} -> ${outfile}`);
