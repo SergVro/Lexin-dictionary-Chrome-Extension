@@ -29,6 +29,7 @@
     "@types/chrome": "^0.0.268",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/ui": "^4.1.8",
+    "archiver": "^8.0.0",
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "globals": "^17.8.0",
