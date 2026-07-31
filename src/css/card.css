@@ -37,8 +37,15 @@ img {
 }
 
 /* The card's scroll viewport. Fixed height so the card does not resize as
-   translations of different lengths load. */
-div.lexinTranslationContent {
+   translations of different lengths load.
+
+   The .lexinTranslationContainer prefix is load-bearing, not decoration. This
+   element is also matched by `.lexinTranslationContainer div` in
+   translation-content.css, which sets `padding: 0`. At a bare
+   `div.lexinTranslationContent` the two selectors tie at (0,1,1) and the shared
+   sheet wins on source order, silently dropping the padding below. The prefix
+   takes this to (0,2,1) so it wins wherever the sheets are concatenated. */
+.lexinTranslationContainer div.lexinTranslationContent {
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 20em;

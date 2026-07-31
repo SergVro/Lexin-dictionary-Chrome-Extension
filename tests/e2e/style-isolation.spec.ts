@@ -88,6 +88,46 @@ test.describe('Translation Card style isolation', () => {
         await page.close();
     });
 
+    test('card keeps its own styling across the split stylesheets', async ({ context }) => {
+        const page = await context.newPage();
+        await page.goto(HOSTILE_PAGE);
+        await page.waitForLoadState('domcontentloaded');
+        await summonCard(page);
+
+        // The card's CSS arrives as two concatenated sheets - card.css for the
+        // overlay, translation-content.css shared with the Action Popup. Where both
+        // match the same element they can tie on specificity, and the shared sheet
+        // silently wins on source order. That is how the content viewport lost its
+        // padding once already: `.lexinTranslationContainer div { padding: 0 }` tied
+        // with a bare `div.lexinTranslationContent { padding: 16px }`.
+        const applied = await page.evaluate(() => {
+            const host = document.querySelector('.lexinExtensionMainContainer') as HTMLElement;
+            const root = host.shadowRoot!;
+            const card = getComputedStyle(root.querySelector('.lexinTranslationContainer')!);
+            const content = getComputedStyle(root.querySelector('.lexinTranslationContent')!);
+            return {
+                contentPadding: content.padding,
+                contentOverflowY: content.overflowY,
+                contentMaxHeight: content.maxHeight,
+                cardPadding: card.padding,
+                cardBorderRadius: card.borderRadius,
+                cardMaxWidth: card.maxWidth
+            };
+        });
+
+        // From card.css - must survive translation-content.css being appended.
+        expect(applied.contentPadding).toBe('16px');
+        expect(applied.contentOverflowY).toBe('auto');
+        expect(applied.contentMaxHeight).toBe('280px');   // 20em at 14px
+        expect(applied.cardMaxWidth).toBe('420px');
+
+        // From translation-content.css - must survive card.css's blanket reset.
+        expect(applied.cardPadding).not.toBe('0px');
+        expect(applied.cardBorderRadius).toBe('12px');
+
+        await page.close();
+    });
+
     test('page typography does not reach the card', async ({ context }) => {
         const page = await context.newPage();
         await page.goto(HOSTILE_PAGE);
