@@ -1,0 +1,83 @@
+name: Release to Chrome Web Store
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: chrome-web-store-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Lint, unit test, build
+    uses: ./.github/workflows/ci.yml
+
+  e2e:
+    name: E2E tests
+    uses: ./.github/workflows/test.yml
+
+  publish:
+    name: Package and publish
+    needs: [verify, e2e]
+    runs-on: ubuntu-latest
+    environment: chrome-web-store-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package release
+        id: package
+        run: |
+          node scripts/webstore/package.js "${GITHUB_REF_NAME}"
+          version=$(node -e "console.log(JSON.parse(require('fs').readFileSync('dist/manifest.json')).version)")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "zip=lexin-extension-${version}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect release ZIP
+        run: node scripts/webstore/inspect-zip.js "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.version }}"
+
+      - name: Upload release package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-web-store-package-${{ steps.package.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.zip }}.sha256
+          retention-days: 90
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+
+      - name: Upload and publish to Chrome Web Store
+        env:
+          CWS_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+        run: node scripts/webstore/publish.js "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.version }}"

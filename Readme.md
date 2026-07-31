@@ -141,6 +141,11 @@ The extension includes unit tests (currently disabled during migration). To re-e
 - Enable/disable specific languages
 - Customize which languages appear in dropdowns
 
+## Releasing
+
+See [RELEASE.md](RELEASE.md) for how to cut a release and the one-time Chrome
+Web Store / Google Cloud setup it depends on.
+
 ## Contributing
 
 Contributions are welcome! Please ensure:
