@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hostile Styles Test Page</title>
+    <style>
+        /*
+         * Every rule here reproduces a real pattern that broke the Translation Card
+         * before it moved into a shadow root. Nothing is exaggerated for effect -
+         * these are ordinary things sites do, which is exactly why the card lost.
+         *
+         * See docs/adr/0001-shadow-dom-for-translation-card.md.
+         */
+
+        /* Leak 1: specificity. The card's rules were single-class (0,1,1), so anything
+           carrying an ID or !important outranked them. */
+        * {
+            font-size: 30px !important;
+            color: #00FF00 !important;
+            font-family: 'Comic Sans MS', cursive !important;
+            letter-spacing: 6px !important;
+        }
+
+        #main p,
+        #main div,
+        #main span {
+            line-height: 4 !important;
+            text-transform: uppercase !important;
+            background-color: #FF00FF !important;
+        }
+
+        /* Leak 2: inheritance. The old YUI reset zeroed margin/padding/list-style only,
+           so everything below flowed straight into the card from <body>. */
+        body {
+            font-size: 28px;
+            color: #00FF00;
+            line-height: 3.5;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            word-spacing: 12px;
+            font-family: 'Comic Sans MS', cursive;
+            padding: 40px;
+        }
+
+        /* span and img were styled by nothing at all in the old content.css. */
+        span {
+            background: #FF00FF !important;
+            border: 4px dashed red !important;
+            font-size: 34px !important;
+        }
+
+        img {
+            width: 900px !important;
+            height: 900px !important;
+        }
+
+        ul, ol, li {
+            list-style: none !important;
+            margin: 60px !important;
+            padding: 60px !important;
+        }
+
+        a, a:visited {
+            color: #FF0000 !important;
+            text-decoration: underline wavy !important;
+            font-size: 32px !important;
+        }
+
+        h1, h2, h3, p, b {
+            margin: 50px !important;
+            padding: 50px !important;
+            font-weight: 900 !important;
+        }
+
+        /*
+         * Leak 3: containing block.
+         *
+         * The card's host element is a plain div appended to <body>, so this rule hits
+         * it directly. transform/filter/will-change each make an element the containing
+         * block for descendant position:fixed boxes - and that behaviour propagates
+         * THROUGH a shadow boundary, so the shadow root alone does not save the card.
+         *
+         * Without the inline `all: initial !important` on the host, the card's fixed
+         * coordinates resolve against the host's own box rather than the viewport. The
+         * host sits at the end of a deliberately tall document, so the card lands far
+         * below the fold - which is what the positioning assertion detects.
+         */
+        div {
+            transform: translateZ(0);
+            filter: saturate(1.2);
+            will-change: transform;
+        }
+
+        #spacer {
+            height: 2400px;
+            background: linear-gradient(#eee, #ccc);
+        }
+
+        #test-word {
+            font-size: 24px !important;
+            font-weight: bold;
+            display: inline-block;
+            padding: 10px 20px;
+            background: #f0f0f0 !important;
+            border-radius: 4px;
+            text-transform: none !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hostile Styles Test Page</h1>
+
+    <div id="main">
+        <p>
+            This page styles aggressively enough to break the Translation Card before
+            it was isolated in a shadow root.
+        </p>
+
+        <p>
+            En <span id="test-word">bil</span> är ett fordon för transport.
+            Stockholm är Sveriges största stad.
+        </p>
+    </div>
+
+    <!-- Pushes the card's host element far down the document, so a broken containing
+         block puts the card well outside the viewport rather than merely nudging it. -->
+    <div id="spacer"></div>
+</body>
+</html>

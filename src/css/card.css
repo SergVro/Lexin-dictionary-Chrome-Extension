@@ -1,0 +1,54 @@
+/*
+ * Translation Card only. Loaded exclusively into the card's shadow root, never
+ * into a page or an extension page - see docs/adr/0001-shadow-dom-for-translation-card.md.
+ *
+ * The host page cannot reach in here, so the reset below is not defensive: it only
+ * normalises UA defaults, which are identical on every site. The card's *host*
+ * element is neutralised separately, with an inline `all: initial !important` set
+ * in ContentScript. That cannot be done here - declarations in the outer document
+ * that target the host element beat `:host` rules.
+ */
+
+/* Only UA defaults need normalising. The blanket rule covers elements the
+   Translation Markup may add without notice - table, blockquote, dl, h4-h6 -
+   which the explicit rules in translation-content.css do not mention. */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Folkets Lexikon serves inflection images with relative URLs (rewritten in
+   LinkAdapter). Nothing constrained their size before. */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Card chrome - the part that makes this a floating overlay rather than a panel.
+   Everything else about its appearance comes from translation-content.css. */
+.lexinTranslationContainer {
+    z-index: 10000;
+    width: 100%;
+    max-width: 420px;
+    min-width: 320px;
+}
+
+/* The card's scroll viewport. Fixed height so the card does not resize as
+   translations of different lengths load.
+
+   The .lexinTranslationContainer prefix is load-bearing, not decoration. This
+   element is also matched by `.lexinTranslationContainer div` in
+   translation-content.css, which sets `padding: 0`. At a bare
+   `div.lexinTranslationContent` the two selectors tie at (0,1,1) and the shared
+   sheet wins on source order, silently dropping the padding below. The prefix
+   takes this to (0,2,1) so it wins wherever the sheets are concatenated. */
+.lexinTranslationContainer div.lexinTranslationContent {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 20em;
+    max-height: 20em;
+    padding: 16px;
+}

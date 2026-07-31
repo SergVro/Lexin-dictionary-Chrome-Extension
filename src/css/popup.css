@@ -193,3 +193,17 @@ a:hover {
     margin-top: 0;
     min-width: 280px;
 }
+
+/* The Action Popup's scroll area. The Translation Card uses .lexinTranslationContent
+   instead - it is a fixed-height viewport, whereas this one grows with the popup. */
+.lexinTranslationPopup {
+    overflow-y: visible;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+}

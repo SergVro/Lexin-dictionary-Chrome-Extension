@@ -17,6 +17,7 @@
   },
   "include": [
     "src/scripts/**/*",
+    "src/types/**/*",
     "src/manifest.json"
   ],
   "exclude": [

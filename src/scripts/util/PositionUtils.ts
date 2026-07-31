@@ -264,7 +264,7 @@ export function position(element: HTMLElement, options: PositionOptions): void {
     
     // If element has no size yet (common when content hasn't loaded), use estimated size
     if (elementRect.width === 0 || elementRect.height === 0) {
-        // Use estimated dimensions based on CSS (25em width, ~20em height from content.css)
+        // Use estimated dimensions based on CSS (25em width, ~20em height from card.css)
         const estimatedWidth = 400; // ~25em at default font size
         const estimatedHeight = 320; // ~20em at default font size
         elementRect = new DOMRect(

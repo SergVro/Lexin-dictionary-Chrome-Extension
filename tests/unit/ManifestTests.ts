@@ -33,6 +33,22 @@ describe("manifest permissions", () => {
         // Every entry point is bundled into a self-contained IIFE and loaded
         // either as a content script or from an extension page, so no script
         // needs to be fetchable by a web page.
+        //
+        // This is also why the Translation Card's stylesheet is inlined into the
+        // content script bundle rather than linked from its shadow root: a <link>
+        // would need the stylesheet exposed here. See
+        // docs/adr/0001-shadow-dom-for-translation-card.md.
         expect(manifest).not.toHaveProperty("web_accessible_resources");
+    });
+
+    it("should not inject any stylesheet into the pages it runs on", () => {
+        // The Translation Card renders in a shadow root, which page-level CSS
+        // cannot reach, and its host element is styled inline. A stylesheet
+        // declared here would be dead weight on every page load - and worse,
+        // silently ineffective, which is how the style leak looked in the
+        // first place. Do not re-add one to style the card.
+        manifest.content_scripts.forEach((script) => {
+            expect(script).not.toHaveProperty("css");
+        });
     });
 });

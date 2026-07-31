@@ -1,21 +1,30 @@
-/* Modern Translation Container - Card Design */
+/*
+ * Styles the Translation Markup returned by Lexin and Folkets Lexikon, plus the
+ * panel it sits in. Shared by both surfaces that render a translation:
+ *
+ *   - the Action Popup, which links this file from popup.html
+ *   - the Translation Card, which inlines it into its shadow root
+ *
+ * Selectors must keep the .lexinTranslationContainer prefix. Inside the card's
+ * shadow root bare element selectors would be safe, but this file also loads into
+ * the Action Popup's document where they would style the whole page.
+ */
+
+/* Translation Panel - Card Design */
 .lexinTranslationContainer {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     background-color: #FFFFFF;
     color: #111827;
     border: 1px solid #E5E7EB;
-    text-align: left;
+    /* start, not left: `all: initial` on the card's host leaves `direction`
+       inheriting from the page, so alignment must follow it rather than fight it. */
+    text-align: start;
     padding: 0.5em;
-    z-index: 10000;
     border-radius: 12px;
-    width: 100%;
-    max-width: 420px;
-    min-width: 320px;
     box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     word-wrap: break-word;
     overflow-wrap: break-word;
-    /* Flex properties handled in popup.css */
 }
 
 /* Modern Typography for Headings */
@@ -78,28 +87,6 @@
     font-size: 12px;
 }
 
-/* Translation Content Area */
-div.lexinTranslationContent {
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 20em;
-    max-height: 20em;
-    padding: 16px;
-}
-
-/* Popup Translation Area */
-.lexinTranslationPopup {
-    overflow-y: visible;
-    overflow-x: hidden;
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 16px;
-    line-height: 1.6;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    box-sizing: border-box;
-}
-
 /* Modern List Styling */
 .lexinTranslationContainer ul {
     display: block;
@@ -113,7 +100,7 @@ div.lexinTranslationContent {
 
 .lexinTranslationContainer li {
     display: list-item;
-    text-align: left;
+    text-align: start;
     list-style-type: disc;
     font-size: 14px;
     font-weight: 400;
@@ -122,7 +109,8 @@ div.lexinTranslationContent {
     line-height: 1.6;
 }
 
-/* Smooth Scrolling */
+/* Smooth Scrolling - .lexinTranslationPopup is the Action Popup's scroll area,
+   .lexinTranslationContent the Translation Card's. Only one exists per surface. */
 .lexinTranslationPopup,
 div.lexinTranslationContent {
     scrollbar-width: thin;
