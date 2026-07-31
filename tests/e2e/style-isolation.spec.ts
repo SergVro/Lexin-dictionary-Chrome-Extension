@@ -19,7 +19,17 @@ import { test, expect } from './fixtures';
 
 const HOSTILE_PAGE = 'http://localhost:3456/hostile-styles.html';
 
-/** Alt+Double click the fixture's test word to summon the card. */
+/** Lexin's swe_swe definition of "bil", the fixture's test word. */
+const EXPECTED_TRANSLATION = 'ett fordon för ett litet antal personer';
+
+/**
+ * Alt+Double click the fixture's test word and wait for a real translation.
+ *
+ * Waiting only for the card to become visible would settle on the "Searching for..."
+ * placeholder - a single string of our own text. Every assertion in this file needs
+ * the dictionary's own h1/p/div/span/a/ul in the DOM, because those are the elements
+ * the host page's CSS was reaching.
+ */
 async function summonCard(page: import('@playwright/test').Page) {
     const testWord = page.locator('#test-word');
     await expect(testWord).toBeVisible();
@@ -30,7 +40,9 @@ async function summonCard(page: import('@playwright/test').Page) {
     await page.keyboard.up('Alt');
 
     // Locators pierce the open shadow root, so this finds the card's content area.
-    await expect(page.locator('.lexinTranslationContent')).toBeVisible({ timeout: 15000 });
+    const content = page.locator('.lexinTranslationContent');
+    await expect(content).toBeVisible({ timeout: 15000 });
+    await expect(content).toContainText(EXPECTED_TRANSLATION, { timeout: 15000 });
 }
 
 test.describe('Translation Card style isolation', () => {
@@ -125,11 +137,6 @@ test.describe('Translation Card style isolation', () => {
         await page.waitForLoadState('domcontentloaded');
         await summonCard(page);
 
-        // Wait for real Translation Markup, so these assertions run against the
-        // dictionary's own elements rather than the "Searching for..." placeholder.
-        await expect(page.locator('.lexinTranslationContent'))
-            .toContainText('ett fordon för ett litet antal personer', { timeout: 15000 });
-
         const styles = await page.evaluate(() => {
             const host = document.querySelector('.lexinExtensionMainContainer') as HTMLElement;
             const content = host.shadowRoot!.querySelector('.lexinTranslationContent') as HTMLElement;
@@ -141,30 +148,68 @@ test.describe('Translation Card style isolation', () => {
                     fontSize: s.fontSize,
                     color: s.color,
                     fontFamily: s.fontFamily,
-                    listStyleType: s.listStyleType
+                    fontWeight: s.fontWeight,
+                    letterSpacing: s.letterSpacing,
+                    textTransform: s.textTransform,
+                    backgroundColor: s.backgroundColor,
+                    borderStyle: s.borderStyle,
+                    listStyleType: s.listStyleType,
+                    width: el.getBoundingClientRect().width,
+                    height: el.getBoundingClientRect().height
                 };
             };
-            return { div: read('div'), span: read('span'), anchor: read('a'), li: read('li') };
+            return {
+                elements: {
+                    p: read('p'),
+                    div: read('div'),
+                    span: read('span'),
+                    b: read('b'),
+                    a: read('a'),
+                    small: read('small'),
+                    img: read('img'),
+                    li: read('li')
+                },
+                cardWidth: (host.shadowRoot!.querySelector('.lexinTranslationContainer') as HTMLElement)
+                    .getBoundingClientRect().width
+            };
         });
 
-        // div and span carry most of the Translation Markup. span was styled by
+        const el = styles.elements;
+
+        // Fail loudly if the dictionary stops sending an element, rather than
+        // quietly skipping its assertions and reporting a pass.
+        for (const [name, value] of Object.entries(el)) {
+            expect(value, `expected Translation Markup to contain <${name}>`).not.toBeNull();
+        }
+
+        // p, div and span carry most of the Translation Markup. span was styled by
         // nothing at all before this change, so it leaked completely.
-        for (const el of [styles.div, styles.span]) {
-            if (!el) { continue; }
-            expect(el.fontSize).not.toBe('30px');
-            expect(el.fontSize).not.toBe('34px');
-            expect(el.color).not.toBe('rgb(0, 255, 0)');
-            expect(el.fontFamily).not.toContain('Comic Sans');
+        for (const node of [el.p!, el.div!, el.span!]) {
+            expect(node.fontSize).not.toBe('30px');       // * !important
+            expect(node.fontSize).not.toBe('34px');       // span !important
+            expect(node.color).not.toBe('rgb(0, 255, 0)');
+            expect(node.fontFamily).not.toContain('Comic Sans');
+            expect(node.letterSpacing).toBe('normal');    // page forces 6px
+            expect(node.textTransform).toBe('none');      // page forces uppercase
         }
 
-        if (styles.anchor) {
-            expect(styles.anchor.color).toBe('rgb(37, 99, 235)');  // not the page's red
-            expect(styles.anchor.fontSize).toBe('14px');           // not 32px
-        }
+        // The page paints every span magenta with a dashed red border.
+        expect(el.span!.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+        expect(el.span!.borderStyle).toBe('none');
 
-        if (styles.li) {
-            expect(styles.li.listStyleType).toBe('disc');          // page forces none
-        }
+        expect(el.b!.fontWeight).toBe('600');            // page forces 900
+        expect(el.a!.color).toBe('rgb(37, 99, 235)');    // not the page's red
+        expect(el.a!.fontSize).toBe('14px');             // not 32px
+        expect(el.small!.fontSize).toBe('12px');         // not 30px
+        expect(el.li!.listStyleType).toBe('disc');       // page forces none
+
+        // The page forces img to 900x900. Note this checks the boundary, not
+        // card.css's `img { max-width: 100% }` - that rule is defensive against the
+        // dictionary itself serving an oversized image, which this response does not,
+        // so removing it does not make this assertion fail.
+        expect(el.img!.width).toBeLessThan(900);
+        expect(el.img!.height).toBeLessThan(900);
+        expect(el.img!.width).toBeLessThanOrEqual(styles.cardWidth);
 
         await page.close();
     });
