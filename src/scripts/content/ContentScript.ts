@@ -3,9 +3,11 @@ import * as DomUtils from "../util/DomUtils.js";
 import { position } from "../util/PositionUtils.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
 import * as Icons from "../util/Icons.js";
+import * as States from "../util/States.js";
 import ThemeManager, { applyTheme, Theme } from "../common/ThemeManager.js";
 import LanguageLabel, { ILanguageLabel } from "../common/LanguageLabel.js";
 import tokensCss from "../../css/tokens.css";
+import componentsCss from "../../css/components.css";
 import cardCss from "../../css/card.css";
 import translationContentCss from "../../css/translation-content.css";
 
@@ -22,9 +24,12 @@ let cardStyleSheet: CSSStyleSheet | undefined;
 function getCardStyleSheet(): CSSStyleSheet {
     if (!cardStyleSheet) {
         cardStyleSheet = new CSSStyleSheet();
-        // Tokens first - the other two sheets resolve every value from them - then
-        // the reset and card chrome, then the shared translation styling.
-        cardStyleSheet.replaceSync(tokensCss + "\n" + cardCss + "\n" + translationContentCss);
+        // Tokens first - every other sheet resolves its values from them - then the
+        // shared components, then the reset and card chrome, then the shared
+        // translation styling. components.css is what puts the card's loading and
+        // error states and the Action Popup's on the same footing.
+        cardStyleSheet.replaceSync(
+            tokensCss + "\n" + componentsCss + "\n" + cardCss + "\n" + translationContentCss);
     }
     return cardStyleSheet;
 }
@@ -157,47 +162,6 @@ class ContentScript {
         DomUtils.setAttr(pair, "aria-label", this.label.name);
     }
 
-    /** The spinner shown while the lookup is in flight. */
-    private renderLoading(content: HTMLElement, word: string): void {
-        DomUtils.empty(content);
-
-        const state = DomUtils.createElement("div");
-        DomUtils.addClass(state, "lexinCardState");
-
-        const spinner = DomUtils.createElement("div");
-        DomUtils.addClass(spinner, "lexinCardSpinner");
-        DomUtils.append(state, spinner);
-
-        DomUtils.append(state, DomUtils.createElement("span", undefined, `Searching “${word}”…`));
-        DomUtils.append(content, state);
-    }
-
-    /**
-     * Shown when the dictionary could not be reached.
-     *
-     * Not shown for a word the dictionary simply has no entry for: that arrives as an
-     * ordinary response body saying so, and separating the two means parsing markup
-     * the provider can change without notice. Those still render as the dictionary
-     * wrote them.
-     */
-    private renderError(content: HTMLElement, detail: string): void {
-        DomUtils.empty(content);
-
-        const state = DomUtils.createElement("div");
-        DomUtils.addClass(state, "lexinCardState");
-
-        const icon = Icons.alert();
-        icon.setAttribute("class", "lexinCardStateIcon");
-        DomUtils.append(state, icon);
-
-        const title = DomUtils.createElement("span", undefined, "Couldn’t reach the dictionary");
-        DomUtils.addClass(title, "lexinCardStateTitle");
-        DomUtils.append(state, title);
-
-        DomUtils.append(state, DomUtils.createElement("span", undefined, detail));
-        DomUtils.append(content, state);
-    }
-
     private showTranslation(selection: string, evt: MouseEvent): void {
         const self = this;
         const absoluteContainer = DomUtils.createElement("div");
@@ -243,7 +207,7 @@ class ContentScript {
         DomUtils.setAttr(translationBlock, "id", "translation");
         DomUtils.addClass(translationBlock, "lexinTranslationContent");
         DomUtils.setAttr(translationBlock, "aria-live", "polite");
-        this.renderLoading(translationBlock, selection);
+        States.render(translationBlock, States.loadingState(selection));
         container.appendChild(translationBlock);
 
         // Function to position the container
@@ -263,13 +227,13 @@ class ContentScript {
 
         self.messageService.getTranslation(selection).then((response) => {
             if (response.error) {
-                self.renderError(translationBlock, response.error);
+                States.render(translationBlock, States.errorState(response.error));
                 requestAnimationFrame(positionContainer);
             } else {
                 processTranslationHtml(response.translation || "", translationBlock, positionContainer);
             }
         }).catch((error) => {
-            self.renderError(translationBlock, String(error));
+            States.render(translationBlock, States.errorState(String(error)));
             requestAnimationFrame(positionContainer);
         });
 

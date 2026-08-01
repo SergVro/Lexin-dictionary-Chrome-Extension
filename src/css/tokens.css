@@ -69,7 +69,15 @@
  * leave them half-dark. ThemeManager sets the attribute from the stored Appearance
  * setting, falling back to prefers-color-scheme when that setting is "system".
  */
+/*
+ * The middle selector is not optional. Because the light block above declares every
+ * token *on* .lexinTranslationContainer, that element would otherwise reset itself to
+ * light inside a dark extension page - the Action Popup's whole result area rendered
+ * light ink on a dark ground. A container inside a dark document is dark, and the
+ * descendant selector (0,2,0) is what beats the bare class (0,1,0).
+ */
 :root[data-lx-theme="dark"],
+:root[data-lx-theme="dark"] .lexinTranslationContainer,
 .lexinTranslationContainer[data-lx-theme="dark"] {
     --lx-surface: #2d2b2b;
     --lx-surface-sunken: #201e1d;

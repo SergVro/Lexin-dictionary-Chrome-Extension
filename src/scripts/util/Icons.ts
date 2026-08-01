@@ -41,6 +41,15 @@ function withPath(svg: SVGElement, d: string): SVGElement {
     return svg;
 }
 
+function withCircle(svg: SVGElement, cx: number, cy: number, r: number): SVGElement {
+    const circle = document.createElementNS(SVG_NS, "circle");
+    circle.setAttribute("cx", cx.toString());
+    circle.setAttribute("cy", cy.toString());
+    circle.setAttribute("r", r.toString());
+    svg.appendChild(circle);
+    return svg;
+}
+
 /** Lucide "maximize-2" - open this lookup in the Action Popup. */
 export function maximize(size: number = 16): SVGElement {
     return withPath(createSvg(size), "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7");
@@ -57,6 +66,44 @@ export function alert(size: number = 22): SVGElement {
     withPath(svg, "M12 9v4");
     withPath(svg, "M12 17h.01");
     return svg;
+}
+
+/**
+ * Lucide "arrow-right-left" - flip the lookup direction.
+ *
+ * Mirroring is left to `direction: rtl`, which flips the whole row: the arrows point
+ * the way the reader's script runs.
+ */
+export function swap(size: number = 16): SVGElement {
+    return withPath(createSvg(size),
+        "M17 3 21 7l-4 4M21 7H9a4 4 0 0 0-4 4v1M7 21 3 17l4-4M3 17h12a4 4 0 0 0 4-4v-1");
+}
+
+/** Lucide "settings" - open the Options page. */
+export function settings(size: number = 16): SVGElement {
+    const svg = withCircle(createSvg(size), 12, 12, 3);
+    return withPath(svg,
+        "M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4");
+}
+
+/** Lucide "search". */
+export function search(size: number = 14): SVGElement {
+    return withPath(withCircle(createSvg(size), 11, 11, 7), "m21 21-4.3-4.3");
+}
+
+/** Lucide "chevron-down" - the language field's disclosure. */
+export function chevronDown(size: number = 14): SVGElement {
+    return withPath(createSvg(size), "m6 9 6 6 6-6");
+}
+
+/** Lucide "chevron-left" - step back through this session's lookups. */
+export function chevronLeft(size: number = 14): SVGElement {
+    return withPath(createSvg(size), "m15 18-6-6 6-6");
+}
+
+/** Lucide "chevron-right" - step forward through this session's lookups. */
+export function chevronRight(size: number = 14): SVGElement {
+    return withPath(createSvg(size), "m9 18 6-6-6-6");
 }
 
 /**

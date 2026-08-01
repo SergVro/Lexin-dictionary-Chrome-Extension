@@ -71,11 +71,38 @@ The attribute's value comes from the stored **Appearance** setting (`light` / `d
 `system`, default `system`), which resolves through `prefers-color-scheme`. The setting
 is read today and written by the Options page redesign.
 
+## The sheets, and the order they load in
+
+```
+tokens.css              variables only
+components.css          .lxButton / .lxInput / .lxSeg / .lxChip / .lxState / .lxSpinner
+card.css                Translation Card chrome, shadow root only
+translation-content.css the dictionary's own markup, card + Action Popup
+<surface>.css           layout for one surface
+```
+
+Extension pages `<link>` them in that order; the card concatenates the first four into
+its adopted stylesheet in `ContentScript.getCardStyleSheet`. A component belongs in
+`components.css` once a second surface needs it — the empty, loading and error states
+moved there the moment the Action Popup grew its own, so that one lookup does not look
+like two different products depending on where it renders.
+
 ## Consequences
 
-- `src/css/tokens.css` must be loaded by any surface that uses the other sheets. The
-  Translation Card concatenates it into its adopted stylesheet in `ContentScript`;
-  extension pages `<link>` it *before* `translation-content.css`.
+- `src/css/tokens.css` must be loaded by any surface that uses the other sheets.
+- **A themed document must also reach `.lexinTranslationContainer`.** Because the light
+  block declares every token *on* that element, it resets itself to light inside a dark
+  page unless the dark block also matches it as a descendant — which is why
+  `:root[data-lx-theme="dark"] .lexinTranslationContainer` is in there. Without it the
+  Action Popup's whole result area rendered light ink on a dark ground.
+- **Card chrome classes need the container prefix; shared components need non-`div`
+  elements.** `.lexinTranslationContainer div` / `p` in the shared sheet zeroes padding
+  and repaints colour at `(0,1,1)`. Prefixed card classes reach `(0,2,0)` and win;
+  `components.css` classes cannot be prefixed, so the markup that uses them inside the
+  card is `<section>` and `<span>`, which those selectors do not match.
+- **`[hidden]` is forced to `display: none`.** The attribute carries only a UA
+  `display: none`, which any later `.lxSomething { display: flex }` beats on source
+  order — elements the code had hidden stayed on screen.
 - `translation-content.css` is shared by the card and the Action Popup, so it may only
   use tokens both surfaces resolve — no card-only assumptions.
 - Card chrome classes (`.lexinCardHeader`, `.lexinCardButton`, …) all carry the

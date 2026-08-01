@@ -33,12 +33,20 @@ img {
 }
 
 /* Card chrome - the part that makes this a floating overlay rather than a panel.
-   Everything else about its appearance comes from translation-content.css. */
+   Everything about the *entry* inside it comes from translation-content.css.
+
+   The surface, border and shadow live here rather than in that shared sheet because
+   they are what makes this a card. The Action Popup renders the same container inside
+   a window that already has a frame, where a second border would be a box in a box -
+   the sketch shows its result sitting under a plain rule instead. */
 .lexinTranslationContainer {
     z-index: 10000;
     width: 380px;
     max-width: 420px;
     min-width: 320px;
+    background-color: var(--lx-surface);
+    border: 1px solid var(--lx-divider);
+    box-shadow: var(--lx-shadow-md);
 }
 
 /* The card's scroll viewport.
@@ -146,54 +154,10 @@ img {
     display: block;
 }
 
-/* ── Loading and error states ──────────────────────────────────────────────────
-   Replacing the literal `Searching for 'hem'...` string the card used to render.
+/* The loading and error states are .lxState in components.css, shared with the Action
+   Popup - the same lookup in flight should not look like two different products
+   depending on where it renders.
 
-   Only the network-error path gets the empty state below. A word the dictionary has
-   no entry for comes back as an ordinary response body saying so, and telling the
-   two apart means parsing markup the provider can change without notice. */
-.lexinTranslationContainer .lexinCardState {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--lx-space-2);
-    /* The scroll viewport already pads 16px on every side. */
-    padding: var(--lx-space-4) 0;
-    margin: 0;
-    text-align: center;
-    font-size: 13px;
-    color: var(--lx-text-muted);
-}
-
-.lexinTranslationContainer .lexinCardStateTitle {
-    color: var(--lx-text);
-    font-weight: var(--lx-font-heading-weight);
-}
-
-.lexinTranslationContainer .lexinCardStateIcon {
-    color: var(--lx-accent-text);
-}
-
-.lexinTranslationContainer .lexinCardSpinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--lx-divider);
-    border-top-color: var(--lx-accent);
-    border-radius: 50%;
-    animation: lxSpin 1s linear infinite;
-}
-
-/* Keyframes resolve within the tree they are used in, so this has to live in the
-   sheet adopted into the shadow root rather than anywhere in the page. */
-@keyframes lxSpin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .lexinTranslationContainer .lexinCardSpinner {
-        animation: none;
-    }
-}
+   Only the network-error path gets the error state. A word the dictionary has no entry
+   for comes back as an ordinary response body saying so, and telling the two apart
+   means parsing markup the provider can change without notice. */

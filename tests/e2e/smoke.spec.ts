@@ -21,42 +21,72 @@ test.describe('Extension Smoke Tests', () => {
     // Check page title
     await expect(page).toHaveTitle('Lexin');
     
-    // Check main UI elements are present
+    // One search field, not the old From Swedish / To Swedish pair - which of the
+    // two you typed in was what silently decided the lookup direction.
     await expect(page.locator('#wordInput')).toBeVisible();
-    await expect(page.locator('#fromWordInput')).toBeVisible();
-    await expect(page.locator('#language')).toBeVisible();
+    await expect(page.locator('#fromWordInput')).toHaveCount(0);
+
     await expect(page.locator('#translation')).toBeVisible();
-    await expect(page.locator('#historyLink')).toBeVisible();
-    
-    // Check labels
-    await expect(page.locator('label[for="wordInput"]')).toContainText('From Swedish');
-    await expect(page.locator('label[for="fromWordInput"]')).toContainText('To Swedish');
-    await expect(page.locator('label[for="language"]')).toContainText('Language');
-    
+    await expect(page.locator('#swapDirection')).toBeVisible();
+    await expect(page.locator('#directionBadge')).toBeVisible();
+    await expect(page.locator('[role="combobox"]')).toBeVisible();
+    await expect(page.locator('#languageLabel')).toContainText('Language');
+
+    // The old clock emoji used as an icon button is gone; History is reachable from
+    // the Recent row instead.
+    await expect(page.locator('#historyLink')).toHaveCount(0);
+    await expect(page.locator('#recentChips')).toContainText('All history');
+
     await page.close();
   });
 
-  test('popup should load available languages in dropdown', async ({ popupPage }) => {
+  test('popup language picker filters and commits by keyboard', async ({ popupPage }) => {
     const page = await popupPage();
-    
-    // Wait for languages to be loaded
     await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Get all options from the language dropdown
-    const options = await page.locator('#language option').all();
-    
-    // Should have multiple language options
-    expect(options.length).toBeGreaterThan(0);
-    
-    // Check that some expected languages are present
-    const optionValues = await Promise.all(
-      options.map(opt => opt.getAttribute('value'))
-    );
-    
-    // The extension supports multiple languages including these common ones
-    // At minimum, Swedish-Swedish should always be available
-    expect(optionValues.length).toBeGreaterThan(0);
-    
+
+    const input = page.locator('[role="combobox"]');
+    await input.click();
+
+    // The whole enabled set is offered before anything is typed.
+    const all = await page.locator('[role="option"]').count();
+    expect(all).toBeGreaterThan(1);
+
+    // Substring, not prefix. Lexin offers "Northern Kurdish" and "South Kurdish", so
+    // a prefix match on the word a reader actually reaches for would find neither.
+    await input.fill('kurd');
+    await expect(page.locator('[role="option"]')).toHaveCount(2);
+
+    await input.fill('northern kurd');
+    await expect(page.locator('[role="option"]')).toHaveCount(1);
+
+    // Keyboard alone must be able to commit: the list is browsed with
+    // aria-activedescendant while focus stays in the input.
+    await input.press('ArrowDown');
+    await expect(input).toHaveAttribute('aria-activedescendant', /Option0$/);
+    await input.press('Enter');
+
+    await expect(input).toHaveValue('Northern Kurdish');
+    await expect(page.locator('[role="listbox"]')).toBeHidden();
+
+    await page.close();
+  });
+
+  test('popup language picker reports no match rather than an empty list', async ({ popupPage }) => {
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    const input = page.locator('[role="combobox"]');
+    await input.click();
+    await input.fill('klingon');
+
+    await expect(page.locator('[role="option"]')).toHaveCount(0);
+    await expect(page.locator('[role="listbox"]')).toContainText('No language matches');
+
+    // Escape reverts to the committed language and must not close the popup itself.
+    await input.press('Escape');
+    await expect(page.locator('[role="listbox"]')).toBeHidden();
+    await expect(input).not.toHaveValue('klingon');
+
     await page.close();
   });
 
@@ -110,24 +140,6 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
-  test('popup quick tip should be visible by default', async ({ popupPage }) => {
-    const page = await popupPage();
-    
-    // Quick tip should be visible for new users
-    const quickTip = page.locator('#quickTip');
-    
-    // The tip might be hidden based on localStorage, but the container should exist
-    await expect(quickTip).toBeAttached();
-    
-    // If visible, check it contains the expected tip text
-    const isVisible = await quickTip.isVisible();
-    if (isVisible) {
-      await expect(quickTip).toContainText('Alt + Double Click');
-    }
-    
-    await page.close();
-  });
-
   test('popup should report when no word is selected', async ({ popupPage }) => {
     const page = await popupPage();
 
@@ -136,7 +148,13 @@ test.describe('Extension Smoke Tests', () => {
     // which is the same shape as opening the popup on a page with nothing
     // selected. sendMessageToActiveTab must settle so this branch can render;
     // it used to leave the promise pending and #translation stayed blank.
-    await expect(page.locator('#translation')).toHaveText('No word selected');
+    await expect(page.locator('#translation')).toContainText('No word selected');
+
+    // The Alt+double-click hint used to live in a dismissible blue banner that was
+    // shown whether or not it was any use. It now rides on the empty state, which is
+    // exactly when a reader has not discovered the gesture.
+    await expect(page.locator('#translation')).toContainText('Alt + double-click');
+    await expect(page.locator('#quickTip')).toHaveCount(0);
 
     await page.close();
   });
@@ -163,123 +181,184 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
-  test('translation should work in popup with Swedish language', async ({ popupPage }) => {
+  /**
+   * Type a word into the single search field and wait for its translation.
+   *
+   * pressSequentially would not do for Cyrillic, so the value is filled and a keyup
+   * dispatched by hand - the popup debounces on keyup.
+   */
+  async function lookUp(page: import('@playwright/test').Page, word: string) {
+    const input = page.locator('#wordInput');
+    await input.click();
+    await input.fill(word);
+    await input.dispatchEvent('keyup');
+  }
+
+  test('translation should work in popup with Swedish language', async ({ context, extensionId, popupPage }) => {
+    // The language is set through storage rather than through the picker: this test
+    // is about the lookup, not about how a language gets chosen.
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
     const page = await popupPage();
-    
-    // Wait for languages to be loaded
     await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select Swedish language (swe_swe)
-    await page.selectOption('#language', 'swe_swe');
-    
-    // Type 'bil' in the "From Swedish" input field (wordInput)
-    // Using pressSequentially to trigger keyup events (which the popup listens to)
-    // Note: Using wordInput (From Swedish) because fromWordInput with swe_swe 
-    // uses 'from' direction which returns no results in Lexin API
-    const wordInput = page.locator('#wordInput');
-    await wordInput.click();
-    await wordInput.pressSequentially('bil', { delay: 50 });
-    
+
+    await lookUp(page, 'bil');
+
     // Wait for the debounce (500ms) + network request
-    // The translation appears when the content changes from empty or "Searching..."
     await expect(page.locator('#translation')).toContainText('ett fordon för ett litet antal personer', {
       timeout: 15000
     });
-    
-    await page.close();
-  });
-
-  test('translation should work in popup with English language', async ({ popupPage }) => {
-    const page = await popupPage();
-    
-    // Wait for languages to be loaded
-    await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select English language (swe_eng)
-    await page.selectOption('#language', 'swe_eng');
-    
-    // Type 'bil' in the "From Swedish" input field (wordInput)
-    const wordInput = page.locator('#wordInput');
-    await wordInput.click();
-    await wordInput.pressSequentially('bil', { delay: 50 });
-    
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains 'motorcar'
-    await expect(page.locator('#translation')).toContainText('motorcar', {
-      timeout: 15000
-    });
-    
-    await page.close();
-  });
-
-  test('translation should work in popup with Russian language', async ({ popupPage }) => {
-    const page = await popupPage();
-    
-    // Wait for languages to be loaded
-    await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select Russian language (swe_rus)
-    await page.selectOption('#language', 'swe_rus');
-    
-    // Type 'bil' in the "From Swedish" input field (wordInput)
-    const wordInput = page.locator('#wordInput');
-    await wordInput.click();
-    await wordInput.pressSequentially('bil', { delay: 50 });
-    
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains Russian word for car
-    await expect(page.locator('#translation')).toContainText('автомобиль', {
-      timeout: 15000
-    });
-    
-    await page.close();
-  });
-
-  test('translation should work in popup with Ukrainian language', async ({ popupPage }) => {
-    const page = await popupPage();
-
-    // Wait for languages to be loaded
-    await ExtensionHelpers.waitForLanguagesLoaded(page);
-
-    // Select Ukrainian language (swe_ukr)
-    await page.selectOption('#language', 'swe_ukr');
-
-    // Type 'bil' in the "From Swedish" input field (wordInput)
-    const wordInput = page.locator('#wordInput');
-    await wordInput.click();
-    await wordInput.pressSequentially('bil', { delay: 50 });
-
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains Ukrainian word for car
-    await expect(page.locator('#translation')).toContainText('автомобіль', {
-      timeout: 15000
-    });
 
     await page.close();
   });
 
-  test('reverse translation Ukrainian to Swedish should work', async ({ popupPage }) => {
+  test('translation should work in popup with English language', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
     const page = await popupPage();
-
-    // Wait for languages to be loaded
     await ExtensionHelpers.waitForLanguagesLoaded(page);
 
-    // Select Ukrainian language (swe_ukr)
-    await page.selectOption('#language', 'swe_ukr');
+    await lookUp(page, 'bil');
 
-    // Type 'привіт' in the "To Swedish" input field (fromWordInput)
-    // For Cyrillic characters, we use fill() then trigger keyup event manually
-    const fromInput = page.locator('#fromWordInput');
-    await fromInput.click();
-    await fromInput.fill('привіт');
-    // Trigger keyup event to start the translation (popup listens to keyup)
-    await fromInput.dispatchEvent('keyup');
+    await expect(page.locator('#translation')).toContainText('motorcar', { timeout: 15000 });
 
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains 'hej'
-    await expect(page.locator('#translation')).toContainText('hej', {
-      timeout: 15000
-    });
+    await page.close();
+  });
+
+  test('translation should work in popup with Russian language', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_rus');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await lookUp(page, 'bil');
+
+    await expect(page.locator('#translation')).toContainText('автомобиль', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('translation should work in popup with Ukrainian language', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_ukr');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await lookUp(page, 'bil');
+
+    await expect(page.locator('#translation')).toContainText('автомобіль', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('swap reverses the direction, and the badge says which way it runs', async ({ context, extensionId, popupPage }) => {
+    // Replaces the old "To Swedish" field. Which of two boxes you typed in used to be
+    // the only thing that decided this, and nothing on screen said so.
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_ukr');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    const badge = page.locator('#directionBadgeText');
+    await expect(badge).toHaveText('sv→ukr');
+
+    await page.locator('#swapDirection').click();
+    await expect(badge).toHaveText('ukr→sv');
+
+    await lookUp(page, 'привіт');
+
+    await expect(page.locator('#translation')).toContainText('hej', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('reverse translation English to Swedish should work', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await page.locator('#swapDirection').click();
+    await expect(page.locator('#directionBadgeText')).toHaveText('eng→sv');
+
+    await lookUp(page, 'king');
+
+    await expect(page.locator('#translation')).toContainText('konung', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('reverse translation Russian to Swedish should work', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_rus');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await page.locator('#swapDirection').click();
+    await lookUp(page, 'идиот');
+
+    await expect(page.locator('#translation')).toContainText('idiot', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('swap is disabled for the monolingual Swedish dictionary', async ({ context, extensionId, popupPage }) => {
+    // swe_swe is not a pair, and asking Lexin for its "from" direction returns
+    // nothing at all - which the old two-field popup let you do anyway.
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await expect(page.locator('#directionBadgeText')).toHaveText('sv');
+    await expect(page.locator('#swapDirection')).toBeDisabled();
+
+    await page.close();
+  });
+
+  test('recent lookups appear as chips and can be looked up again', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    // Nothing looked up yet: the row still offers the route to the History page,
+    // which is the popup's only one now that the clock emoji is gone.
+    await expect(page.locator('#recentChips')).toContainText('All history');
+
+    await lookUp(page, 'bil');
+    await expect(page.locator('#translation')).toContainText('motorcar', { timeout: 15000 });
+
+    // History is written by the worker during the lookup, so the chip follows it.
+    const chip = page.locator('#recentChips button', { hasText: /^bil$/ });
+    await expect(chip).toBeVisible({ timeout: 10000 });
+
+    await lookUp(page, 'hus');
+    await expect(page.locator('#translation')).toContainText('house', { timeout: 15000 });
+
+    await chip.click();
+    await expect(page.locator('#wordInput')).toHaveValue('bil');
+    await expect(page.locator('#translation')).toContainText('motorcar', { timeout: 15000 });
+
+    await page.close();
+  });
+
+  test('session navigation appears only once there is more than one lookup', async ({ context, extensionId, popupPage }) => {
+    // Ctrl+left/right has always stepped through the session's lookups with nothing
+    // on screen saying so.
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+
+    await expect(page.locator('#sessionNav')).toBeHidden();
+
+    await lookUp(page, 'bil');
+    await expect(page.locator('#translation')).toContainText('motorcar', { timeout: 15000 });
+    await expect(page.locator('#sessionNav')).toBeHidden();
+
+    await lookUp(page, 'hus');
+    await expect(page.locator('#translation')).toContainText('house', { timeout: 15000 });
+
+    const nav = page.locator('#sessionNav');
+    await expect(nav).toBeVisible();
+    // At the newest lookup there is nowhere forward to go.
+    await expect(page.locator('#historyForward')).toBeDisabled();
+
+    await page.locator('#historyBack').click();
+    await expect(page.locator('#wordInput')).toHaveValue('bil');
+    await expect(page.locator('#historyBack')).toBeDisabled();
+    await expect(page.locator('#historyForward')).toBeEnabled();
 
     await page.close();
   });
@@ -302,82 +381,26 @@ test.describe('Extension Smoke Tests', () => {
     const page = await popupPage();
     await ExtensionHelpers.waitForLanguagesLoaded(page);
 
-    const optionValues = await page.locator('#language option').evaluateAll(
-      (options) => options.map((option) => (option as HTMLOptionElement).value)
-    );
+    // The picker offers exactly the enabled set, so its options are what to read.
+    await page.locator('[role="combobox"]').click();
+    const offered = await page.locator('[role="option"]').allInnerTexts();
 
-    expect(optionValues).toContain('swe_ukr');
-    expect(optionValues).toContain('swe_rus');
-    expect(optionValues).toContain('swe_eng');
+    expect(offered).toContain('Ukrainian');
+    expect(offered).toContain('Russian');
+    expect(offered).toContain('English');
     // Languages this user had disabled must stay disabled
-    expect(optionValues).not.toContain('swe_swe');
-    expect(optionValues).not.toContain('swe_tur');
-    expect(optionValues.length).toBe(3);
+    expect(offered).not.toContain('Swedish');
+    expect(offered).not.toContain('Turkish');
+    expect(offered.length).toBe(3);
 
     await page.close();
   });
 
-  test('reverse translation English to Swedish should work', async ({ popupPage }) => {
+  test('popup CSS should allow expansion based on translation content', async ({ context, extensionId, popupPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
     const page = await popupPage();
-    
-    // Wait for languages to be loaded
     await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select English language (swe_eng)
-    await page.selectOption('#language', 'swe_eng');
-    
-    // Type 'king' in the "To Swedish" input field (fromWordInput)
-    // This triggers translation from English to Swedish
-    // Using pressSequentially to simulate real typing with keyup events
-    const fromInput = page.locator('#fromWordInput');
-    await fromInput.click();
-    await fromInput.pressSequentially('king', { delay: 50 });
-    
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains 'konung'
-    await expect(page.locator('#translation')).toContainText('konung', {
-      timeout: 15000
-    });
-    
-    await page.close();
-  });
 
-  test('reverse translation Russian to Swedish should work', async ({ popupPage }) => {
-    const page = await popupPage();
-    
-    // Wait for languages to be loaded
-    await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select Russian language (swe_rus)
-    await page.selectOption('#language', 'swe_rus');
-    
-    // Type 'идиот' in the "To Swedish" input field (fromWordInput)
-    // This triggers translation from Russian to Swedish
-    // For Cyrillic characters, we use fill() then trigger keyup event manually
-    const fromInput = page.locator('#fromWordInput');
-    await fromInput.click();
-    await fromInput.fill('идиот');
-    // Trigger keyup event to start the translation (popup listens to keyup)
-    await fromInput.dispatchEvent('keyup');
-    
-    // Wait for the debounce (500ms) + network request
-    // Verify translation contains 'idiot'
-    await expect(page.locator('#translation')).toContainText('idiot', {
-      timeout: 15000
-    });
-    
-    await page.close();
-  });
-
-  test('popup CSS should allow expansion based on translation content', async ({ popupPage }) => {
-    const page = await popupPage();
-    
-    // Wait for languages to be loaded
-    await ExtensionHelpers.waitForLanguagesLoaded(page);
-    
-    // Select English language (swe_eng)
-    await page.selectOption('#language', 'swe_eng');
-    
     // Verify CSS allows expansion: body should NOT have overflow: hidden
     const bodyOverflow = await page.evaluate(() => {
       const style = window.getComputedStyle(document.body);
@@ -484,15 +507,7 @@ test.describe('Extension Smoke Tests', () => {
 
   test('Alt+Double click on page should show Swedish translation', async ({ context, extensionId }) => {
     // First, set the language to Swedish via the popup
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
-    });
-    await popupPage.selectOption('#language', 'swe_swe');
-    await popupPage.close();
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
     
     // Navigate to the test page
     const page = await context.newPage();
@@ -522,15 +537,7 @@ test.describe('Extension Smoke Tests', () => {
 
   test('Alt+Double click on page should show English translation', async ({ context, extensionId }) => {
     // First, set the language to English via the popup
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
-    });
-    await popupPage.selectOption('#language', 'swe_eng');
-    await popupPage.close();
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
     
     // Navigate to the test page
     const page = await context.newPage();
@@ -563,15 +570,7 @@ test.describe('Extension Smoke Tests', () => {
     // tell which word had been looked up, in which language pair, and no way out
     // but clicking blindly outside it. Both facts are inputs the extension already
     // holds when it fires the lookup, so neither reads the response.
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
-    });
-    await popupPage.selectOption('#language', 'swe_eng');
-    await popupPage.close();
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
 
     const page = await context.newPage();
     await page.goto('http://localhost:3456/swedish-text.html');
@@ -606,15 +605,7 @@ test.describe('Extension Smoke Tests', () => {
 
   test('Translation Card grows to its entry instead of a fixed viewport', async ({ context, extensionId }) => {
     // A two-line entry used to render in a card locked to 20em, two thirds empty.
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
-    });
-    await popupPage.selectOption('#language', 'swe_swe');
-    await popupPage.close();
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
 
     const page = await context.newPage();
     await page.goto('http://localhost:3456/swedish-text.html');
@@ -640,15 +631,7 @@ test.describe('Extension Smoke Tests', () => {
 
   test('Alt+Double click on page should show Russian translation', async ({ context, extensionId }) => {
     // First, set the language to Russian via the popup
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
-    });
-    await popupPage.selectOption('#language', 'swe_rus');
-    await popupPage.close();
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_rus');
     
     // Navigate to the test page
     const page = await context.newPage();

@@ -15,12 +15,14 @@
  * sense-numbering, no chips, no fixed positions.
  */
 
-/* Translation Panel */
+/* Translation Panel.
+ *
+ * Type and flow only. What makes the Translation Card a *card* - its surface, border
+ * and shadow - lives in card.css, because the Action Popup renders this same container
+ * inside a window that already has a frame. */
 .lexinTranslationContainer {
     font-family: var(--lx-font-body);
-    background-color: var(--lx-surface);
     color: var(--lx-text);
-    border: 1px solid var(--lx-divider);
     /* start, not left: `all: initial` on the card's host leaves `direction`
        inheriting from the page, so alignment must follow it rather than fight it. */
     text-align: start;
@@ -29,7 +31,6 @@
     padding: 0;
     border-radius: var(--lx-radius);
     box-sizing: border-box;
-    box-shadow: var(--lx-shadow-md);
     word-wrap: break-word;
     overflow-wrap: break-word;
 }

@@ -1,5 +1,6 @@
 import LanguageLabel from "../../src/scripts/common/LanguageLabel.js";
 import { LANGUAGE_KEY } from "../../src/scripts/common/LanguageManager.js";
+import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import { FakeAsyncSettingsStorage } from "./util/fakes.js";
 
 describe("LanguageLabel", () => {
@@ -39,6 +40,32 @@ describe("LanguageLabel", () => {
 
         it("should fall back to the raw direction for a language it does not know", () => {
             expect(label.describe("swe_xyz")).toEqual({ code: "sv→xyz", name: "Swedish → swe_xyz" });
+        });
+    });
+
+    describe("describeDirection", () => {
+        it("should read out of Swedish for the 'to' direction", () => {
+            expect(label.describeDirection("swe_eng", TranslationDirection.to)).toEqual({
+                code: "sv→eng",
+                name: "Swedish → English"
+            });
+        });
+
+        it("should read into Swedish for the 'from' direction", () => {
+            // What the Action Popup's swap control flips. Before, the direction was
+            // implied by which of two text fields the reader typed in.
+            expect(label.describeDirection("swe_eng", TranslationDirection.from)).toEqual({
+                code: "eng→sv",
+                name: "English → Swedish"
+            });
+        });
+
+        it("should stay a single language for the monolingual dictionary", () => {
+            // swe_swe has no pair to swap, either way round.
+            const to = label.describeDirection("swe_swe", TranslationDirection.to);
+            const from = label.describeDirection("swe_swe", TranslationDirection.from);
+            expect(to).toEqual({ code: "sv", name: "Swedish" });
+            expect(from).toEqual(to);
         });
     });
 

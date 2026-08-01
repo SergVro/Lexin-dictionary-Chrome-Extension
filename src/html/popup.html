@@ -3,45 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <title>Lexin</title>
-    <!-- tokens.css first: translation-content.css resolves every colour, space and
-         font from it. The Action Popup's own redesign is a later pass; this link is
-         what keeps its result area rendering while the shared sheet moves to tokens. -->
+    <!-- tokens first - everything below resolves its values from them -->
     <link href="../css/tokens.css" rel="stylesheet" type="text/css" />
+    <link href="../css/components.css" rel="stylesheet" type="text/css" />
     <link href="../css/translation-content.css" rel="stylesheet" type="text/css" />
     <link href="../css/popup.css" rel="stylesheet" type="text/css" />
-
 </head>
 
 <body>
-    <input type="hidden" id="word" />
+    <header class="lxPopupHeader">
+        <span class="lxBrand">Lexin</span>
+        <button type="button" id="optionsLink" class="lxButton lxButtonIcon" title="Open options"
+            aria-label="Open options"></button>
+    </header>
 
-    <div class="customInputContainer">
-        <label for="wordInput" class="inputLabel">From Swedish:</label>
-        <input id="wordInput" autofocus="autofocus" type="text"
-            title="Enter a word to get its translation from Swedish to the language selected above" />
-    </div>
-    <div class="customInputContainer">
-        <label for="fromWordInput" class="inputLabel">To Swedish:</label>
-        <input id="fromWordInput" type="text"
-            title="Enter a word to get its translation to Swedish from the language selected above " />
-    </div>
-    <div class="languageSelectorContainer">
-        <label for="language" class="inputLabel">Language:</label>
-        <div class="languageSelectorRow">
-            <select id="language" title="Select a language of translation">
-            </select>
-            <a id="historyLink" class="historyIcon" href="history.html" title="Open translations history"
-                aria-label="Open translations history">&#x1F558;</a>
+    <div class="lxPopupBody">
+        <!-- One field, not two. Which of the old pair you typed in silently decided
+             the lookup direction; the swap button and the badge say it out loud. -->
+        <div class="lxSearchRow">
+            <span class="lxSessionNav" id="sessionNav" hidden>
+                <button type="button" id="historyBack" class="lxButton lxButtonIcon"
+                    title="Previous lookup (Ctrl + ←)" aria-label="Previous lookup"></button>
+                <button type="button" id="historyForward" class="lxButton lxButtonIcon"
+                    title="Next lookup (Ctrl + →)" aria-label="Next lookup"></button>
+            </span>
+            <input id="wordInput" class="lxInput" type="text" autofocus="autofocus" autocomplete="off"
+                placeholder="Sök ett ord…" aria-label="Word to translate" />
+            <button type="button" id="swapDirection" class="lxButton lxButtonIcon"
+                title="Swap translation direction" aria-label="Swap translation direction"></button>
+            <span class="lxSeg" id="directionBadge">
+                <span class="lxSegOption lxSegOptionSelected" id="directionBadgeText"></span>
+            </span>
         </div>
-    </div>
-    <div class="quickTipContainer">
-        <div id="quickTip">
-            <span>Tip: Try to use 'Alt + Double Click' on a word to get a translation.</span>
-            <span class="closeMe">×</span>
+
+        <div class="lxField">
+            <label id="languageLabel">Language</label>
+            <div id="languagePicker"></div>
         </div>
-    </div>
-    <div class="lexinTranslationContainer">
-        <div id="translation" class="lexinTranslationPopup">
+
+        <div class="lexinTranslationContainer">
+            <div id="translation" class="lexinTranslationPopup" aria-live="polite">
+            </div>
+        </div>
+
+        <div class="lxRecent" id="recent" hidden>
+            <span class="lxRecentLabel">Recent</span>
+            <div class="lxRecentChips" id="recentChips"></div>
         </div>
     </div>
 

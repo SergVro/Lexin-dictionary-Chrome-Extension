@@ -1,0 +1,252 @@
+/*
+ * The shared component layer - the "style tile" of the Modernist system, built from
+ * the tokens in tokens.css.
+ *
+ * Loaded by every extension page, and concatenated into the Translation Card's shadow
+ * sheet by ContentScript. Anything here is used by at least two surfaces; anything
+ * used by exactly one belongs in that surface's own stylesheet.
+ *
+ * Class names are prefixed lx- and camelCased, matching the --lx- token prefix and
+ * the existing lexin* classes. Nothing here is ever injected into a host page.
+ */
+
+/* `hidden` has to outrank layout.
+ *
+ * The attribute only carries a UA `display: none`, which any `.lxSomething { display:
+ * flex }` in a later sheet beats on source order - so an element the code had hidden
+ * stayed on screen. Every surface here toggles visibility through the attribute, so
+ * this is the one place it is worth forcing. */
+[hidden] {
+    display: none !important;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────────── */
+
+.lxButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--lx-space-2) var(--lx-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--lx-radius);
+    background: transparent;
+    color: var(--lx-text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: var(--lx-font-heading-weight);
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.lxButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.lxButtonPrimary {
+    background: var(--lx-accent);
+    color: var(--lx-surface);
+}
+
+.lxButtonPrimary:hover:not(:disabled) {
+    background: var(--lx-accent-hover);
+}
+
+.lxButtonSecondary {
+    border-color: var(--lx-divider);
+}
+
+.lxButtonSecondary:hover:not(:disabled) {
+    background: var(--lx-accent-tint);
+}
+
+.lxButtonGhost {
+    color: var(--lx-accent-text);
+    padding-inline: var(--lx-space-1);
+}
+
+.lxButtonGhost:hover:not(:disabled) {
+    background: var(--lx-accent-tint);
+}
+
+.lxButtonIcon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    flex: none;
+    color: var(--lx-text-muted);
+}
+
+.lxButtonIcon:hover:not(:disabled) {
+    background: var(--lx-accent-tint);
+    color: var(--lx-accent-text);
+}
+
+.lxButton svg {
+    display: block;
+}
+
+/* This is a keyboard-heavy tool - the in-page trigger is a modifier gesture - so
+   focus is themed everywhere rather than left as the browser's default blue. */
+.lxButton:focus-visible,
+.lxChip:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: 2px;
+}
+
+/* ── Fields ──────────────────────────────────────────────────────────────────── */
+
+.lxField {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lx-space-1);
+    min-width: 0;
+}
+
+.lxField > label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lx-text-muted);
+}
+
+.lxInput {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px;
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    background: var(--lx-surface);
+    color: var(--lx-text);
+    caret-color: var(--lx-accent);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.lxInput::placeholder {
+    color: var(--lx-text-muted);
+}
+
+.lxInput:hover {
+    border-color: var(--lx-text-muted);
+}
+
+/* The field's own border becomes the focus ring, thickened to 2px by an outline flush
+   against it. A 2px ring *outside* a recoloured border would read as three pixels of
+   red - an error state, not focus. */
+.lxInput:focus-visible {
+    border-color: var(--lx-accent);
+    outline: 1px solid var(--lx-accent);
+    outline-offset: 0;
+}
+
+/* ── Segmented readout ───────────────────────────────────────────────────────── */
+
+.lxSeg {
+    display: inline-flex;
+    flex: none;
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    overflow: hidden;
+}
+
+.lxSegOption {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.lxSegOption + .lxSegOption {
+    border-inline-start: 1px solid var(--lx-divider);
+}
+
+.lxSegOptionSelected {
+    background: var(--lx-accent);
+    color: var(--lx-surface);
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────────── */
+
+.lxChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border: 0;
+    border-radius: var(--lx-radius);
+    background: var(--lx-surface-sunken);
+    color: var(--lx-text);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
+
+.lxChip:hover {
+    background: var(--lx-accent-tint);
+    color: var(--lx-accent-text);
+}
+
+.lxChipAccent {
+    background: var(--lx-accent-tint);
+    color: var(--lx-accent-text);
+}
+
+/* ── Empty, loading and error states ─────────────────────────────────────────── */
+
+/* Shared by the Translation Card and the Action Popup: the same lookup, in flight or
+   failed, should not look like two different products depending on where it renders. */
+.lxState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lx-space-2);
+    padding: var(--lx-space-4) 0;
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    color: var(--lx-text-muted);
+}
+
+.lxStateTitle {
+    color: var(--lx-text);
+    font-weight: var(--lx-font-heading-weight);
+}
+
+.lxStateIcon {
+    color: var(--lx-accent-text);
+}
+
+/* A <span>, and <section> for .lxState above, rather than divs: inside the card these
+   sit under `.lexinTranslationContainer div` in the shared sheet, which zeroes padding
+   and adds a bottom margin at a specificity these class selectors cannot beat. */
+.lxSpinner {
+    display: block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--lx-divider);
+    border-top-color: var(--lx-accent);
+    border-radius: 50%;
+    animation: lxSpin 1s linear infinite;
+}
+
+/* Keyframes resolve within the tree they are used in. This sheet is concatenated into
+   the card's shadow root, so the card's spinner finds them there and the popup's
+   finds them in the document. */
+@keyframes lxSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lxSpinner {
+        animation: none;
+    }
+}

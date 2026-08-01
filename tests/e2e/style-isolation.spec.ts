@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, ExtensionHelpers } from './fixtures';
 
 /**
  * Guards the Translation Card against host page CSS.
@@ -49,15 +49,7 @@ test.describe('Translation Card style isolation', () => {
 
     test.beforeEach(async ({ context, extensionId }) => {
         // swe_swe keeps the assertions independent of which language is stored.
-        const popup = await context.newPage();
-        await popup.goto(`chrome-extension://${extensionId}/html/popup.html`);
-        await popup.waitForLoadState('domcontentloaded');
-        await popup.waitForFunction(() => {
-            const select = document.querySelector('#language') as HTMLSelectElement;
-            return select && select.options.length > 0;
-        });
-        await popup.selectOption('#language', 'swe_swe');
-        await popup.close();
+        await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
     });
 
     test('card renders in an open shadow root, not the page DOM', async ({ context }) => {
@@ -114,6 +106,7 @@ test.describe('Translation Card style isolation', () => {
                 headerPadding: header.padding,
                 headerBorderBottomWidth: header.borderBottomWidth,
                 cardBorderStyle: card.borderStyle,
+                cardTextAlign: card.textAlign,
                 cardBorderRadius: card.borderRadius,
                 cardMaxWidth: card.maxWidth
             };
@@ -131,12 +124,17 @@ test.describe('Translation Card style isolation', () => {
         expect(applied.headerPadding).toBe('10px 14px');
         expect(applied.headerBorderBottomWidth).toBe('2px');
 
-        // From translation-content.css - must survive card.css's blanket reset,
-        // which sets `*, *::before, *::after { margin: 0; padding: 0 }`. The card's
-        // own padding is 0 by design now (the header and viewport carry it), so the
-        // border is what proves the shared sheet still reaches the container.
+        // From card.css: the surface, border and shadow are what make this a card, and
+        // live there rather than in the shared sheet because the Action Popup renders
+        // the same container inside a window that already has a frame.
         expect(applied.cardBorderStyle).toBe('solid');
         expect(applied.cardBorderRadius).toBe('0px');     // Modernist rounds nothing
+
+        // From translation-content.css - must survive card.css's blanket reset, which
+        // sets `*, *::before, *::after { margin: 0; padding: 0 }`. text-align is the
+        // container property that sheet still owns, and it is load-bearing: the card
+        // inherits direction from the page, so alignment has to follow it.
+        expect(applied.cardTextAlign).toBe('start');
 
         await page.close();
     });
