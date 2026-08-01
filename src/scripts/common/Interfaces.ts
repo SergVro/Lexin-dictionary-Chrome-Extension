@@ -48,6 +48,7 @@ export interface IMessageService {
     getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation>;
     getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
+    openActionPopup(): Promise<void>;
 }
 
 export interface ITranslationManager {
@@ -97,11 +98,16 @@ export interface GetSelectionHandler {
     (): string;
 }
 
+export interface OpenActionPopupHandler {
+    (): Promise<void>;
+}
+
 export interface IMessageHandlers {
     registerGetTranslationHandler(handler: GetTranslationHandler): void ;
     registerLoadHistoryHandler(handler: LoadHistoryHandler): void;
     registerClearHistoryHandler(handler: ClearHistoryHandler): void;
     registerGetSelectionHandler(handler: GetSelectionHandler): void;
+    registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void;
 }
 
 

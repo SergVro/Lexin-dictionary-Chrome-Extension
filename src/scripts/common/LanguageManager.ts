@@ -4,6 +4,15 @@ import { ILanguage, IAsyncSettingsStorage } from "./Interfaces.js";
 // The languages shipped before the knownLanguages key existed. Used once, to seed that key for
 // users upgrading from such a version, so a language they deliberately disabled is not mistaken
 // for a newly added one. This is a frozen historical record - never add to it.
+/**
+ * The settings key holding the reader's Language Direction.
+ *
+ * Exported because the Translation Card reads it too, through LanguageLabel: the
+ * content script needs the current direction for the card header, and constructing a
+ * LanguageManager per frame would run its storage-writing initialize() on every page.
+ */
+export const LANGUAGE_KEY = "defaultLanguage";
+
 const LEGACY_KNOWN_LANGUAGES = [
     "swe_alb", "swe_amh", "swe_ara", "swe_azj", "swe_bos", "swe_hrv", "swe_eng", "swe_fin",
     "swe_gre", "swe_kmr", "swe_pus", "swe_per", "swe_rus", "swe_srp", "swe_srp_cyrillic",
@@ -16,7 +25,7 @@ class LanguageManager {
 
     private settingsStorage: IAsyncSettingsStorage;
     enabledKey: string = "enabledLanguages";
-    languageKey: string = "defaultLanguage";
+    languageKey: string = LANGUAGE_KEY;
     knownKey: string = "knownLanguages";
 
     constructor(settingsStorage: IAsyncSettingsStorage, dictionaryFactory: DictionaryFactory) {

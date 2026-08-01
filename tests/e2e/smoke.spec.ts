@@ -558,6 +558,86 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  test('Translation Card header names the word and the Language Direction', async ({ context, extensionId }) => {
+    // The card used to be 100% dictionary markup: mid-lookup there was no way to
+    // tell which word had been looked up, in which language pair, and no way out
+    // but clicking blindly outside it. Both facts are inputs the extension already
+    // holds when it fires the lookup, so neither reads the response.
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
+    await popupPage.waitForFunction(() => {
+      const select = document.querySelector('#language') as HTMLSelectElement;
+      return select && select.options.length > 0;
+    });
+    await popupPage.selectOption('#language', 'swe_eng');
+    await popupPage.close();
+
+    const page = await context.newPage();
+    await page.goto('http://localhost:3456/swedish-text.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500);
+
+    const testWord = page.locator('#test-word');
+    await expect(testWord).toBeVisible();
+    const boundingBox = await testWord.boundingBox();
+    const clickX = boundingBox!.x + boundingBox!.width / 2;
+    const clickY = boundingBox!.y + boundingBox!.height / 2;
+
+    await page.keyboard.down('Alt');
+    await page.mouse.dblclick(clickX, clickY);
+    await page.keyboard.up('Alt');
+
+    // Locators pierce the open shadow root.
+    const header = page.locator('.lexinCardHeader');
+    await expect(header).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.lexinCardWord')).toContainText('bil');
+    await expect(page.locator('.lexinCardPair')).toHaveText('· sv→eng');
+
+    // Both chrome buttons are real controls, not emoji - the card has to be
+    // dismissible without a mouse, since the trigger is a modifier gesture.
+    await expect(page.locator('.lexinCardButton[aria-label="Close"]')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.lexinExtensionMainContainer')).toHaveCount(0);
+
+    await page.close();
+  });
+
+  test('Translation Card grows to its entry instead of a fixed viewport', async ({ context, extensionId }) => {
+    // A two-line entry used to render in a card locked to 20em, two thirds empty.
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/html/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
+    await popupPage.waitForFunction(() => {
+      const select = document.querySelector('#language') as HTMLSelectElement;
+      return select && select.options.length > 0;
+    });
+    await popupPage.selectOption('#language', 'swe_swe');
+    await popupPage.close();
+
+    const page = await context.newPage();
+    await page.goto('http://localhost:3456/swedish-text.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500);
+
+    const testWord = page.locator('#test-word');
+    const boundingBox = await testWord.boundingBox();
+    await page.keyboard.down('Alt');
+    await page.mouse.dblclick(boundingBox!.x + boundingBox!.width / 2, boundingBox!.y + boundingBox!.height / 2);
+    await page.keyboard.up('Alt');
+
+    const content = page.locator('.lexinTranslationContent');
+    await expect(content).toContainText('ett fordon för ett litet antal personer', { timeout: 15000 });
+
+    const box = await content.boundingBox();
+    // Capped, and no longer pinned to a floor.
+    expect(box!.height).toBeLessThanOrEqual(480);
+    expect(box!.height).toBeGreaterThan(0);
+
+    await page.close();
+  });
+
   test('Alt+Double click on page should show Russian translation', async ({ context, extensionId }) => {
     // First, set the language to Russian via the popup
     const popupPage = await context.newPage();

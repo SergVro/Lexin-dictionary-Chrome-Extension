@@ -51,3 +51,16 @@ _Avoid_: translation HTML, response body
 A Language Direction the reader has chosen to see in the dropdowns. Distinct from a
 *supported* language, which is one the Dictionary offers at all.
 _Avoid_: active language, selected language
+
+### Appearance
+
+**Appearance**:
+The reader's stored choice of `light`, `dark` or `system` — a setting, not a rendered
+state. Held by `ThemeManager`.
+_Avoid_: theme, dark mode, colour scheme
+
+**Theme**:
+What a surface actually renders as, once an Appearance of `system` has been resolved
+against the OS. Only ever `light` or `dark`, and written to the DOM as
+`data-lx-theme`, which every design token keys off.
+_Avoid_: mode, skin

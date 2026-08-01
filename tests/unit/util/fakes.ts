@@ -12,6 +12,7 @@ import {
     LoadHistoryHandler,
     ClearHistoryHandler,
     GetSelectionHandler,
+    OpenActionPopupHandler,
     IAsyncStorage,
     IAsyncSettingsStorage
 } from "../../../src/scripts/common/Interfaces.js";
@@ -53,6 +54,13 @@ export class TestMessageService implements IMessageService {
 
     createNewTab(url: string): void {
         // No-op
+    }
+
+    openActionPopupCalls = 0;
+
+    openActionPopup(): Promise<void> {
+        this.openActionPopupCalls++;
+        return Promise.resolve();
     }
 }
 
@@ -169,6 +177,7 @@ export class FakeMessageHandlers implements IMessageHandlers {
     loadHistoryHandler: LoadHistoryHandler | null = null;
     clearHistoryHandler: ClearHistoryHandler | null = null;
     getSelectionHandler: GetSelectionHandler | null = null;
+    openActionPopupHandler: OpenActionPopupHandler | null = null;
 
     registerGetTranslationHandler(handler: GetTranslationHandler): void {
         this.getTranslationHandler = handler;
@@ -184,5 +193,9 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerGetSelectionHandler(handler: GetSelectionHandler): void {
         this.getSelectionHandler = handler;
+    }
+
+    registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
+        this.openActionPopupHandler = handler;
     }
 }

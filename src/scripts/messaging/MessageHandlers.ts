@@ -1,4 +1,4 @@
-import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler, GetSelectionHandler } from "../common/Interfaces.js";
+import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler, GetSelectionHandler, OpenActionPopupHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import MessageBus from "./MessageBus.js";
 
@@ -26,6 +26,12 @@ class MessageHandlers implements IMessageHandlers{
         MessageBus.Instance.registerHandler(MessageType.getSelection, (_args) => {
             return handler();
         }, true);
+    }
+
+    registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.openActionPopup, (_args) => {
+            return handler();
+        });
     }
 }
 

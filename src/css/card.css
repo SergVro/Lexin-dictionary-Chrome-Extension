@@ -7,6 +7,11 @@
  * element is neutralised separately, with an inline `all: initial !important` set
  * in ContentScript. That cannot be done here - declarations in the outer document
  * that target the host element beat `:host` rules.
+ *
+ * Layout uses logical properties throughout. `all: initial` deliberately leaves
+ * `direction` alone (CSS Cascade L4 3.3), so the card keeps inheriting text
+ * direction from the page and has to mirror correctly for Arabic, Persian, Pashto
+ * and Sorani Kurdish.
  */
 
 /* Only UA defaults need normalising. The blanket rule covers elements the
@@ -31,13 +36,17 @@ img {
    Everything else about its appearance comes from translation-content.css. */
 .lexinTranslationContainer {
     z-index: 10000;
-    width: 100%;
+    width: 380px;
     max-width: 420px;
     min-width: 320px;
 }
 
-/* The card's scroll viewport. Fixed height so the card does not resize as
-   translations of different lengths load.
+/* The card's scroll viewport.
+
+   It grows with its entry and stops at --lx-card-max-height, rather than standing
+   at the fixed 20em it used to: a two-line entry left two thirds of the card empty,
+   and a long one hid the same amount of content either way. ContentScript
+   repositions the card once the entry lands, so a changing height stays on screen.
 
    The .lexinTranslationContainer prefix is load-bearing, not decoration. This
    element is also matched by `.lexinTranslationContainer div` in
@@ -48,7 +57,143 @@ img {
 .lexinTranslationContainer div.lexinTranslationContent {
     overflow-y: auto;
     overflow-x: hidden;
-    min-height: 20em;
-    max-height: 20em;
-    padding: 16px;
+    max-height: var(--lx-card-max-height);
+    padding: var(--lx-space-4);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────────
+   The one part of the card that is ours rather than the dictionary's, and the
+   reason for the whole redesign: mid-lookup the reader could not see which word or
+   which language pair they were looking at. Both are inputs the extension already
+   holds when it fires the lookup, so nothing here parses the response.
+
+   Every selector below carries the .lexinTranslationContainer prefix for the reason
+   given above the scroll viewport: at a bare class it would tie or lose against
+   `.lexinTranslationContainer div` / `p` in the shared sheet, which zeroes padding
+   and repaints colour. The prefix takes each to (0,2,0), which beats (0,1,1). */
+.lexinTranslationContainer .lexinCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lx-space-2);
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--lx-divider);
+}
+
+/* On a dark ground the neutral rule disappears; the accent is what separates the
+   header from the entry. */
+.lexinTranslationContainer[data-lx-theme="dark"] .lexinCardHeader {
+    border-bottom-color: var(--lx-accent);
+}
+
+.lexinTranslationContainer .lexinCardWord {
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-2);
+    min-width: 0;
+    font-size: 13px;
+    font-weight: var(--lx-font-heading-weight);
+    color: var(--lx-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lexinTranslationContainer .lexinCardFlag {
+    flex: none;
+}
+
+.lexinTranslationContainer .lexinCardPair {
+    font-weight: 400;
+    color: var(--lx-text-muted);
+}
+
+.lexinTranslationContainer .lexinCardActions {
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-2);
+    flex: none;
+}
+
+.lexinTranslationContainer .lexinCardButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--lx-radius);
+    background: transparent;
+    color: var(--lx-text-muted);
+    cursor: pointer;
+    font: inherit;
+}
+
+.lexinTranslationContainer .lexinCardButton:hover {
+    background: var(--lx-accent-tint);
+    color: var(--lx-accent-text);
+}
+
+/* This is a keyboard-heavy tool - the trigger is a modifier gesture - so the focus
+   ring is themed rather than left to the browser's default blue. */
+.lexinTranslationContainer .lexinCardButton:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: 2px;
+}
+
+.lexinTranslationContainer .lexinCardButton svg {
+    display: block;
+}
+
+/* ── Loading and error states ──────────────────────────────────────────────────
+   Replacing the literal `Searching for 'hem'...` string the card used to render.
+
+   Only the network-error path gets the empty state below. A word the dictionary has
+   no entry for comes back as an ordinary response body saying so, and telling the
+   two apart means parsing markup the provider can change without notice. */
+.lexinTranslationContainer .lexinCardState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lx-space-2);
+    /* The scroll viewport already pads 16px on every side. */
+    padding: var(--lx-space-4) 0;
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    color: var(--lx-text-muted);
+}
+
+.lexinTranslationContainer .lexinCardStateTitle {
+    color: var(--lx-text);
+    font-weight: var(--lx-font-heading-weight);
+}
+
+.lexinTranslationContainer .lexinCardStateIcon {
+    color: var(--lx-accent-text);
+}
+
+.lexinTranslationContainer .lexinCardSpinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--lx-divider);
+    border-top-color: var(--lx-accent);
+    border-radius: 50%;
+    animation: lxSpin 1s linear infinite;
+}
+
+/* Keyframes resolve within the tree they are used in, so this has to live in the
+   sheet adopted into the shadow root rather than anywhere in the page. */
+@keyframes lxSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lexinTranslationContainer .lexinCardSpinner {
+        animation: none;
+    }
 }

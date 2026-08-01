@@ -28,6 +28,13 @@ class MessageService implements IMessageService{
     createNewTab(url: string): void {
         MessageBus.Instance.createNewTab(url);
     }
+
+    openActionPopup(): Promise<void> {
+        // Only the service worker can open the Action Popup, so this is a message
+        // rather than a direct call - the Translation Card's expand button runs in a
+        // content script, which has no chrome.action.
+        return MessageBus.Instance.sendMessage(MessageType.openActionPopup);
+    }
 }
 
 export default MessageService;

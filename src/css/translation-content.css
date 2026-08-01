@@ -8,42 +8,54 @@
  * Selectors must keep the .lexinTranslationContainer prefix. Inside the card's
  * shadow root bare element selectors would be safe, but this file also loads into
  * the Action Popup's document where they would style the whole page.
+ *
+ * Every value here comes from tokens.css. The Translation Markup is third-party and
+ * changes without notice, so nothing below depends on its structure - only on the
+ * elements HTML has always had. Type, spacing and one rule between senses; no
+ * sense-numbering, no chips, no fixed positions.
  */
 
-/* Translation Panel - Card Design */
+/* Translation Panel */
 .lexinTranslationContainer {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    background-color: #FFFFFF;
-    color: #111827;
-    border: 1px solid #E5E7EB;
+    font-family: var(--lx-font-body);
+    background-color: var(--lx-surface);
+    color: var(--lx-text);
+    border: 1px solid var(--lx-divider);
     /* start, not left: `all: initial` on the card's host leaves `direction`
        inheriting from the page, so alignment must follow it rather than fight it. */
     text-align: start;
-    padding: 0.5em;
-    border-radius: 12px;
+    /* Zero: the header and the scroll viewport carry their own padding, and a pad
+       here would inset the header's full-bleed bottom rule. */
+    padding: 0;
+    border-radius: var(--lx-radius);
     box-sizing: border-box;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--lx-shadow-md);
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
 
-/* Modern Typography for Headings */
+/* Headings */
 .lexinTranslationContainer h1,
 .lexinTranslationContainer h2,
 .lexinTranslationContainer h3 {
     font-size: 16px;
-    font-weight: 600;
-    color: #111827;
+    font-weight: var(--lx-font-heading-weight);
+    letter-spacing: var(--lx-heading-tracking);
+    color: var(--lx-text);
     text-decoration: none;
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--lx-space-2) 0;
     padding: 0;
     line-height: 1.4;
 }
 
+/* A rule before each sense after the first. The one structural cue applied here,
+   and it needs no knowledge of the markup beyond "this heading is not the first". */
 .lexinTranslationContainer h1:not(:first-child),
 .lexinTranslationContainer h2:not(:first-child),
 .lexinTranslationContainer h3:not(:first-child) {
-    margin-top: 16px;
+    margin-top: var(--lx-space-4);
+    padding-top: var(--lx-space-4);
+    border-top: 1px solid var(--lx-divider);
 }
 
 /* Paragraph and Div Styling */
@@ -54,47 +66,66 @@
     line-height: 1.6;
     padding: 0;
     display: block;
-    color: #374151;
-    margin: 0 0 8px 0;
+    color: var(--lx-text-muted);
+    margin: 0 0 var(--lx-space-2) 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
 }
 
-/* Bold Text */
-.lexinTranslationContainer b {
-    font-weight: 600;
-    color: #111827;
+/* A rule between senses.
+
+   Both dictionaries return one <p> per sense - a common word gives six or eight of
+   them, run together as one wall of text. `p + p` needs no knowledge of what is
+   inside them, so it keeps working if the provider rewrites its copy; it only stops
+   drawing rules if the provider stops using paragraphs, which degrades to the run-on
+   text we had before rather than to something wrong. */
+.lexinTranslationContainer p + p {
+    margin-top: var(--lx-space-4);
+    padding-top: var(--lx-space-4);
+    border-top: 1px solid var(--lx-divider);
 }
 
-/* Modern Link Styling */
+/* Bold Text - the labels the dictionary leads its lines with (Definition,
+   Synonyms, Inflections), so this is what carries the entry's structure. */
+.lexinTranslationContainer b {
+    font-weight: var(--lx-font-heading-weight);
+    color: var(--lx-text);
+}
+
+/* Links. The accent at full strength clears 3:1 - enough for icons and chrome, not
+   for text this size - so links take the deep ramp step. */
 .lexinTranslationContainer a,
 .lexinTranslationContainer a:visited {
     text-decoration: none;
-    color: #2563EB;
+    color: var(--lx-accent-text);
     font-size: 14px;
     font-weight: 400;
     cursor: pointer;
-    transition: color 0.2s ease;
 }
 
 .lexinTranslationContainer a:hover {
-    color: #1D4ED8;
+    color: var(--lx-accent-hover);
     text-decoration: underline;
+}
+
+.lexinTranslationContainer a:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: 2px;
 }
 
 .lexinTranslationContainer a small {
     font-size: 12px;
 }
 
-/* Modern List Styling */
+/* Lists */
 .lexinTranslationContainer ul {
     display: block;
     list-style-type: disc;
     font-size: 14px;
     font-weight: 400;
-    margin: 12px 0;
-    padding-left: 24px;
+    margin: var(--lx-space-3) 0;
+    padding-inline-start: var(--lx-space-6);
     line-height: 1.6;
 }
 
@@ -104,17 +135,17 @@
     list-style-type: disc;
     font-size: 14px;
     font-weight: 400;
-    color: #374151;
-    margin-bottom: 4px;
+    color: var(--lx-text-muted);
+    margin-bottom: var(--lx-space-1);
     line-height: 1.6;
 }
 
-/* Smooth Scrolling - .lexinTranslationPopup is the Action Popup's scroll area,
+/* Scrollbars - .lexinTranslationPopup is the Action Popup's scroll area,
    .lexinTranslationContent the Translation Card's. Only one exists per surface. */
 .lexinTranslationPopup,
 div.lexinTranslationContent {
     scrollbar-width: thin;
-    scrollbar-color: #D1D5DB #F9FAFB;
+    scrollbar-color: var(--lx-divider) var(--lx-surface-sunken);
 }
 
 .lexinTranslationPopup::-webkit-scrollbar,
@@ -124,17 +155,15 @@ div.lexinTranslationContent::-webkit-scrollbar {
 
 .lexinTranslationPopup::-webkit-scrollbar-track,
 div.lexinTranslationContent::-webkit-scrollbar-track {
-    background: #F9FAFB;
-    border-radius: 4px;
+    background: var(--lx-surface-sunken);
 }
 
 .lexinTranslationPopup::-webkit-scrollbar-thumb,
 div.lexinTranslationContent::-webkit-scrollbar-thumb {
-    background: #D1D5DB;
-    border-radius: 4px;
+    background: var(--lx-divider);
 }
 
 .lexinTranslationPopup::-webkit-scrollbar-thumb:hover,
 div.lexinTranslationContent::-webkit-scrollbar-thumb:hover {
-    background: #9CA3AF;
+    background: var(--lx-text-muted);
 }

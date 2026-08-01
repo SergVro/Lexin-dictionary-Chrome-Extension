@@ -34,11 +34,43 @@ describe("BackgroundWorker", () => {
         });
     });
 
+    describe("openActionPopup", () => {
+        // The Translation Card's expand button reaches chrome.action through here,
+        // because a content script has no chrome.action of its own.
+        let originalChrome: any;
+
+        beforeEach(() => {
+            originalChrome = (global as any).chrome;
+        });
+
+        afterEach(() => {
+            (global as any).chrome = originalChrome;
+        });
+
+        it("should open the Action Popup", async () => {
+            let opened = 0;
+            (global as any).chrome = { action: { openPopup: () => { opened++; return Promise.resolve(); } } };
+
+            await backgroundWorker.openActionPopup();
+
+            expect(opened).toBe(1);
+        });
+
+        it("should swallow a rejection rather than break the card", async () => {
+            // chrome.action.openPopup is Chrome 127+ and rejects when there is no
+            // focused window. The card the reader already has open must survive it.
+            (global as any).chrome = { action: { openPopup: () => Promise.reject(new Error("no window")) } };
+
+            await expect(backgroundWorker.openActionPopup()).resolves.toBeUndefined();
+        });
+    });
+
     it("initialize should register handlers", () => {
         backgroundWorker.initialize();
 
         expect(fakeMessageHandlers.getTranslationHandler).not.toBeNull();
         expect(fakeMessageHandlers.clearHistoryHandler).not.toBeNull();
         expect(fakeMessageHandlers.loadHistoryHandler).not.toBeNull();
+        expect(fakeMessageHandlers.openActionPopupHandler).not.toBeNull();
     });
 });
