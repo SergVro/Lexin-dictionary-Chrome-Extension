@@ -125,18 +125,206 @@ test.describe('Extension Smoke Tests', () => {
 
   test('history page should open and display UI elements', async ({ historyPage }) => {
     const page = await historyPage();
-    
-    // Check page title
+
     await expect(page).toHaveTitle('Lexin dictionary History');
-    
-    // Check main UI elements are present
-    await expect(page.locator('.page h1')).toContainText('History');
-    await expect(page.locator('#language')).toBeVisible();
+
+    await expect(page.locator('.lxNavBrand')).toContainText('History');
+    await expect(page.locator('#historySearch')).toBeVisible();
+    await expect(page.locator('#exportButton')).toBeVisible();
     await expect(page.locator('#clearHistory')).toBeVisible();
-    
-    // Check navigation menu is present
-    await expect(page.locator('#navbar')).toBeVisible();
-    
+
+    // The 2012 sidebar is gone; the three pages link each other from the header.
+    await expect(page.locator('#navbar')).toHaveCount(0);
+    await expect(page.locator('#HistoryMenu')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#OptionsMenu')).toBeVisible();
+    await expect(page.locator('#HelpMenu')).toBeVisible();
+
+    await page.close();
+  });
+
+  test('history page shows an empty state before anything is looked up', async ({ historyPage }) => {
+    const page = await historyPage();
+
+    await expect(page.locator('#history')).toContainText('No translations yet');
+    await expect(page.locator('#history')).toContainText('Alt + double-click');
+    // Nothing to export or clear, so neither offers itself.
+    await expect(page.locator('#exportButton')).toBeDisabled();
+    await expect(page.locator('#clearHistory')).toBeDisabled();
+
+    await page.close();
+  });
+
+  /**
+   * Two directions of seeded history, so the History page has tabs, a repeated day to
+   * group, and a translation containing a comma for the CSV path.
+   */
+  const DAY = 24 * 60 * 60 * 1000;
+  const SEEDED_HISTORY = {
+    swe_eng: [
+      { word: 'hem', translation: 'home, abode', added: Date.parse('2026-08-01T10:00:00Z') },
+      { word: 'jobb', translation: 'job', added: Date.parse('2026-08-01T09:00:00Z') },
+      { word: 'skola', translation: 'school', added: Date.parse('2026-08-01T10:00:00Z') - DAY }
+    ],
+    swe_ara: [
+      { word: 'läkare', translation: 'طبيب', added: Date.parse('2026-08-01T11:00:00Z') }
+    ]
+  };
+
+  test('history page offers a tab per direction with history, plus All', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+
+    const tabs = page.locator('.lxTab');
+    await expect(tabs).toHaveCount(3);
+    await expect(tabs.nth(0)).toHaveText('All');
+    await expect(page.locator('.lxTab', { hasText: 'sv→eng' })).toBeVisible();
+    await expect(page.locator('.lxTab', { hasText: 'sv→ara' })).toBeVisible();
+
+    // All merges the directions and names each row's language, which a single
+    // direction's view has no need to.
+    await tabs.nth(0).click();
+    await expect(page.locator('#historyCount')).toHaveText('4 words');
+    await expect(page.locator('.lxTable th', { hasText: 'Language' })).toBeVisible();
+    await expect(page.locator('.lxTable tbody tr').first()).toContainText('läkare');
+
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+    await expect(page.locator('#historyCount')).toHaveText('3 words');
+    await expect(page.locator('.lxTable th', { hasText: 'Language' })).toHaveCount(0);
+
+    await page.close();
+  });
+
+  test('history search narrows the rows and the count follows', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+
+    await expect(page.locator('.lxTable tbody tr')).toHaveCount(3);
+
+    // Matches the translation as well as the word.
+    await page.locator('#historySearch').fill('scho');
+    await expect(page.locator('.lxTable tbody tr')).toHaveCount(1);
+    await expect(page.locator('#historyCount')).toHaveText('1 word');
+
+    await page.locator('#historySearch').fill('lakare');
+    await expect(page.locator('#history')).toContainText('No matches');
+
+    await page.close();
+  });
+
+  test('history export writes the selected rows as Quizlet-ready TSV', async ({ context, extensionId, historyPage }) => {
+    // The Help page used to answer this with eight manual steps.
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+
+    await page.locator('.lxTable tbody tr').first().locator('input[type="checkbox"]').check();
+    await expect(page.locator('#historyCount')).toHaveText('3 words · 1 selected');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      (async () => {
+        await page.locator('#exportButton').click();
+        await page.locator('#exportMenu li[data-format="tsv"]').click();
+      })()
+    ]);
+
+    expect(download.suggestedFilename()).toMatch(/^lexin-history-\d{4}-\d{2}-\d{2}\.txt$/);
+
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) { chunks.push(chunk as Buffer); }
+    const text = Buffer.concat(chunks).toString('utf-8');
+
+    // Only the checked row, two tab-separated columns, no header.
+    expect(text).toBe('hem\thome, abode');
+
+    await page.close();
+  });
+
+  test('history export falls back to everything in view when nothing is selected', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+    await page.locator('#historySearch').fill('jobb');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      (async () => {
+        await page.locator('#exportButton').click();
+        await page.locator('#exportMenu li[data-format="csv"]').click();
+      })()
+    ]);
+
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) { chunks.push(chunk as Buffer); }
+    const text = Buffer.concat(chunks).toString('utf-8');
+
+    expect(text).toContain('Word,Translation,Date');
+    expect(text).toContain('jobb,job,');
+    expect(text).not.toContain('hem');
+
+    await page.close();
+  });
+
+  test('history copy to clipboard needs no extra permission', async ({ context, extensionId, historyPage }) => {
+    // navigator.clipboard.writeText under a click has transient activation, so the
+    // manifest still asks for `storage` and nothing else. The page reports success
+    // only when the write resolved.
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+
+    await page.locator('#exportButton').click();
+    await page.locator('#exportMenu li[data-format="clipboard"]').click();
+
+    await expect(page.locator('#historyCount')).toHaveText('3 copied to clipboard');
+
+    await page.close();
+  });
+
+  test('history per-row delete removes one entry for good', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+
+    const row = page.locator('.lxTable tbody tr', { hasText: 'jobb' });
+    await row.hover();
+    await row.locator('.lxRowDelete').click();
+
+    await expect(page.locator('.lxTable tbody tr')).toHaveCount(2);
+    await expect(page.locator('#history')).not.toContainText('jobb');
+
+    await page.reload();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+    await expect(page.locator('#history')).not.toContainText('jobb');
+
+    await page.close();
+  });
+
+  test('history clear goes through a themed dialog that can be cancelled', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
+    const page = await historyPage();
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+
+    await page.locator('#clearHistory').click();
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+    // It names what it is about to destroy, which confirm() could not.
+    await expect(dialog).toContainText('Swedish → English');
+
+    await dialog.locator('button', { hasText: 'Cancel' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.lxTable tbody tr')).toHaveCount(3);
+
+    await page.locator('#clearHistory').click();
+    await page.locator('[role="dialog"] button', { hasText: 'Clear history' }).click();
+
+    // That direction is gone; the other one is untouched.
+    await expect(page.locator('#history')).not.toContainText('hem');
+    await expect(page.locator('#history')).toContainText('läkare');
+
     await page.close();
   });
 
@@ -160,24 +348,18 @@ test.describe('Extension Smoke Tests', () => {
   });
 
   test('navigation between extension pages should work', async ({ optionsPage }) => {
+    // The Options and Help pages are still on the old sidebar until their own passes,
+    // so this walks Options -> History (old nav) -> Help (new .lxNav).
     const page = await optionsPage();
-    
-    // Click on History link in navigation
+
     await page.click('#HistoryMenu a');
-    
-    // Wait for navigation
     await page.waitForLoadState('domcontentloaded');
-    
-    // Should now be on history page
     await expect(page).toHaveTitle('Lexin dictionary History');
-    
-    // Navigate to Help page
-    await page.click('#HelpMenu a');
+
+    await page.click('#HelpMenu');
     await page.waitForLoadState('domcontentloaded');
-    
-    // Should now be on help page
     await expect(page).toHaveTitle('Lexin dictionary Help');
-    
+
     await page.close();
   });
 

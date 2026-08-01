@@ -77,6 +77,20 @@ describe("LexinDictionary", () => {
         expect(history[6].translation).toBe("успех");
     });
 
+    it("should decode the numeric references Lexin writes Cyrillic as", () => {
+        // The stored fixtures happen to carry raw UTF-8, but the live service returns
+        // lang=ru_RU>&#1089;&#1087;&#1086;&#1088;&#1090;< - which used to be stored,
+        // exported and shown verbatim.
+        const encoded = "<p><div><b><span lang=sv_SE>sport</span></b> [sport] subst.</div>" +
+            "<div><b><span lang=ru_RU>&#1089;&#1087;&#1086;&#1088;&#1090;</span></b>&nbsp;&nbsp;</div></p>";
+
+        const history = dictionary.parseTranslation(encoded, "swe_rus");
+
+        expect(history.length).toBe(1);
+        expect(history[0].word).toBe("sport");
+        expect(history[0].translation).toBe("спорт");
+    });
+
     it("should parse Ukrainian translation", () => {
         const history = dictionary.parseTranslation(swe_ukr_translation_multi, "swe_ukr");
 

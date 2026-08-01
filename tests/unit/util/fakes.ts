@@ -13,6 +13,8 @@ import {
     ClearHistoryHandler,
     GetSelectionHandler,
     OpenActionPopupHandler,
+    LoadHistoryDirectionsHandler,
+    RemoveHistoryItemHandler,
     IAsyncStorage,
     IAsyncSettingsStorage
 } from "../../../src/scripts/common/Interfaces.js";
@@ -32,15 +34,31 @@ export class FakeLoader implements ILoader {
 export class TestMessageService implements IMessageService {
     loadHistoryCalls = 0;
     clearHistoryCalls = 0;
+    removeHistoryItemCalls = 0;
     selectedText: string = "";
+    /** Per-direction rows the page under test should see. */
+    history: { [langDirection: string]: IHistoryItem[] } = {};
+    directions: string[] = [];
 
     loadHistory(language: string): Promise<IHistoryItem[]> {
         this.loadHistoryCalls++;
-        return Promise.resolve([]);
+        return Promise.resolve(this.history[language] || []);
+    }
+
+    loadHistoryDirections(): Promise<string[]> {
+        return Promise.resolve(this.directions);
     }
 
     clearHistory(language: string): Promise<void> {
         this.clearHistoryCalls++;
+        delete this.history[language];
+        return Promise.resolve();
+    }
+
+    removeHistoryItem(language: string, word: string, added: number): Promise<void> {
+        this.removeHistoryItemCalls++;
+        this.history[language] = (this.history[language] || [])
+            .filter((item) => !(item.word === word && item.added === added));
         return Promise.resolve();
     }
 
@@ -106,13 +124,23 @@ export class FakeTranslationManager implements ITranslationManager {
 
 export class FakeHistoryManager implements IHistoryManager {
     history: IHistoryItem[] = [];
-    
+    directions: string[] = [];
+
     async getHistory(langDirection: string): Promise<IHistoryItem[]> {
         return Promise.resolve(this.history);
     }
 
+    async getDirections(): Promise<string[]> {
+        return Promise.resolve(this.directions);
+    }
+
     async clearHistory(langDirection: string): Promise<void> {
         this.history = [];
+        return Promise.resolve();
+    }
+
+    async removeItem(langDirection: string, word: string, added: number): Promise<void> {
+        this.history = this.history.filter((item) => !(item.word === word && item.added === added));
         return Promise.resolve();
     }
 
@@ -144,13 +172,8 @@ export class FakeAsyncStorage implements IAsyncStorage {
         return Promise.resolve();
     }
 
-    async getLength(): Promise<number> {
-        return Promise.resolve(Object.keys(this.storage).length);
-    }
-
-    async key(index: number): Promise<string | null> {
-        const keys = Object.keys(this.storage);
-        return Promise.resolve(index >= 0 && index < keys.length ? keys[index] : null);
+    async keys(): Promise<string[]> {
+        return Promise.resolve(Object.keys(this.storage));
     }
 }
 
@@ -178,6 +201,8 @@ export class FakeMessageHandlers implements IMessageHandlers {
     clearHistoryHandler: ClearHistoryHandler | null = null;
     getSelectionHandler: GetSelectionHandler | null = null;
     openActionPopupHandler: OpenActionPopupHandler | null = null;
+    loadHistoryDirectionsHandler: LoadHistoryDirectionsHandler | null = null;
+    removeHistoryItemHandler: RemoveHistoryItemHandler | null = null;
 
     registerGetTranslationHandler(handler: GetTranslationHandler): void {
         this.getTranslationHandler = handler;
@@ -197,5 +222,13 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
         this.openActionPopupHandler = handler;
+    }
+
+    registerLoadHistoryDirectionsHandler(handler: LoadHistoryDirectionsHandler): void {
+        this.loadHistoryDirectionsHandler = handler;
+    }
+
+    registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void {
+        this.removeHistoryItemHandler = handler;
     }
 }

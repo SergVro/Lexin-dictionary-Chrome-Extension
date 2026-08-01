@@ -1,4 +1,6 @@
-import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler, GetSelectionHandler, OpenActionPopupHandler } from "../common/Interfaces.js";
+import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler,
+    GetSelectionHandler, OpenActionPopupHandler, LoadHistoryDirectionsHandler,
+    RemoveHistoryItemHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import MessageBus from "./MessageBus.js";
 
@@ -19,6 +21,18 @@ class MessageHandlers implements IMessageHandlers{
     registerClearHistoryHandler(handler: ClearHistoryHandler): void {
         MessageBus.Instance.registerHandler(MessageType.clearHistory, (args: any) => {
             return handler(args.langDirection);
+        });
+    }
+
+    registerLoadHistoryDirectionsHandler(handler: LoadHistoryDirectionsHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.getHistoryDirections, (_args) => {
+            return handler();
+        });
+    }
+
+    registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.removeHistoryItem, (args: any) => {
+            return handler(args.langDirection, args.word, args.added);
         });
     }
 

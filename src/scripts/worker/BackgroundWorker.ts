@@ -48,6 +48,9 @@ class BackgroundWorker {
         this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
         this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection));
         this.messageHandlers.registerClearHistoryHandler((langDirection) => this.historyManager.clearHistory(langDirection));
+        this.messageHandlers.registerLoadHistoryDirectionsHandler(() => this.historyManager.getDirections());
+        this.messageHandlers.registerRemoveHistoryItemHandler(
+            (langDirection, word, added) => this.historyManager.removeItem(langDirection, word, added));
         this.messageHandlers.registerOpenActionPopupHandler(() => this.openActionPopup());
     }
 }

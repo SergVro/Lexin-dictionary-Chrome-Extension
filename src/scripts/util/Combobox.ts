@@ -10,8 +10,11 @@ export interface IComboboxOption {
  * Folds case and diacritics so "osterrike" finds "Österrike" and "SERBIAN" finds
  * "Serbian (Latin)". NFD splits a letter from its accent; the range strips the
  * accents that are left behind.
+ *
+ * Exported so the History page's search folds identically - a reader who can find
+ * "Österrike" by typing "oster" in one field should not have to guess in the other.
  */
-function fold(value: string): string {
+export function fold(value: string): string {
     return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 

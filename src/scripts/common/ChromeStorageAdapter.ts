@@ -12,27 +12,14 @@ class ChromeStorageAdapter implements IAsyncStorage {
         // No initialization needed
     }
 
-    async getLength(): Promise<number> {
+    async keys(): Promise<string[]> {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get(null, (items) => {
                 if (chrome.runtime.lastError) {
                     reject(chrome.runtime.lastError);
                     return;
                 }
-                resolve(Object.keys(items).length);
-            });
-        });
-    }
-
-    async key(index: number): Promise<string | null> {
-        return new Promise((resolve, reject) => {
-            chrome.storage.local.get(null, (items) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                    return;
-                }
-                const keys = Object.keys(items);
-                resolve(index >= 0 && index < keys.length ? keys[index] : null);
+                resolve(Object.keys(items));
             });
         });
     }

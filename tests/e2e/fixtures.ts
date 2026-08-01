@@ -130,6 +130,30 @@ export class ExtensionHelpers {
   }
 
   /**
+   * Put rows in the history store without going near the dictionary services.
+   *
+   * Keyed exactly as HistoryManager keys them ("history" + langDirection), which is
+   * also what its getDirections() reads back to build the History page's tabs.
+   */
+  static async seedHistory(
+    context: BrowserContext,
+    extensionId: string,
+    byDirection: Record<string, { word: string; translation: string; added: number }[]>
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.evaluate(async (seed) => {
+      const entries: Record<string, string> = {};
+      for (const [direction, items] of Object.entries(seed)) {
+        entries['history' + direction] = JSON.stringify(items);
+      }
+      await chrome.storage.local.set(entries);
+    }, byDirection);
+    await page.close();
+  }
+
+  /**
    * Wait for the Action Popup's language picker to have resolved a language.
    */
   static async waitForLanguagesLoaded(page: Page): Promise<void> {

@@ -197,6 +197,143 @@
     color: var(--lx-accent-text);
 }
 
+/* ── Page header ─────────────────────────────────────────────────────────────── */
+
+/* Shared by the History, Options and Help pages. The board draws each of them with a
+   brand and nothing else, but they are three sibling pages that plainly interlink -
+   and Help has no other way in - so the links stay. */
+.lxNav {
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-4);
+    padding: var(--lx-space-3) var(--lx-space-6);
+    border-bottom: 2px solid var(--lx-divider);
+}
+
+:root[data-lx-theme="dark"] .lxNav {
+    border-bottom-color: var(--lx-accent);
+}
+
+.lxNavBrand {
+    font-family: var(--lx-font-body);
+    font-weight: var(--lx-font-heading-weight);
+    letter-spacing: var(--lx-heading-tracking);
+    font-size: 18px;
+    margin-inline-end: auto;
+}
+
+.lxNavLink {
+    color: inherit;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.lxNavLink:hover,
+.lxNavLink[aria-current="page"] {
+    color: var(--lx-accent-text);
+}
+
+.lxNavLink[aria-current="page"] {
+    font-weight: var(--lx-font-heading-weight);
+}
+
+.lxNavLink:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: 2px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
+
+/* The row of controls under a page header. History puts search, a count and the
+   export/clear actions here; Options puts search and enable/disable all. */
+.lxToolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-3);
+    padding: var(--lx-space-3) var(--lx-space-6);
+    border-bottom: 2px solid var(--lx-divider);
+}
+
+.lxToolbarSpacer {
+    flex: 1 1 auto;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────────── */
+
+.lxTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.lxTable th {
+    text-align: start;
+    padding: var(--lx-space-2) var(--lx-space-3);
+    border-bottom: 2px solid var(--lx-divider);
+    font-size: 11px;
+    font-weight: var(--lx-font-heading-weight);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lx-text-muted);
+    white-space: nowrap;
+}
+
+.lxTable td {
+    padding: var(--lx-space-2) var(--lx-space-3);
+    border-bottom: 1px solid var(--lx-divider);
+    vertical-align: top;
+}
+
+.lxTable tbody tr:hover {
+    background: var(--lx-surface-sunken);
+}
+
+.lxTable input[type="checkbox"] {
+    accent-color: var(--lx-accent);
+}
+
+/* ── Dialog ──────────────────────────────────────────────────────────────────── */
+
+.lxDialogBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: var(--lx-space-4);
+    background: rgba(32, 30, 29, 0.5);
+}
+
+.lxDialog {
+    width: min(440px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: var(--lx-space-3);
+    padding: var(--lx-space-4);
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    background: var(--lx-surface);
+    box-shadow: var(--lx-shadow-md);
+}
+
+.lxDialogTitle {
+    font-weight: var(--lx-font-heading-weight);
+    letter-spacing: var(--lx-heading-tracking);
+    font-size: 20px;
+}
+
+.lxDialogBody {
+    font-size: 14px;
+    color: var(--lx-text-muted);
+}
+
+.lxDialogActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--lx-space-2);
+    margin-top: var(--lx-space-2);
+}
+
 /* ── Empty, loading and error states ─────────────────────────────────────────── */
 
 /* Shared by the Translation Card and the Action Popup: the same lookup, in flight or

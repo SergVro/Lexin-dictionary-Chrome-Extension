@@ -1,4 +1,5 @@
 import { ITranslationParser, IHistoryItem } from "../common/Interfaces.js";
+import { decodeHtmlEntities } from "../util/HtmlEntities.js";
 
 class TranslationParser implements ITranslationParser{
 
@@ -14,9 +15,13 @@ class TranslationParser implements ITranslationParser{
             if (wordHistory && translationHistory) {
                 wordHistory = wordHistory.replace("|", ""); // removing vertical bars from the word
                 const d = new Date();
+                // These come straight out of the Translation Markup, where Lexin
+                // writes every non-Latin script as numeric character references. The
+                // history store holds text, not markup, so they are decoded here
+                // rather than left for whoever renders them to deal with.
                 const historyItem: IHistoryItem = {
-                    word: wordHistory,
-                    translation: translationHistory,
+                    word: decodeHtmlEntities(wordHistory),
+                    translation: decodeHtmlEntities(translationHistory),
                     added: d.getTime()
                 };
                 result.push(historyItem);

@@ -3,7 +3,9 @@ enum MessageType {
     clearHistory,
     getTranslation,
     getSelection,
-    openActionPopup
+    openActionPopup,
+    getHistoryDirections,
+    removeHistoryItem
 }
 
 export default MessageType;

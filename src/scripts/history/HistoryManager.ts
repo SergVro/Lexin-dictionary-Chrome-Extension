@@ -1,5 +1,6 @@
 import { ITranslationParser, IHistoryManager, IHistoryItem, IAsyncStorage } from "../common/Interfaces.js";
 import Tracker from "../common/Tracker.js";
+import { decodeHtmlEntities } from "../util/HtmlEntities.js";
 
 class HistoryManager implements IHistoryManager {
     storageKey: string = "history";
@@ -34,6 +35,17 @@ class HistoryManager implements IHistoryManager {
         const key = this.getStorageKey(langDirection);
         const storedHistory = await this.storage.getItem(key);
         const history: IHistoryItem[] = storedHistory ? JSON.parse(storedHistory) : [];
+
+        // Entries written before the parser decoded them still hold Lexin's numeric
+        // character references. Decoding on the way out cleans them up wherever they
+        // are read, and getHistory writes the result back - which also lets an
+        // encoded entry merge with its decoded twin instead of sitting beside it
+        // forever. Decoding is a no-op for anything without an "&", so this costs
+        // nothing once a store has been through it.
+        for (const item of history) {
+            item.word = decodeHtmlEntities(item.word);
+            item.translation = decodeHtmlEntities(item.translation);
+        }
         return history;
     }
 
@@ -50,6 +62,34 @@ class HistoryManager implements IHistoryManager {
         //  Summary
         //      Clears translation history for the specified language direction
         await this.storage.removeItem(this.getStorageKey(langDirection));
+    }
+
+    /**
+     * Which Language Directions have anything stored.
+     *
+     * Read off the keys rather than kept as an index: an index would be one more thing
+     * to keep in step with addToHistory and clearHistory, and it would go stale for
+     * anyone upgrading from a build that never wrote it.
+     */
+    async getDirections(): Promise<string[]> {
+        const keys = await this.storage.keys();
+        return keys
+            .filter((key) => key.indexOf(this.storageKey) === 0 && key.length > this.storageKey.length)
+            .map((key) => key.substring(this.storageKey.length));
+    }
+
+    /**
+     * Removes one entry, for the History page's per-row delete.
+     *
+     * Matched on word *and* timestamp: _removeDuplicates merges same-word entries
+     * across lookups, so a word on its own does not identify a row.
+     */
+    async removeItem(langDirection: string, word: string, added: number): Promise<void> {
+        const history = await this.loadHistory(langDirection);
+        const remaining = history.filter((item) => !(item.word === word && item.added === added));
+        if (remaining.length !== history.length) {
+            await this.saveHistory(langDirection, remaining);
+        }
     }
 
     async addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {

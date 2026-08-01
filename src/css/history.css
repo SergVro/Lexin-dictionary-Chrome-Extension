@@ -1,29 +1,186 @@
+/*
+ * History page layout. The nav, toolbar, table and dialog are components.css; only
+ * what is specific to this page lives here.
+ */
 
-#history table
-{
-    border-collapse: collapse;
-    border: 1px solid #D9D9D9;
-
-    width: 43em;
+body {
+    margin: 0;
+    font-family: var(--lx-font-body);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--lx-text);
+    background: var(--lx-surface);
 }
 
-#history table th
-{
-    border: 1px solid #D9D9D9;
-    background-color: #f4f4f4;
-    font-weight: normal;
-    min-width: 10em;
-}
-#history table td
-{
-    border-left: 1px solid #D9D9D9;
-    border-right: 1px solid #D9D9D9;
-    border-top: 1px solid #D9D9D9;
-
-    padding: 0 0.4em 0 0.4em;
+.lxPage {
+    padding: 0 var(--lx-space-6) var(--lx-space-8);
 }
 
-#history table td.nobottomborder
-{
-    border-top: none;
+/* ── Direction tabs ──────────────────────────────────────────────────────────── */
+
+.lxTabs {
+    display: flex;
+    flex-wrap: wrap;
+    padding: var(--lx-space-3) var(--lx-space-6);
+    border-bottom: 2px solid var(--lx-divider);
+}
+
+.lxTab {
+    padding: 7px 12px;
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    background: transparent;
+    color: var(--lx-text);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* One shared rule between neighbours, the way the segmented control reads. */
+.lxTab + .lxTab {
+    border-inline-start: 0;
+}
+
+.lxTab:hover:not([aria-selected="true"]) {
+    background: var(--lx-accent-tint);
+}
+
+.lxTab[aria-selected="true"] {
+    background: var(--lx-accent);
+    color: var(--lx-surface);
+    border-color: var(--lx-accent);
+}
+
+.lxTab:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: -2px;
+}
+
+/* ── Toolbar bits ────────────────────────────────────────────────────────────── */
+
+.lxSearch {
+    position: relative;
+    display: block;
+    width: 240px;
+    flex: none;
+}
+
+.lxSearchIcon {
+    position: absolute;
+    inset-inline-start: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    pointer-events: none;
+    color: var(--lx-text-muted);
+}
+
+.lxSearch .lxInput {
+    padding-inline-start: 30px;
+}
+
+.lxCount {
+    font-size: 13px;
+    color: var(--lx-text-muted);
+    white-space: nowrap;
+}
+
+/* ── Export menu ─────────────────────────────────────────────────────────────── */
+
+.lxMenu {
+    position: relative;
+    flex: none;
+}
+
+.lxMenuList {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + 2px);
+    z-index: 20;
+    min-width: 200px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--lx-surface);
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    box-shadow: var(--lx-shadow-md);
+}
+
+.lxMenuList li {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lxMenuList li:hover,
+.lxMenuList li:focus {
+    background: var(--lx-accent);
+    color: var(--lx-surface);
+    outline: none;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────────── */
+
+.lxColSelect {
+    width: 36px;
+}
+
+.lxColDate {
+    width: 96px;
+    white-space: nowrap;
+}
+
+.lxTable td.lxColDate,
+.lxTable td.lxColLanguage {
+    color: var(--lx-text-muted);
+}
+
+.lxColLanguage {
+    width: 120px;
+    white-space: nowrap;
+}
+
+.lxColActions {
+    width: 48px;
+}
+
+.lxWord {
+    font-weight: var(--lx-font-heading-weight);
+}
+
+/* A day reads as one group because the date is written once and blanked on the rows
+   that repeat it. The blanked *text* is the whole mechanism - dropping the row rule
+   under those cells too only broke the table's horizontal rules into a ladder. */
+
+.lxRowDelete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--lx-text-muted);
+    cursor: pointer;
+    /* Hidden until wanted: a delete button on every one of a few hundred rows is
+       noise. Revealed on row hover, and on keyboard focus so it stays reachable. */
+    opacity: 0;
+}
+
+.lxTable tbody tr:hover .lxRowDelete,
+.lxRowDelete:focus-visible {
+    opacity: 1;
+}
+
+.lxRowDelete:hover {
+    color: var(--lx-accent-text);
+}
+
+.lxRowDelete:focus-visible {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: 2px;
 }

@@ -75,7 +75,8 @@ is read today and written by the Options page redesign.
 
 ```
 tokens.css              variables only
-components.css          .lxButton / .lxInput / .lxSeg / .lxChip / .lxState / .lxSpinner
+components.css          .lxButton .lxInput .lxField .lxSeg .lxChip .lxState .lxSpinner
+                        .lxNav .lxToolbar .lxTable .lxDialog
 card.css                Translation Card chrome, shadow root only
 translation-content.css the dictionary's own markup, card + Action Popup
 <surface>.css           layout for one surface

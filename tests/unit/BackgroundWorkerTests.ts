@@ -71,6 +71,8 @@ describe("BackgroundWorker", () => {
         expect(fakeMessageHandlers.getTranslationHandler).not.toBeNull();
         expect(fakeMessageHandlers.clearHistoryHandler).not.toBeNull();
         expect(fakeMessageHandlers.loadHistoryHandler).not.toBeNull();
+        expect(fakeMessageHandlers.loadHistoryDirectionsHandler).not.toBeNull();
+        expect(fakeMessageHandlers.removeHistoryItemHandler).not.toBeNull();
         expect(fakeMessageHandlers.openActionPopupHandler).not.toBeNull();
     });
 });
