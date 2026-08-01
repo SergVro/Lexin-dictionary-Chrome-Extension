@@ -91,6 +91,41 @@ export function search(size: number = 14): SVGElement {
     return withPath(withCircle(createSvg(size), 11, 11, 7), "m21 21-4.3-4.3");
 }
 
+/**
+ * The three ways to trigger a translation, on the Help page.
+ *
+ * A drawing of the gesture is worth more than a numbered list to a reader who is on
+ * their second or third language - which is most of them.
+ */
+
+/** Lucide "keyboard" - the Alt + double-click gesture. */
+export function keyboard(size: number = 28): SVGElement {
+    const svg = withPath(createSvg(size), "M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z");
+    withPath(svg, "M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10");
+    return svg;
+}
+
+/** Lucide "mouse-pointer-click" - select first, then Alt + click. */
+export function pointer(size: number = 28): SVGElement {
+    const svg = withPath(createSvg(size), "M9 9l5 12 1.774-5.226L21 14 9 9z");
+    withPath(svg, "M16.071 16.071l4.243 4.243M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122M5.136 16.035l-2.898.777");
+    return svg;
+}
+
+/** Lucide "scan" - select, then click the toolbar icon. */
+export function frame(size: number = 28): SVGElement {
+    return withPath(createSvg(size),
+        "M9 3H5a2 2 0 0 0-2 2v4m18-6h-4a2 2 0 0 0-2 2v4M3 15v4a2 2 0 0 0 2 2h4m10 0h4a2 2 0 0 0 2-2v-4");
+}
+
+/** Lucide "external-link" - marks a link that leaves the extension. */
+export function externalLink(size: number = 13): SVGElement {
+    const svg = withPath(createSvg(size), "M15 3h6v6");
+    withPath(svg, "M10 14 21 3");
+    withPath(svg, "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6");
+    return svg;
+}
+
 /** Lucide "check" - the toast's confirmation mark. */
 export function check(size: number = 15): SVGElement {
     return withPath(createSvg(size), "m20 6-11 11-5-5");

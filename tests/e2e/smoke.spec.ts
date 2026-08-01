@@ -489,8 +489,7 @@ test.describe('Extension Smoke Tests', () => {
   });
 
   test('navigation between extension pages should work', async ({ optionsPage }) => {
-    // Options and History share .lxNav now; Help keeps the old sidebar until its own
-    // pass, but it is only the destination here.
+    // All three pages share .lxNav now - the 2012 sidebar is gone from the extension.
     const page = await optionsPage();
 
     await page.click('#HistoryMenu');
@@ -500,8 +499,58 @@ test.describe('Extension Smoke Tests', () => {
     await page.click('#HelpMenu');
     await page.waitForLoadState('domcontentloaded');
     await expect(page).toHaveTitle('Lexin dictionary Help');
+    await expect(page.locator('#HelpMenu')).toHaveAttribute('aria-current', 'page');
+
+    await page.click('#OptionsMenu');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page).toHaveTitle('Lexin dictionary Options');
 
     await page.close();
+  });
+
+  test('help page explains the gesture visually and points at the export', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.locator('.lxNavBrand')).toContainText('Help');
+
+    // Three gestures, each drawn rather than described in a numbered paragraph.
+    const steps = page.locator('.lxStep');
+    await expect(steps).toHaveCount(3);
+    await expect(steps.first()).toContainText('Alt + double-click a word');
+    await expect(page.locator('.lxStepIcon svg')).toHaveCount(3);
+
+    // The eight-step manual Quizlet walkthrough is replaced by pointing at the
+    // export button that now exists.
+    const body = await page.locator('main').innerText();
+    expect(body).toContain('Quizlet-ready');
+    expect(body).not.toContain('Between Term and Definition');
+    expect(body).not.toContain('Copy table with translations history');
+
+    await expect(page.locator('#folketsLink')).toBeVisible();
+    await expect(page.locator('#issueLink')).toBeVisible();
+
+    await page.close();
+  });
+
+  test('no page still loads the 2012 stylesheets', async ({ context, extensionId }) => {
+    // "Two visual languages exist today, and that's a problem to solve" - this is the
+    // assertion that they are down to one.
+    for (const name of ['popup', 'history', 'options', 'help']) {
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/html/${name}.html`);
+      await page.waitForLoadState('domcontentloaded');
+
+      const sheets = await page.evaluate(() =>
+        Array.from(document.styleSheets).map((sheet) => sheet.href || ''));
+
+      expect(sheets.some((href) => href.endsWith('/tokens.css')), `${name} loads tokens.css`).toBe(true);
+      expect(sheets.some((href) => href.endsWith('/common.css')), `${name} still loads common.css`).toBe(false);
+      expect(sheets.some((href) => href.endsWith('/chrome_shared.css')), `${name} still loads chrome_shared.css`).toBe(false);
+
+      await page.close();
+    }
   });
 
   /**

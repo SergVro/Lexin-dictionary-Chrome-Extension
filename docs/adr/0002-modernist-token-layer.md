@@ -13,6 +13,12 @@ neutral/accent ramps generated in OKLCH on a shared perceptual lightness scale.
 
 It arrives here as `src/css/tokens.css`, which every other stylesheet reads from.
 
+**Status: all five surfaces are converted.** The Translation Card, Action Popup,
+History, Options and Help pages all resolve their values from the tokens, and
+`common.css` and `chrome_shared.css` — the 2012 Chrome-options sheets — have been
+deleted along with the orphaned `css/images/` icon they were the last users of. An e2e
+case asserts no page loads them again.
+
 ## Four deliberate divergences from the source stylesheet
 
 The design project's `styles.css` is the source of truth for the *look*. It is not
