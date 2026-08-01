@@ -1,143 +1,209 @@
 import * as DomUtils from "../util/DomUtils.js";
-import { fadeOut } from "../util/AnimationUtils.js";
+import * as Icons from "../util/Icons.js";
+import { showToast } from "../util/Toast.js";
+import { fold } from "../util/Combobox.js";
 import LanguageManager from "../common/LanguageManager.js";
+import ThemeManager, { Appearance, applyTheme } from "../common/ThemeManager.js";
+import Settings from "../common/Settings.js";
 import Tracker from "../common/Tracker.js";
+import { ILanguage } from "../common/Interfaces.js";
 
 class OptionsPage {
 
     private languageManager: LanguageManager;
+    private themeManager: ThemeManager;
+    private settings: Settings;
 
-    constructor(languageManager: LanguageManager) {
+    private languages: ILanguage[] = [];
+    private enabled = new Set<string>();
+    private defaultLanguage: string = "";
+    private query = "";
+
+    constructor(languageManager: LanguageManager, themeManager: ThemeManager, settings: Settings) {
         this.languageManager = languageManager;
+        this.themeManager = themeManager;
+        this.settings = settings;
 
         this.initialize();
     }
 
     private async initialize(): Promise<void> {
+        DomUtils.append(DomUtils.$("#searchIcon"), Icons.search());
+
         await this.languageManager.waitForInitialization();
-        await this.fillLanguages();
-        await this.restore_options();
+        this.languages = this.languageManager.getLanguages();
+        this.defaultLanguage = await this.languageManager.getCurrentLanguage();
+
+        const enabledLanguages = await this.languageManager.getEnabledLanguages();
+        this.enabled = new Set(enabledLanguages.map((lang) => lang.value));
+
+        this.renderLanguages();
+        await this.restoreSettings();
+        this.subscribeOnEvents();
     }
 
-    // Saves options to chrome.storage.
-    async save_options(): Promise<void> {
+    // ── Languages ────────────────────────────────────────────────────────────────
 
-        const checkedLang = DomUtils.$("input[name='langs']:checked") as HTMLInputElement;
-        if (checkedLang) {
-            await this.languageManager.setCurrentLanguage(checkedLang.value);
-        }
-
-        const checked = DomUtils.$$("input[name='enabled']:checked") as NodeListOf<HTMLInputElement>;
-        const enabled: string[] = [];
-        for (let i = 0; i < checked.length; i++) {
-            enabled.push(checked[i].value);
-        }
-        await this.languageManager.setEnabledByValues(enabled);
-        // Update status to let user know options were saved.
-        const status = DomUtils.$("#status") as HTMLElement;
-        DomUtils.setHtml(status, "Options saved");
-        status.style.display = "block";
-        setTimeout(() => {
-            fadeOut(status, 200);
-        }, 750);
+    private visibleLanguages(): ILanguage[] {
+        const needle = fold(this.query.trim());
+        return needle
+            ? this.languages.filter((lang) => fold(lang.text).indexOf(needle) >= 0)
+            : this.languages;
     }
 
-    // Restores select box state to saved value from chrome.storage.
-    async restore_options(): Promise<void> {
-        const currentLang = await this.languageManager.getCurrentLanguage();
-        const langInput = DomUtils.$(`input[name='langs'][value='${currentLang}']`) as HTMLInputElement;
-        if (langInput) {
-            langInput.checked = true;
-        }
-    }
+    private renderLanguages(): void {
+        const rows = DomUtils.$("#languageRows") as HTMLElement;
+        DomUtils.empty(rows);
 
-    async fillLanguages(): Promise<void> {
-        const languages = this.languageManager.getLanguages();
-        const languageButtons = DomUtils.$("#languageButtons") as HTMLElement;
-        DomUtils.empty(languageButtons);
-        for (const lang of languages) {
-            const li = DomUtils.createElement("li");
-            const input = DomUtils.createElement("input", {
-                type: "radio",
-                name: "langs",
-                value: lang.value,
-                id: lang.value
-            });
-            const span = DomUtils.createElement("label", { for: lang.value }, lang.text);
-            DomUtils.append(li, input);
-            DomUtils.append(li, span);
-            const checkBox = DomUtils.createElement("input", {
+        const fragment = document.createDocumentFragment();
+
+        for (const lang of this.visibleLanguages()) {
+            const isDefault = lang.value === this.defaultLanguage;
+            const isVisible = this.enabled.has(lang.value) || isDefault;
+
+            const tr = DomUtils.createElement("tr");
+            DomUtils.append(tr, DomUtils.createElement("td", undefined, lang.text));
+
+            // Visible
+            const visibleCell = DomUtils.createElement("td");
+            DomUtils.addClass(visibleCell, "lxColVisible");
+            const checkbox = DomUtils.createElement("input", {
                 type: "checkbox",
-                name: "enabled",
-                title: "Enabled",
                 value: lang.value,
-                id: "enabled_" + lang.value
+                "aria-label": `Show ${lang.text}`
             }) as HTMLInputElement;
-
-            // Note: isEnabled and currentLanguage are async, but we need to check them synchronously here
-            // This will be updated after async initialization completes
-            const isEnabled = await this.languageManager.isEnabled(lang.value);
-            if (isEnabled) {
-                checkBox.checked = true;
+            checkbox.checked = isVisible;
+            // The default is what a lookup falls back to, so hiding it would leave the
+            // extension pointing at a language the reader cannot see or change.
+            checkbox.disabled = isDefault;
+            if (isDefault) {
+                DomUtils.setAttr(checkbox, "title", "The default language is always visible");
             }
+            checkbox.addEventListener("change", () => this.setVisible(lang, checkbox.checked));
+            DomUtils.append(visibleCell, checkbox);
+            DomUtils.append(tr, visibleCell);
 
-            const currentLang = await this.languageManager.getCurrentLanguage();
-            if (lang.value === currentLang) {
-                checkBox.disabled = true;
+            // Default
+            const defaultCell = DomUtils.createElement("td");
+            DomUtils.addClass(defaultCell, "lxColDefault");
+            if (isDefault) {
+                const chip = DomUtils.createElement("span", undefined, "Default");
+                DomUtils.addClass(chip, "lxChip");
+                DomUtils.addClass(chip, "lxChipAccent");
+                DomUtils.append(defaultCell, chip);
+            } else if (isVisible) {
+                const button = DomUtils.createElement("button", {
+                    type: "button",
+                    "aria-label": `Make ${lang.text} the default language`
+                }, "Set default");
+                DomUtils.addClass(button, "lxButton");
+                DomUtils.addClass(button, "lxButtonQuiet");
+                button.addEventListener("click", () => this.setDefault(lang));
+                DomUtils.append(defaultCell, button);
+            } else {
+                // Not visible, so not eligible - make it visible first.
+                const dash = DomUtils.createElement("span", { title: "Make it visible first" }, "—");
+                DomUtils.addClass(dash, "lxNoDefault");
+                DomUtils.append(defaultCell, dash);
             }
+            DomUtils.append(tr, defaultCell);
 
-            DomUtils.append(li, checkBox);
-            DomUtils.append(languageButtons, li);
+            fragment.appendChild(tr);
         }
 
-        const self = this;
-        const langInputs = DomUtils.$$("input[name='langs']") as NodeListOf<HTMLInputElement>;
-        langInputs.forEach((input) => {
-            input.addEventListener("change", async function() {
-                const disabledInputs = DomUtils.$$("input[name='enabled']:disabled") as NodeListOf<HTMLInputElement>;
-                disabledInputs.forEach((disabledInput) => {
-                    disabledInput.disabled = false;
-                    disabledInput.checked = false;
-                });
-                const enabledInput = DomUtils.$(`#enabled_${this.value}`) as HTMLInputElement;
-                if (enabledInput) {
-                    enabledInput.checked = true;
-                    enabledInput.disabled = true;
-                }
-                await self.save_options();
-                Tracker.track("language", "changed");
-            });
-        });
+        rows.appendChild(fragment);
+    }
 
-        const enabledInputs = DomUtils.$$("input[name='enabled']") as NodeListOf<HTMLInputElement>;
-        enabledInputs.forEach((input) => {
-            input.addEventListener("change", async function() {
-                await self.save_options();
-                Tracker.track("enabled_language", "changed", this.value);
-            });
-        });
-
-        const checkAll = DomUtils.$("#checkAll") as HTMLInputElement;
-        if (checkAll) {
-            // Initialize checkAll state based on actual enabled languages
-            const enabledLanguages = await this.languageManager.getEnabledLanguages();
-            const allLanguages = this.languageManager.getLanguages();
-            // Check if all languages (except possibly the current one which is always enabled) are enabled
-            // We need to account for the fact that currentLanguage is always included
-            const enabledCount = enabledLanguages.length;
-            const totalCount = allLanguages.length;
-            checkAll.checked = enabledCount === totalCount;
-            
-            checkAll.addEventListener("change", async function() {
-                const checkbox = this as HTMLInputElement;
-                const enabledInputs = DomUtils.$$("input[name='enabled']:enabled") as NodeListOf<HTMLInputElement>;
-                enabledInputs.forEach((input) => {
-                    input.checked = checkbox.checked;
-                });
-                await self.save_options();
-                Tracker.track("enabled_language", "changed_all", checkbox.checked.toString());
-            });
+    private async setVisible(lang: ILanguage, visible: boolean): Promise<void> {
+        if (visible) {
+            this.enabled.add(lang.value);
+        } else {
+            this.enabled.delete(lang.value);
         }
+        Tracker.track("enabled_language", "changed", lang.value);
+        await this.saveEnabled();
+        // The Default cell for this row turns into a button or an em dash.
+        this.renderLanguages();
+    }
+
+    private async setDefault(lang: ILanguage): Promise<void> {
+        this.defaultLanguage = lang.value;
+        // Being the default implies being visible - the checkbox for the new default
+        // is about to become disabled, so the set has to agree with it.
+        this.enabled.add(lang.value);
+        await this.languageManager.setCurrentLanguage(lang.value);
+        await this.saveEnabled();
+        Tracker.track("language", "changed", lang.value);
+        this.renderLanguages();
+    }
+
+    private async saveEnabled(): Promise<void> {
+        await this.languageManager.setEnabledByValues(Array.from(this.enabled));
+        showToast("Options saved");
+    }
+
+    /**
+     * Bulk toggles act on what the search is showing, so "Disable all" after typing
+     * "kurd" does what it says rather than clearing the other nineteen too.
+     */
+    private async setAllVisible(visible: boolean): Promise<void> {
+        for (const lang of this.visibleLanguages()) {
+            if (lang.value === this.defaultLanguage) {
+                continue; // always visible
+            }
+            if (visible) {
+                this.enabled.add(lang.value);
+            } else {
+                this.enabled.delete(lang.value);
+            }
+        }
+        Tracker.track("enabled_language", "changed_all", visible.toString());
+        await this.saveEnabled();
+        this.renderLanguages();
+    }
+
+    // ── Settings ─────────────────────────────────────────────────────────────────
+
+    private async restoreSettings(): Promise<void> {
+        const appearance = await this.themeManager.getAppearance();
+        const appearanceInput = DomUtils.$(`#appearance input[value='${appearance}']`) as HTMLInputElement;
+        if (appearanceInput) {
+            appearanceInput.checked = true;
+        }
+
+        const recording = await this.settings.getRecordHistory();
+        const recordInput = DomUtils.$(`#recordHistory input[value='${recording ? "on" : "off"}']`) as HTMLInputElement;
+        if (recordInput) {
+            recordInput.checked = true;
+        }
+    }
+
+    private subscribeOnEvents(): void {
+        const search = DomUtils.$("#languageSearch") as HTMLInputElement;
+        search?.addEventListener("input", () => {
+            this.query = search.value;
+            this.renderLanguages();
+        });
+
+        DomUtils.$("#enableAll")?.addEventListener("click", () => this.setAllVisible(true));
+        DomUtils.$("#disableAll")?.addEventListener("click", () => this.setAllVisible(false));
+
+        DomUtils.$("#appearance")?.addEventListener("change", async (e: Event) => {
+            const appearance = (e.target as HTMLInputElement).value as Appearance;
+            await this.themeManager.setAppearance(appearance);
+            // Applied here and now: the page carrying the control is where a reader
+            // expects to see what they just chose.
+            applyTheme(document.documentElement, this.themeManager.resolveTheme(appearance));
+            Tracker.track("appearance", "changed", appearance);
+            showToast("Options saved");
+        });
+
+        DomUtils.$("#recordHistory")?.addEventListener("change", async (e: Event) => {
+            const recording = (e.target as HTMLInputElement).value === "on";
+            await this.settings.setRecordHistory(recording);
+            Tracker.track("recordHistory", "changed", recording.toString());
+            showToast("Options saved");
+        });
     }
 }
 

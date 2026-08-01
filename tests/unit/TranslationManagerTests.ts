@@ -4,6 +4,7 @@ import TranslationManager from "../../src/scripts/dictionary/TranslationManager.
 import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import HistoryManager from "../../src/scripts/history/HistoryManager.js";
 import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import Settings from "../../src/scripts/common/Settings.js";
 import { FakeDictionary, FakeAsyncStorage, FakeAsyncSettingsStorage } from "./util/fakes.js";
 
 describe("TranslationManager", () => {
@@ -11,6 +12,7 @@ describe("TranslationManager", () => {
     let fakeDictionary: FakeDictionary;
     let languageManager: LanguageManager;
     let historyManager: HistoryManager;
+    let settings: Settings;
     let fakeStorage: FakeAsyncStorage;
     let fakeSettingsStorage: FakeAsyncSettingsStorage;
 
@@ -25,7 +27,8 @@ describe("TranslationManager", () => {
         languageManager = new LanguageManager(fakeSettingsStorage, dictionaryFactory);
         await languageManager.waitForInitialization();
         historyManager = new HistoryManager(translationParser, fakeStorage);
-        translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
+        settings = new Settings(fakeSettingsStorage);
+        translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager, settings);
     });
 
     describe("getTranslation", () => {
@@ -48,6 +51,36 @@ describe("TranslationManager", () => {
             const currentLang = await languageManager.getCurrentLanguage();
             const history = await historyManager.getHistory(currentLang);
             expect(history.length).toBe(0);
+        });
+
+        it("should skip adding word to history when the reader turned recording off", async () => {
+            await settings.setRecordHistory(false);
+
+            await translationManager.getTranslation("aword", TranslationDirection.to);
+
+            const currentLang = await languageManager.getCurrentLanguage();
+            expect((await historyManager.getHistory(currentLang)).length).toBe(0);
+        });
+
+        it("should still return the translation when recording is off", async () => {
+            // The setting governs what is stored, not what the reader gets to read.
+            await settings.setRecordHistory(false);
+
+            const translation = await translationManager.getTranslation("aword", TranslationDirection.to);
+
+            expect(translation).toBe("atranslation");
+        });
+
+        it("should leave words stored before recording was turned off alone", async () => {
+            await translationManager.getTranslation("aword", TranslationDirection.to);
+            await settings.setRecordHistory(false);
+
+            await translationManager.getTranslation("another", TranslationDirection.to);
+
+            const currentLang = await languageManager.getCurrentLanguage();
+            const history = await historyManager.getHistory(currentLang);
+            expect(history.length).toBe(1);
+            expect(history[0].word).toBe("aword");
         });
 
         it("should reject for empty word", async () => {

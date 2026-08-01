@@ -91,6 +91,11 @@ export function search(size: number = 14): SVGElement {
     return withPath(withCircle(createSvg(size), 11, 11, 7), "m21 21-4.3-4.3");
 }
 
+/** Lucide "check" - the toast's confirmation mark. */
+export function check(size: number = 15): SVGElement {
+    return withPath(createSvg(size), "m20 6-11 11-5-5");
+}
+
 /** Lucide "trash-2" - remove one row from the History page. */
 export function trash(size: number = 15): SVGElement {
     return withPath(createSvg(size), "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6");

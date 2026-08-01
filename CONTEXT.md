@@ -64,3 +64,21 @@ What a surface actually renders as, once an Appearance of `system` has been reso
 against the OS. Only ever `light` or `dark`, and written to the DOM as
 `data-lx-theme`, which every design token keys off.
 _Avoid_: mode, skin
+
+### Options
+
+**Visible**:
+Whether a Language Direction is offered in the popup's picker and the History page's
+tabs. The stored form is the *Enabled Language* list above; "visible" is what the
+Options page calls it, because that is what the reader sees change.
+_Avoid_: shown, active
+
+**Default**:
+The one Language Direction a lookup uses when the reader has not chosen otherwise.
+Exactly one exists, it is always Visible, and it is what `defaultLanguage` holds.
+_Avoid_: primary language, current language
+
+**Record history**:
+Whether lookups are added to the history store. Off stops new entries only — what is
+already stored stays until cleared from the History page.
+_Avoid_: tracking, logging

@@ -70,6 +70,20 @@
     background: var(--lx-accent-tint);
 }
 
+/* A text action that repeats down a list - "Set default" on every language row.
+   Ghost's accent is right for a page's one or two actions; twenty of them stop being
+   emphasis and start competing with the state the column exists to show. */
+.lxButtonQuiet {
+    font-weight: 400;
+    padding-inline: var(--lx-space-1);
+}
+
+.lxButtonQuiet:hover:not(:disabled) {
+    color: var(--lx-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .lxButtonIcon {
     width: 32px;
     height: 32px;
@@ -142,8 +156,11 @@
     outline-offset: 0;
 }
 
-/* ── Segmented readout ───────────────────────────────────────────────────────── */
+/* ── Segmented control ───────────────────────────────────────────────────────── */
 
+/* Two jobs, one look: a readout (the Action Popup's direction badge, which marks its
+   one option with .lxSegOptionSelected) and a real choice (the Options page, where
+   each option is a <label> wrapping a hidden radio). */
 .lxSeg {
     display: inline-flex;
     flex: none;
@@ -160,15 +177,46 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 .lxSegOption + .lxSegOption {
     border-inline-start: 1px solid var(--lx-divider);
 }
 
-.lxSegOptionSelected {
+/* Hidden, not absent: the radios are what make this a group a screen reader can
+   announce and arrow-key through. */
+.lxSegOption input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.lxSegOptionSelected,
+.lxSegOption:has(input:checked) {
     background: var(--lx-accent);
     color: var(--lx-surface);
+}
+
+.lxSegOption:not(:has(input:checked)):hover {
+    background: var(--lx-accent-tint);
+}
+
+/* The ring goes on the label, since the input it belongs to has no size. */
+.lxSegOption:has(input:focus-visible) {
+    outline: 2px solid var(--lx-accent);
+    outline-offset: -2px;
+}
+
+/* ── Rules ───────────────────────────────────────────────────────────────────── */
+
+.lxHr {
+    height: 2px;
+    border: 0;
+    margin: var(--lx-space-6) 0;
+    background: var(--lx-divider);
 }
 
 /* ── Chips ───────────────────────────────────────────────────────────────────── */
@@ -332,6 +380,44 @@
     justify-content: flex-end;
     gap: var(--lx-space-2);
     margin-top: var(--lx-space-2);
+}
+
+/* ── Toast ───────────────────────────────────────────────────────────────────── */
+
+/* Confirms something that already happened. Fixed, so it never reflows the page it
+   is reporting on - the Options page saves on every change, and a message that
+   shifted the row you just clicked would be its own bug. */
+.lxToast {
+    position: fixed;
+    /* Inline end, not start: every control that raises one sits at the inline start,
+       and a confirmation that covers the switch you just flipped is its own bug. */
+    inset-inline-end: var(--lx-space-6);
+    inset-block-end: var(--lx-space-6);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-2);
+    padding: 12px 16px;
+    background: var(--lx-text);
+    color: var(--lx-surface);
+    font-size: 13px;
+    box-shadow: var(--lx-shadow-md);
+    transition: opacity 200ms ease;
+}
+
+.lxToastIcon {
+    color: var(--lx-accent-inverse);
+    flex: none;
+}
+
+.lxToastLeaving {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lxToast {
+        transition: none;
+    }
 }
 
 /* ── Empty, loading and error states ─────────────────────────────────────────── */

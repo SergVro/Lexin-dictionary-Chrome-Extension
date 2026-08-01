@@ -6,6 +6,7 @@ import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
 import * as HistoryExport from "./HistoryExport.js";
 import { confirmDialog } from "../util/Dialog.js";
+import { showToast } from "../util/Toast.js";
 import { fold } from "../util/Combobox.js";
 
 /** Identifies a row across a re-render, so selection survives searching. */
@@ -400,11 +401,9 @@ class HistoryPage {
 
         if (exportFormat === "clipboard") {
             const copied = await HistoryExport.copyToClipboard(text);
-            const count = DomUtils.$("#historyCount") as HTMLElement;
-            DomUtils.setText(count, copied
+            showToast(copied
                 ? `${items.length} copied to clipboard`
                 : "Could not copy to the clipboard");
-            setTimeout(() => this.renderCount(), 2500);
             return;
         }
         HistoryExport.download(text, HistoryExport.fileNameFor(exportFormat));

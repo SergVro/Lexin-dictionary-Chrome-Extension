@@ -90,37 +90,176 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  /** Every language row, once the table has been populated. */
+  async function languageRows(page: import('@playwright/test').Page) {
+    const rows = page.locator('#languageRows tr');
+    await expect(rows.first()).toBeVisible();
+    return rows;
+  }
+
+  /**
+   * Pick an option in a segmented control by clicking its label, the way a reader
+   * does. The radio itself is visually hidden - it is there so the group is
+   * announced and arrow-key operable, not to be clicked.
+   */
+  async function pickSegOption(page: import('@playwright/test').Page, groupId: string, label: string) {
+    await page.locator(`#${groupId} .lxSegOption`).filter({ hasText: new RegExp(`^${label}$`) }).click();
+  }
+
   test('options page should open and display language settings', async ({ optionsPage }) => {
     const page = await optionsPage();
-    
-    // Check page title
+
     await expect(page).toHaveTitle('Lexin dictionary Options');
-    
-    // Check main UI elements are present
-    await expect(page.locator('.page h1')).toContainText('Options');
-    await expect(page.locator('#languageButtons')).toBeVisible();
-    await expect(page.locator('#checkAll')).toBeVisible();
-    
-    // Check navigation menu is present
-    await expect(page.locator('#navbar')).toBeVisible();
-    await expect(page.locator('#HistoryMenu')).toBeVisible();
-    await expect(page.locator('#OptionsMenu')).toBeVisible();
-    await expect(page.locator('#HelpMenu')).toBeVisible();
-    
-    // Wait for language buttons to be populated
-    await page.waitForFunction(() => {
-      const container = document.querySelector('#languageButtons');
-      return container && container.children.length > 0;
-    });
-    
-    // Check that language radio buttons and checkboxes are present
-    const radioButtons = await page.locator('#languageButtons input[type="radio"]').count();
-    const checkboxes = await page.locator('#languageButtons input[type="checkbox"]').count();
-    
-    expect(radioButtons).toBeGreaterThan(0);
-    expect(checkboxes).toBeGreaterThan(0);
-    
+    await expect(page.locator('.lxNavBrand')).toContainText('Options');
+
+    const rows = await languageRows(page);
+    expect(await rows.count()).toBe(21);
+
+    // One default, N visible: a row carries one checkbox and either the chip or the
+    // button - never the radio-plus-checkbox pair that made the old page a puzzle.
+    await expect(page.locator('#languageRows input[type="radio"]')).toHaveCount(0);
+    await expect(page.locator('#languageRows input[type="checkbox"]')).toHaveCount(21);
+    await expect(page.locator('#languageRows .lxChip', { hasText: 'Default' })).toHaveCount(1);
+
+    // The old sidebar and its bulk checkbox are gone.
+    await expect(page.locator('#navbar')).toHaveCount(0);
+    await expect(page.locator('#checkAll')).toHaveCount(0);
+    await expect(page.locator('#OptionsMenu')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#enableAll')).toBeVisible();
+    await expect(page.locator('#disableAll')).toBeVisible();
+
     await page.close();
+  });
+
+  test('options search narrows the language list', async ({ optionsPage }) => {
+    const page = await optionsPage();
+    await languageRows(page);
+
+    // Two Kurdish languages, neither of which starts with the word.
+    await page.locator('#languageSearch').fill('kurd');
+    await expect(page.locator('#languageRows tr')).toHaveCount(2);
+
+    // Folded, so an unaccented query still finds the accented name.
+    await page.locator('#languageSearch').fill('');
+    await expect(page.locator('#languageRows tr')).toHaveCount(21);
+
+    await page.close();
+  });
+
+  test('setting a default moves the chip and pins that language visible', async ({ context, extensionId, optionsPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await optionsPage();
+    await languageRows(page);
+
+    const english = page.locator('#languageRows tr', { hasText: 'English' });
+    const arabic = page.locator('#languageRows tr', { hasText: 'Arabic' });
+
+    await expect(english.locator('.lxChip')).toHaveText('Default');
+    // The default cannot be hidden - it is what a lookup falls back to.
+    await expect(english.locator('input[type="checkbox"]')).toBeDisabled();
+    await expect(english.locator('input[type="checkbox"]')).toBeChecked();
+
+    await arabic.locator('button', { hasText: 'Set default' }).click();
+
+    await expect(arabic.locator('.lxChip')).toHaveText('Default');
+    await expect(arabic.locator('input[type="checkbox"]')).toBeDisabled();
+    await expect(english.locator('button', { hasText: 'Set default' })).toBeVisible();
+    await expect(english.locator('input[type="checkbox"]')).toBeEnabled();
+    await expect(page.locator('.lxToast')).toContainText('Options saved');
+
+    await page.close();
+  });
+
+  test('a hidden language cannot be made the default until it is visible', async ({ context, extensionId, optionsPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await optionsPage();
+    await languageRows(page);
+
+    const finnish = page.locator('#languageRows tr', { hasText: 'Finnish' });
+    await finnish.locator('input[type="checkbox"]').uncheck();
+
+    // An em dash, not a button: make it visible first.
+    await expect(finnish.locator('button')).toHaveCount(0);
+    await expect(finnish.locator('.lxNoDefault')).toHaveText('—');
+
+    await finnish.locator('input[type="checkbox"]').check();
+    await expect(finnish.locator('button', { hasText: 'Set default' })).toBeVisible();
+
+    await page.close();
+  });
+
+  test('disable all leaves the default visible', async ({ context, extensionId, optionsPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    const page = await optionsPage();
+    await languageRows(page);
+
+    await page.locator('#disableAll').click();
+
+    await expect(page.locator('#languageRows input[type="checkbox"]:checked')).toHaveCount(1);
+    await expect(page.locator('#languageRows tr', { hasText: 'English' })
+      .locator('input[type="checkbox"]')).toBeChecked();
+
+    await page.locator('#enableAll').click();
+    await expect(page.locator('#languageRows input[type="checkbox"]:checked')).toHaveCount(21);
+
+    await page.close();
+  });
+
+  test('appearance is finally writable, and the whole extension follows it', async ({ optionsPage, historyPage }) => {
+    // The setting has been stored and honoured since the card redesign; until now
+    // nothing could write it, so every reader was on "system".
+    const page = await optionsPage();
+    await expect(page.locator('#appearance input[value="system"]')).toBeChecked();
+
+    await pickSegOption(page, 'appearance', 'Dark');
+
+    // Applied on the page carrying the control, immediately.
+    await expect(page.locator('html')).toHaveAttribute('data-lx-theme', 'dark');
+    await expect(page.locator('.lxToast')).toContainText('Options saved');
+
+    await page.reload();
+    await expect(page.locator('#appearance input[value="dark"]')).toBeChecked();
+    await expect(page.locator('html')).toHaveAttribute('data-lx-theme', 'dark');
+
+    // And every other surface reads the same setting.
+    const history = await historyPage();
+    await expect(history.locator('html')).toHaveAttribute('data-lx-theme', 'dark');
+
+    await history.close();
+    await page.close();
+  });
+
+  test('record history off stops new lookups being stored, and keeps the old ones', async ({ context, extensionId, optionsPage, popupPage, historyPage }) => {
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
+    await ExtensionHelpers.seedHistory(context, extensionId, {
+      swe_eng: [{ word: 'gammal', translation: 'old', added: Date.parse('2026-07-01T10:00:00Z') }]
+    });
+
+    const options = await optionsPage();
+    await expect(options.locator('#recordHistory input[value="on"]')).toBeChecked();
+    await pickSegOption(options, 'recordHistory', 'Off');
+    await expect(options.locator('#recordHistory input[value="off"]')).toBeChecked();
+    await expect(options.locator('.lxToast')).toContainText('Options saved');
+    await options.close();
+
+    const popup = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(popup);
+    const input = popup.locator('#wordInput');
+    await input.click();
+    await input.fill('bil');
+    await input.dispatchEvent('keyup');
+    // The lookup itself still works - the setting governs what is stored, not what
+    // the reader gets to read.
+    await expect(popup.locator('#translation')).toContainText('motorcar', { timeout: 15000 });
+    await popup.close();
+
+    const history = await historyPage();
+    // Nothing added, and nothing taken away.
+    await expect(history.locator('#historyCount')).toHaveText('1 word');
+    await expect(history.locator('#history')).toContainText('gammal');
+    await expect(history.locator('#history')).not.toContainText('bil');
+
+    await history.close();
   });
 
   test('history page should open and display UI elements', async ({ historyPage }) => {
@@ -279,7 +418,9 @@ test.describe('Extension Smoke Tests', () => {
     await page.locator('#exportButton').click();
     await page.locator('#exportMenu li[data-format="clipboard"]').click();
 
-    await expect(page.locator('#historyCount')).toHaveText('3 copied to clipboard');
+    // Confirmed by the shared toast, so the row count keeps meaning one thing.
+    await expect(page.locator('.lxToast')).toHaveText('3 copied to clipboard');
+    await expect(page.locator('#historyCount')).toHaveText('3 words');
 
     await page.close();
   });
@@ -348,11 +489,11 @@ test.describe('Extension Smoke Tests', () => {
   });
 
   test('navigation between extension pages should work', async ({ optionsPage }) => {
-    // The Options and Help pages are still on the old sidebar until their own passes,
-    // so this walks Options -> History (old nav) -> Help (new .lxNav).
+    // Options and History share .lxNav now; Help keeps the old sidebar until its own
+    // pass, but it is only the destination here.
     const page = await optionsPage();
 
-    await page.click('#HistoryMenu a');
+    await page.click('#HistoryMenu');
     await page.waitForLoadState('domcontentloaded');
     await expect(page).toHaveTitle('Lexin dictionary History');
 

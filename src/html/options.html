@@ -1,50 +1,74 @@
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Lexin dictionary Options</title>
-    <link href="../css/common.css" rel="stylesheet" type="text/css" />
+    <!-- tokens first - everything below resolves its values from them -->
+    <link href="../css/tokens.css" rel="stylesheet" type="text/css" />
+    <link href="../css/components.css" rel="stylesheet" type="text/css" />
     <link href="../css/options.css" rel="stylesheet" type="text/css" />
-    <link href="../css/chrome_shared.css" rel="stylesheet" type="text/css" />
-
 </head>
-<body >
-    <div id="navbar-container">
-        <h1 id="navbar-content-title">Lexin</h1>
-        <ul id="navbar">
-            <li id="HistoryMenu" class="navbar-item"><a href="history.html">History</a></li>
-            <li id="OptionsMenu" class="navbar-item navbar-item-selected"><a href="options.html">Options</a></li>
-            <li id="HelpMenu" class="navbar-item"><a href="help.html">Help</a></li>
-        </ul>
-    </div>
-    <div id="mainview">
-        <div id="mainview-content">
-            <div id="page-container">
-                <div class="page">
-                    <h1>Options</h1>
-                    <div class="displaytable">
-                        <section>
-                            <h3>Default language</h3>
-                            <div>
-                                <div class="languageTitle">
-                                    <span>Language name</span><span>Enabled</span>
-                                </div>
-                                <ul class="languageButtons" id="languageButtons">
-                                </ul>
-                                <div class="checkAll">
-                                    <label for="checkAll">Enable or Disable all</label>
-                                    <input type="checkbox" id="checkAll" checked="checked"/>
-                                </div>
-                                <div class="help">
-                                    <span>Only enabled languages are shown in language drop-downs in popup and history</span>
-                                </div>
+<body>
+    <nav class="lxNav">
+        <span class="lxNavBrand">Lexin — Options</span>
+        <a id="HistoryMenu" class="lxNavLink" href="history.html">History</a>
+        <a id="OptionsMenu" class="lxNavLink" href="options.html" aria-current="page">Options</a>
+        <a id="HelpMenu" class="lxNavLink" href="help.html">Help</a>
+    </nav>
 
-                            </div>
-                        </section>
-                        <div class="statusContainer" id="status"></div>
-                    </div>
+    <div class="lxToolbar">
+        <label class="lxSearch">
+            <span class="lxSearchIcon" id="searchIcon"></span>
+            <input id="languageSearch" class="lxInput" type="search" autocomplete="off"
+                placeholder="Search languages…" aria-label="Search languages" />
+        </label>
+        <span class="lxToolbarSpacer"></span>
+        <button type="button" id="enableAll" class="lxButton lxButtonGhost">Enable all</button>
+        <button type="button" id="disableAll" class="lxButton lxButtonGhost">Disable all</button>
+    </div>
+
+    <main class="lxPage">
+        <!-- One default, N visible. The old page put a radio and a checkbox on every
+             row under a heading that named only the checkbox. -->
+        <table class="lxTable" id="languageTable">
+            <thead>
+                <tr>
+                    <th>Language</th>
+                    <th class="lxColVisible">Visible</th>
+                    <th class="lxColDefault">Default</th>
+                </tr>
+            </thead>
+            <tbody id="languageRows"></tbody>
+        </table>
+        <p class="lxHint" id="languageHint">
+            Visible languages are the ones offered in the popup and on the History page.
+            The default is the one a lookup uses when you have not chosen otherwise, so it is
+            always visible.
+        </p>
+
+        <hr class="lxHr" />
+
+        <h2 class="lxSectionTitle">New settings</h2>
+        <div class="lxSettings">
+            <div class="lxField">
+                <label id="appearanceLabel">Appearance</label>
+                <div class="lxSeg" role="radiogroup" aria-labelledby="appearanceLabel" id="appearance">
+                    <label class="lxSegOption"><input type="radio" name="appearance" value="light" /><span>Light</span></label>
+                    <label class="lxSegOption"><input type="radio" name="appearance" value="system" /><span>System</span></label>
+                    <label class="lxSegOption"><input type="radio" name="appearance" value="dark" /><span>Dark</span></label>
                 </div>
             </div>
+            <div class="lxField">
+                <label id="recordHistoryLabel">Record history</label>
+                <div class="lxSeg" role="radiogroup" aria-labelledby="recordHistoryLabel" id="recordHistory">
+                    <label class="lxSegOption"><input type="radio" name="recordHistory" value="on" /><span>On</span></label>
+                    <label class="lxSegOption"><input type="radio" name="recordHistory" value="off" /><span>Off</span></label>
+                </div>
+                <span class="lxHint">Off stops new lookups being stored. Words already in your
+                    history stay until you clear them there.</span>
+            </div>
         </div>
-    </div>
+    </main>
+
     <script src="../scripts/options-main.js" type="module"></script>
 </body>
 </html>

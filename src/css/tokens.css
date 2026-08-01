@@ -36,6 +36,9 @@
     --lx-accent-hover: #dd2b0f;
     --lx-accent-text: #ae1800;
     --lx-accent-tint: #fff2ef;
+    /* For the few surfaces that invert - the toast paints itself in --lx-text and
+       needs the accent step from the *other* theme to stay legible on it. */
+    --lx-accent-inverse: #ff9783;
 
     /* 4/8/16/24 step scale */
     --lx-space-1: 4px;
@@ -90,6 +93,7 @@
     --lx-accent-hover: #ffc4b8;
     --lx-accent-text: #ff9783;
     --lx-accent-tint: #443330;
+    --lx-accent-inverse: #ae1800;
 
     --lx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --lx-shadow-md: 0 3px 10px rgba(0, 0, 0, 0.55);
