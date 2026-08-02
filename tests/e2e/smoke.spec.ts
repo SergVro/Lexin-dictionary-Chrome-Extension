@@ -258,8 +258,45 @@ test.describe("Extension Smoke Tests", () => {
     await expect(history.locator("#historyCount")).toHaveText("1 word");
     await expect(history.locator("#history")).toContainText("gammal");
     await expect(history.locator("#history")).not.toContainText("bil");
+    // And the list says why it stopped growing, rather than leaving the reader to
+    // guess at it.
+    await expect(history.locator(".lxNotice")).toContainText("Recording is off");
 
     await history.close();
+  });
+
+  test("history page turns recording back on itself", async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.setRecordHistory(context, extensionId, false);
+    await ExtensionHelpers.seedHistory(context, extensionId, {
+      swe_eng: [{ word: "gammal", translation: "old", added: Date.parse("2026-07-01T10:00:00Z") }]
+    });
+
+    const page = await historyPage();
+    await page.locator(".lxNotice .lxButton").click();
+
+    await expect(page.locator(".lxToast")).toContainText("Recording is on");
+    await expect(page.locator(".lxNotice")).toHaveCount(0);
+    // What the service worker reads before it stores the next lookup.
+    expect(await ExtensionHelpers.getStoredValue(context, extensionId, "recordHistory")).toBe("true");
+
+    await page.close();
+  });
+
+  test("an empty history says which of the two empties it is", async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.setRecordHistory(context, extensionId, false);
+
+    const page = await historyPage();
+
+    // Not "Alt + double-click to start building your list" - that advice builds
+    // nothing while recording is off.
+    await expect(page.locator("#history")).toContainText("Recording is off");
+    await expect(page.locator("#history")).not.toContainText("Alt + double-click");
+    await page.locator("#history .lxButton").click();
+
+    await expect(page.locator("#history")).toContainText("No translations yet");
+    await expect(page.locator("#history")).toContainText("Alt + double-click");
+
+    await page.close();
   });
 
   test("history page should open and display UI elements", async ({ historyPage }) => {

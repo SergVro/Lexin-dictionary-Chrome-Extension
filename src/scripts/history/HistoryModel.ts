@@ -1,5 +1,6 @@
 import { IMessageService, IHistoryItem } from "../common/Interfaces.js";
 import LanguageManager from "../common/LanguageManager.js";
+import Settings from "../common/Settings.js";
 
 /** A history entry plus which Language Direction it came from. */
 export interface IHistoryRow extends IHistoryItem {
@@ -12,15 +13,33 @@ export const ALL_DIRECTIONS = "*";
 class HistoryModel {
     private messageService: IMessageService;
     private languageManager: LanguageManager;
+    private settings: Settings;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager) {
+    constructor(MessageService: IMessageService, languageManager: LanguageManager,
+        settings: Settings) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
+        this.settings = settings;
     }
 
     /** The reader's default Language Direction, used to pick the opening tab. */
     async getLanguage(): Promise<string> {
         return await this.languageManager.getCurrentLanguage();
+    }
+
+    /**
+     * Whether new lookups are still being added to the store.
+     *
+     * The History page is where a reader notices the setting - it is the list that
+     * stops growing - so it both reports it and can turn it back on, rather than
+     * sending them to Options for a single radio.
+     */
+    getRecordHistory(): Promise<boolean> {
+        return this.settings.getRecordHistory();
+    }
+
+    setRecordHistory(value: boolean): Promise<void> {
+        return this.settings.setRecordHistory(value);
     }
 
     /**

@@ -68,6 +68,14 @@ export function alert(size: number = 22): SVGElement {
     return svg;
 }
 
+/** Lucide "info" - a standing condition the reader should know about, not an error. */
+export function info(size: number = 16): SVGElement {
+    const svg = withCircle(createSvg(size), 12, 12, 10);
+    withPath(svg, "M12 16v-4");
+    withPath(svg, "M12 8h.01");
+    return svg;
+}
+
 /**
  * Lucide "arrow-right-left" - flip the lookup direction.
  *
