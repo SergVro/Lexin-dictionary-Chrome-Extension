@@ -109,6 +109,11 @@ async function build() {
     await copyDir('dist/temp/scripts', 'dist/scripts');
     console.log('Copied additional script files');
 
+    // Write dist/manifest.json (stamped with the build time); build:copy handles
+    // the remaining static assets.
+    await writeManifest();
+    console.log('Wrote manifest');
+
     // Clean up temp directory
     await fs.rm('dist/temp', { recursive: true, force: true });
     console.log('Cleaned up temp files');
@@ -156,19 +161,55 @@ async function mirrorDirectory(source, destination) {
   }
 }
 
+/** A sortable local-time stamp - `2026-08-02 13:45:10` - for version_name. */
+function buildTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/**
+ * Writes dist/manifest.json from src, stamping the build time into version_name.
+ *
+ * The numeric `version` field is left untouched: Chrome caps each of its (up to
+ * four) parts at 65535, too small for a timestamp, and an unpacked reload ignores
+ * `version` entirely anyway. `version_name` is a free-form display string with no
+ * such limit and is what chrome://extensions shows - so the build time lands right
+ * where you look to tell one dev build from the next.
+ *
+ * The release packager (scripts/webstore/package.js) strips version_name back out
+ * before zipping, so this stamp never reaches the Chrome Web Store and the release
+ * ZIP stays byte-for-byte reproducible.
+ */
+export async function writeManifest() {
+  const manifest = JSON.parse(await fs.readFile('src/manifest.json', 'utf8'));
+
+  // Rebuilt key-by-key so version_name sits right after version in the output.
+  const stamped = {};
+  for (const [key, value] of Object.entries(manifest)) {
+    stamped[key] = value;
+    if (key === 'version') {
+      stamped.version_name = `${value} (dev build ${buildTimestamp()})`;
+    }
+  }
+
+  await fs.mkdir('dist', { recursive: true });
+  await fs.writeFile('dist/manifest.json', `${JSON.stringify(stamped, null, 2)}\n`);
+}
+
 /**
  * The JavaScript half of the `build:copy` script, for watch mode - which cannot
  * shell out to `cp` on every keystroke and, more importantly, must never delete
  * dist/ while Chrome has the unpacked extension loaded from it.
  *
  * Only the asset directories are mirrored. dist/scripts/ belongs to esbuild and
- * dist/manifest.json is written straight from src.
+ * dist/manifest.json is written by writeManifest.
  */
 export async function syncAssets() {
   for (const directory of assetDirectories) {
     await mirrorDirectory(`src/${directory}`, `dist/${directory}`);
   }
-  await fs.copyFile('src/manifest.json', 'dist/manifest.json');
+  await writeManifest();
 }
 
 /**

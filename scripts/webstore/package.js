@@ -38,6 +38,11 @@ async function applyVersionToDistManifest(version) {
   const manifestPath = path.join(DIST_DIR, "manifest.json");
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
   manifest.version = version;
+  // The dev build stamps a wall-clock build time into version_name (see
+  // writeManifest in build.js). Drop it here so the release manifest carries only
+  // the tag version - otherwise the timestamp would leak to the store and make the
+  // ZIP non-reproducible across runs of the same tag.
+  delete manifest.version_name;
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
 }
 

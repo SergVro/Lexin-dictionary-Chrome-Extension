@@ -7,7 +7,7 @@
     "prebuild": "npm run clean",
     "build:ts": "tsc",
     "build:bundle": "node build.js",
-    "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/ && cp src/manifest.json dist/",
+    "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/",
     "build": "npm run build:ts && npm run build:bundle && npm run build:copy",
     "watch": "node build.js --watch",
     "typecheck": "tsc --noEmit",
