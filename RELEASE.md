@@ -148,12 +148,18 @@ first release doubles as the test of the OIDC path.
    "accepted and submitted for review", not "live in the store".
 9. Writes a job summary with the version, checksum, extension ID, and
    returned submission state. Credentials are never printed.
-10. Creates the GitHub release for the tag with auto-generated notes and the
-    ZIP and its checksum attached, so the exact submitted package outlives the
-    90-day artifact retention. The step only runs once the store has accepted
-    the submission, and re-uploads the assets instead of failing if the release
-    already exists - a re-run matters because the preflight in step 6 blocks a
-    second submission while the first is still under review.
+10. In a separate `github-release` job, downloads that artifact and creates the
+    GitHub release for the tag with auto-generated notes and the ZIP and its
+    checksum attached, so the exact submitted package outlives the 90-day
+    artifact retention.
+
+    It is a distinct job on purpose. The store submission is not repeatable -
+    the preflight in step 6 blocks a second upload while the first still awaits
+    review - so if release creation were a step on the publish job, a transient
+    GitHub API failure would be unrecoverable: GitHub re-runs whole jobs, and
+    the retry would fail at the store step before ever reaching it. Split out,
+    "Re-run failed jobs" replays only this job. It also re-uploads the assets
+    rather than failing if the release already exists.
 
 The release job runs under the `chrome-web-store-production` environment with
 a non-cancelling concurrency group, so two tag pushes can't race each other

@@ -27,8 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: chrome-web-store-production
     permissions:
-      contents: write
+      contents: read
       id-token: write
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      zip: ${{ steps.package.outputs.zip }}
+      extension_id: ${{ vars.CWS_EXTENSION_ID }}
 
     steps:
       - name: Checkout code
@@ -84,16 +88,32 @@ jobs:
           CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
         run: node scripts/webstore/publish.js "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.version }}"
 
-      # Runs only after the store accepts the submission, so a release page
-      # existing always means the package got that far. The view/upload branch
-      # keeps a re-run of this step recoverable: the store rejects a second
-      # submission while the first awaits review, so re-running the whole job
-      # is not an option.
+  # A job of its own rather than a step on `publish`, because the store
+  # submission is not repeatable: `assertReleasable` rejects an upload while a
+  # previous submission awaits review. If release creation were a step here, a
+  # transient GitHub API failure would leave no way back - GitHub re-runs whole
+  # jobs, so the retry would die on the store step and never reach it. Split
+  # out, "Re-run failed jobs" replays only this job against the artifact that
+  # `publish` already uploaded.
+  github-release:
+    name: Create GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release package
+        uses: actions/download-artifact@v7
+        with:
+          name: chrome-web-store-package-${{ needs.publish.outputs.version }}
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          ZIP: ${{ steps.package.outputs.zip }}
-          EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+          GH_REPO: ${{ github.repository }}
+          ZIP: ${{ needs.publish.outputs.zip }}
+          EXTENSION_ID: ${{ needs.publish.outputs.extension_id }}
         run: |
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" "${ZIP}" "${ZIP}.sha256" --clobber
