@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, ExtensionHelpers } from './fixtures';
 
 /**
  * Guards the Translation Card against host page CSS.
@@ -49,15 +49,7 @@ test.describe('Translation Card style isolation', () => {
 
     test.beforeEach(async ({ context, extensionId }) => {
         // swe_swe keeps the assertions independent of which language is stored.
-        const popup = await context.newPage();
-        await popup.goto(`chrome-extension://${extensionId}/html/popup.html`);
-        await popup.waitForLoadState('domcontentloaded');
-        await popup.waitForFunction(() => {
-            const select = document.querySelector('#language') as HTMLSelectElement;
-            return select && select.options.length > 0;
-        });
-        await popup.selectOption('#language', 'swe_swe');
-        await popup.close();
+        await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
     });
 
     test('card renders in an open shadow root, not the page DOM', async ({ context }) => {
@@ -94,22 +86,27 @@ test.describe('Translation Card style isolation', () => {
         await page.waitForLoadState('domcontentloaded');
         await summonCard(page);
 
-        // The card's CSS arrives as two concatenated sheets - card.css for the
-        // overlay, translation-content.css shared with the Action Popup. Where both
-        // match the same element they can tie on specificity, and the shared sheet
-        // silently wins on source order. That is how the content viewport lost its
-        // padding once already: `.lexinTranslationContainer div { padding: 0 }` tied
-        // with a bare `div.lexinTranslationContent { padding: 16px }`.
+        // The card's CSS arrives as three concatenated sheets - tokens.css, card.css
+        // for the overlay, and translation-content.css shared with the Action Popup.
+        // Where two of them match the same element they can tie on specificity, and
+        // the later sheet silently wins on source order. That is how the content
+        // viewport lost its padding once already: `.lexinTranslationContainer div
+        // { padding: 0 }` tied with a bare `div.lexinTranslationContent
+        // { padding: 16px }`.
         const applied = await page.evaluate(() => {
             const host = document.querySelector('.lexinExtensionMainContainer') as HTMLElement;
             const root = host.shadowRoot!;
             const card = getComputedStyle(root.querySelector('.lexinTranslationContainer')!);
             const content = getComputedStyle(root.querySelector('.lexinTranslationContent')!);
+            const header = getComputedStyle(root.querySelector('.lexinCardHeader')!);
             return {
                 contentPadding: content.padding,
                 contentOverflowY: content.overflowY,
                 contentMaxHeight: content.maxHeight,
-                cardPadding: card.padding,
+                headerPadding: header.padding,
+                headerBorderBottomWidth: header.borderBottomWidth,
+                cardBorderStyle: card.borderStyle,
+                cardTextAlign: card.textAlign,
                 cardBorderRadius: card.borderRadius,
                 cardMaxWidth: card.maxWidth
             };
@@ -118,12 +115,26 @@ test.describe('Translation Card style isolation', () => {
         // From card.css - must survive translation-content.css being appended.
         expect(applied.contentPadding).toBe('16px');
         expect(applied.contentOverflowY).toBe('auto');
-        expect(applied.contentMaxHeight).toBe('280px');   // 20em at 14px
+        expect(applied.contentMaxHeight).toBe('480px');   // --lx-card-max-height
         expect(applied.cardMaxWidth).toBe('420px');
 
-        // From translation-content.css - must survive card.css's blanket reset.
-        expect(applied.cardPadding).not.toBe('0px');
-        expect(applied.cardBorderRadius).toBe('12px');
+        // Same tie, one level down. The header's children are matched by
+        // `.lexinTranslationContainer div`/`p` in the shared sheet, which zeroes
+        // padding - so every card class carries the container prefix too.
+        expect(applied.headerPadding).toBe('10px 14px');
+        expect(applied.headerBorderBottomWidth).toBe('2px');
+
+        // From card.css: the surface, border and shadow are what make this a card, and
+        // live there rather than in the shared sheet because the Action Popup renders
+        // the same container inside a window that already has a frame.
+        expect(applied.cardBorderStyle).toBe('solid');
+        expect(applied.cardBorderRadius).toBe('0px');     // Modernist rounds nothing
+
+        // From translation-content.css - must survive card.css's blanket reset, which
+        // sets `*, *::before, *::after { margin: 0; padding: 0 }`. text-align is the
+        // container property that sheet still owns, and it is load-bearing: the card
+        // inherits direction from the page, so alignment has to follow it.
+        expect(applied.cardTextAlign).toBe('start');
 
         await page.close();
     });
@@ -155,7 +166,7 @@ test.describe('Translation Card style isolation', () => {
 
         // Leak 1 (specificity): the page sets these with * and !important.
         expect(styles.cardFontFamily).not.toContain('Comic Sans');
-        expect(styles.cardColor).toBe('rgb(17, 24, 39)');       // not lime
+        expect(styles.cardColor).toBe('rgb(32, 30, 29)');       // --lx-text, not lime
         expect(styles.cardLetterSpacing).toBe('normal');        // not 6px
 
         // Leak 2 (inheritance): these come down from <body> with no !important at all,
@@ -237,8 +248,10 @@ test.describe('Translation Card style isolation', () => {
         expect(el.span!.backgroundColor).toBe('rgba(0, 0, 0, 0)');
         expect(el.span!.borderStyle).toBe('none');
 
-        expect(el.b!.fontWeight).toBe('600');            // page forces 900
-        expect(el.a!.color).toBe('rgb(37, 99, 235)');    // not the page's red
+        expect(el.b!.fontWeight).toBe('700');            // page forces 900
+        // --lx-accent-text: the deep ramp step, not the accent itself, which only
+        // clears 3:1 against the card - enough for chrome, not for text this size.
+        expect(el.a!.color).toBe('rgb(174, 24, 0)');     // not the page's red
         expect(el.a!.fontSize).toBe('14px');             // not 32px
         expect(el.small!.fontSize).toBe('12px');         // not 30px
         expect(el.li!.listStyleType).toBe('disc');       // page forces none

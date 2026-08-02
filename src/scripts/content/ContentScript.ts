@@ -2,6 +2,12 @@ import { IMessageService, IMessageHandlers } from "../common/Interfaces.js";
 import * as DomUtils from "../util/DomUtils.js";
 import { position } from "../util/PositionUtils.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
+import * as Icons from "../util/Icons.js";
+import * as States from "../util/States.js";
+import ThemeManager, { applyTheme, Theme } from "../common/ThemeManager.js";
+import LanguageLabel, { ILanguageLabel } from "../common/LanguageLabel.js";
+import tokensCss from "../../css/tokens.css";
+import componentsCss from "../../css/components.css";
 import cardCss from "../../css/card.css";
 import translationContentCss from "../../css/translation-content.css";
 
@@ -18,20 +24,42 @@ let cardStyleSheet: CSSStyleSheet | undefined;
 function getCardStyleSheet(): CSSStyleSheet {
     if (!cardStyleSheet) {
         cardStyleSheet = new CSSStyleSheet();
-        // Reset first, then the shared translation styling.
-        cardStyleSheet.replaceSync(cardCss + "\n" + translationContentCss);
+        // Tokens first - every other sheet resolves its values from them - then the
+        // shared components, then the reset and card chrome, then the shared
+        // translation styling. components.css is what puts the card's loading and
+        // error states and the Action Popup's on the same footing.
+        cardStyleSheet.replaceSync(
+            tokensCss + "\n" + componentsCss + "\n" + cardCss + "\n" + translationContentCss);
     }
     return cardStyleSheet;
 }
+
+const HOST_CLASS = "lexinExtensionMainContainer";
 
 class ContentScript {
 
     messageService: IMessageService;
     private messageHandlers: IMessageHandlers;
+    private themeManager: ThemeManager;
+    private languageLabel: LanguageLabel;
 
-    constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers) {
+    /**
+     * What the card should say about itself, cached so a card can be built
+     * synchronously on click - reading storage first would flash an unthemed card.
+     * Refreshed after every card opens, and the open card is corrected in place.
+     */
+    private theme: Theme = "light";
+    private label: ILanguageLabel = { code: "sv", name: "Swedish" };
+
+    private zIndex = 10000;
+    private clickedInsideCard = false;
+
+    constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers,
+                themeManager: ThemeManager, languageLabel: LanguageLabel) {
         this.messageService = MessageService;
         this.messageHandlers = messageHandlers;
+        this.themeManager = themeManager;
+        this.languageLabel = languageLabel;
     }
 
     getSelection(): string {
@@ -52,10 +80,92 @@ class ContentScript {
         });
     }
 
-    private showTranslation(selection: string, evt: MouseEvent, zIndex: number, insideTranslationRef: { value: boolean }): number {
+    /** Dismisses the open card, whether by the close button, Escape, or a click out. */
+    private removeCard(): void {
+        const host = document.querySelector("." + HOST_CLASS) as HTMLElement;
+        if (host) {
+            DomUtils.remove(host);
+            this.zIndex = 10000;
+        }
+    }
+
+    private async refreshCardContext(): Promise<void> {
+        this.theme = await this.themeManager.getTheme();
+        this.label = await this.languageLabel.getCurrent();
+    }
+
+    /**
+     * The card's own chrome: which word, which Language Direction, and the way out.
+     *
+     * Both facts are inputs the extension already held when it fired the lookup, so
+     * none of this reads the Translation Markup - it renders correctly even for a
+     * word the dictionary has no entry for, and survives the provider changing its
+     * response wholesale.
+     */
+    private buildHeader(word: string, container: HTMLElement): HTMLElement {
+        const header = DomUtils.createElement("header");
+        DomUtils.addClass(header, "lexinCardHeader");
+
+        const wordBlock = DomUtils.createElement("span");
+        DomUtils.addClass(wordBlock, "lexinCardWord");
+
+        const flag = Icons.swedishFlag();
+        flag.setAttribute("class", "lexinCardFlag");
+        DomUtils.append(wordBlock, flag);
+
+        // textContent, not innerHTML: `word` is whatever the reader clicked on
+        // someone else's page.
+        const wordText = DomUtils.createElement("span", undefined, word);
+        DomUtils.append(wordBlock, wordText);
+
+        const pair = DomUtils.createElement("span");
+        DomUtils.addClass(pair, "lexinCardPair");
+        DomUtils.append(wordBlock, pair);
+
+        DomUtils.append(header, wordBlock);
+
+        const actions = DomUtils.createElement("span");
+        DomUtils.addClass(actions, "lexinCardActions");
+
+        const expandButton = this.buildIconButton(Icons.maximize(), "Open this lookup in the Lexin popup");
+        expandButton.addEventListener("click", () => {
+            this.messageService.openActionPopup();
+        });
+        DomUtils.append(actions, expandButton);
+
+        const closeButton = this.buildIconButton(Icons.close(), "Close");
+        closeButton.addEventListener("click", () => this.removeCard());
+        DomUtils.append(actions, closeButton);
+
+        DomUtils.append(header, actions);
+
+        this.applyCardContext(container, pair);
+        return header;
+    }
+
+    private buildIconButton(icon: SVGElement, label: string): HTMLElement {
+        const button = DomUtils.createElement("button", {
+            type: "button",
+            "aria-label": label,
+            title: label
+        });
+        DomUtils.addClass(button, "lexinCardButton");
+        DomUtils.append(button, icon);
+        return button;
+    }
+
+    /** Writes the cached theme and Language Direction onto an already-built card. */
+    private applyCardContext(container: HTMLElement, pair: Element): void {
+        applyTheme(container, this.theme);
+        DomUtils.setText(pair, "· " + this.label.code);
+        DomUtils.setAttr(pair, "title", this.label.name);
+        DomUtils.setAttr(pair, "aria-label", this.label.name);
+    }
+
+    private showTranslation(selection: string, evt: MouseEvent): void {
         const self = this;
         const absoluteContainer = DomUtils.createElement("div");
-        DomUtils.addClass(absoluteContainer, "lexinExtensionMainContainer");
+        DomUtils.addClass(absoluteContainer, HOST_CLASS);
 
         // This element is the one part of the card that lives in the page's DOM, so it
         // is the one part the page can style. Neutralise it before anything else.
@@ -80,18 +190,24 @@ class ContentScript {
 
         const container = DomUtils.createElement("div");
         DomUtils.addClass(container, "lexinTranslationContainer");
-        DomUtils.setCss(container, "zIndex", (zIndex++).toString());
+        DomUtils.setAttr(container, "role", "region");
+        DomUtils.setAttr(container, "aria-label", "Lexin translation");
+        DomUtils.setCss(container, "zIndex", (this.zIndex++).toString());
         shadowRoot.appendChild(container);
 
         container.addEventListener("click", function(_e: MouseEvent) {
-            DomUtils.setCss(container, "zIndex", (zIndex++).toString());
-            insideTranslationRef.value = true;
+            DomUtils.setCss(container, "zIndex", (self.zIndex++).toString());
+            self.clickedInsideCard = true;
         });
+
+        const header = this.buildHeader(selection, container);
+        container.appendChild(header);
 
         const translationBlock = DomUtils.createElement("div");
         DomUtils.setAttr(translationBlock, "id", "translation");
         DomUtils.addClass(translationBlock, "lexinTranslationContent");
-        DomUtils.setHtml(translationBlock, "Searching for '" + selection + "'...");
+        DomUtils.setAttr(translationBlock, "aria-live", "polite");
+        States.render(translationBlock, States.loadingState(selection));
         container.appendChild(translationBlock);
 
         // Function to position the container
@@ -104,36 +220,47 @@ class ContentScript {
             });
         };
 
-        // Position initially (even if size is not final)
+        // Position initially (even if size is not final). The card grows with its
+        // entry now, so the reposition once the entry lands is what keeps it on
+        // screen rather than a nicety.
         positionContainer();
 
-        // Reposition after content loads (in case size changes)
         self.messageService.getTranslation(selection).then((response) => {
-            const html = response.translation || response.error;
-            processTranslationHtml(html, translationBlock, positionContainer);
+            if (response.error) {
+                States.render(translationBlock, States.errorState(response.error));
+                requestAnimationFrame(positionContainer);
+            } else {
+                processTranslationHtml(response.translation || "", translationBlock, positionContainer);
+            }
+        }).catch((error) => {
+            States.render(translationBlock, States.errorState(String(error)));
+            requestAnimationFrame(positionContainer);
         });
 
-        return zIndex;
+        // The reader may have changed language in the Action Popup since this frame
+        // last looked. Correct the card in place rather than showing a stale pair.
+        const headerPair = container.querySelector(".lexinCardPair");
+        this.refreshCardContext().then(() => {
+            if (headerPair && headerPair.isConnected) {
+                self.applyCardContext(container, headerPair);
+            }
+        });
     }
 
     subscribeOnClicks() {
         const self = this;
-        const insideTranslationRef = { value: false };
-        let zIndex = 10000;
-        
+
         // Handle single click with Alt key
         document.addEventListener("click", function (evt: MouseEvent) {
-            const mainContainer = document.querySelector(".lexinExtensionMainContainer") as HTMLElement;
-            if (mainContainer && !insideTranslationRef.value) {
-                DomUtils.remove(mainContainer);
-                zIndex = 10000;
+            if (!self.clickedInsideCard) {
+                self.removeCard();
             }
-            insideTranslationRef.value = false;
+            self.clickedInsideCard = false;
             const selection = self.getSelection();
             // On Mac, check both altKey and the Option key using getModifierState
             const isAltPressed = evt.altKey || (evt.getModifierState && evt.getModifierState("Alt"));
             if (selection && isAltPressed) {
-                zIndex = self.showTranslation(selection, evt, zIndex, insideTranslationRef);
+                self.showTranslation(selection, evt);
             }
         });
 
@@ -151,26 +278,26 @@ class ContentScript {
                 altKeyDown = false;
             }
         });
-        
+
         document.addEventListener("dblclick", function (evt: MouseEvent) {
             // On Mac, check both altKey and the Option key using getModifierState
             // Also check our tracked altKeyDown state as fallback
-            const isAltPressed = evt.altKey || 
+            const isAltPressed = evt.altKey ||
                                 (evt.getModifierState && evt.getModifierState("Alt")) ||
                                 altKeyDown;
-            
+
             if (isAltPressed) {
                 // Prevent default double-click behavior (like text selection)
                 evt.preventDefault();
                 evt.stopPropagation();
-                
+
                 // Get the word at the double-click position
                 // First try to get selection (browser may have selected the word)
                 let selection = self.getSelection();
-                
+
                 // If no selection, try to get word from the click position
                 if (!selection || selection.trim() === "") {
-                    const range = document.caretRangeFromPoint?.(evt.clientX, evt.clientY) || 
+                    const range = document.caretRangeFromPoint?.(evt.clientX, evt.clientY) ||
                                   (document as any).caretPositionFromPoint?.(evt.clientX, evt.clientY);
                     if (range) {
                         const textNode = range.startContainer;
@@ -188,25 +315,41 @@ class ContentScript {
                         }
                     }
                 }
-                
+
                 if (selection && selection.trim() !== "") {
-                    const mainContainer = document.querySelector(".lexinExtensionMainContainer") as HTMLElement;
-                    if (mainContainer && !insideTranslationRef.value) {
-                        DomUtils.remove(mainContainer);
-                        zIndex = 10000;
+                    if (!self.clickedInsideCard) {
+                        self.removeCard();
                     }
-                    insideTranslationRef.value = false;
-                    zIndex = self.showTranslation(selection.trim(), evt, zIndex, insideTranslationRef);
+                    self.clickedInsideCard = false;
+                    self.showTranslation(selection.trim(), evt);
                 }
             }
         });
     }
 
-     initialize() {
+    /**
+     * Escape dismisses the card.
+     *
+     * The trigger is a modifier gesture, so a reader who summoned the card from the
+     * keyboard could previously only get rid of it by clicking somewhere harmless on
+     * a page they are only reading.
+     */
+    private subscribeOnKeyboard(): void {
+        document.addEventListener("keydown", (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                this.removeCard();
+            }
+        });
+    }
+
+    initialize() {
         this.handleGetSelection();
         this.subscribeOnClicks();
+        this.subscribeOnKeyboard();
+        // Warm the cache so the first card of the session is themed and labelled
+        // correctly. Deliberately not awaited: a lookup must not wait on storage.
+        this.refreshCardContext();
     }
 }
 
 export default ContentScript;
-

@@ -1,47 +1,49 @@
-<html xmlns="http://www.w3.org/1999/html">
+<html>
 <head>
+    <meta charset="UTF-8">
     <title>Lexin dictionary History</title>
-    <link href="../css/common.css" rel="stylesheet" type="text/css" />
+    <!-- tokens first - everything below resolves its values from them -->
+    <link href="../css/tokens.css" rel="stylesheet" type="text/css" />
+    <link href="../css/components.css" rel="stylesheet" type="text/css" />
     <link href="../css/history.css" rel="stylesheet" type="text/css" />
-    <link href="../css/chrome_shared.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
-    <div id="navbar-container">
-        <h1 id="navbar-content-title">
-            Lexin</h1>
-        <ul id="navbar">
-            <li id="HistoryMenu" class="navbar-item navbar-item-selected"><a href="history.html">History</a></li>
-            <li id="OptionsMenu" class="navbar-item "><a href="options.html">Options</a></li>
-            <li id="HelpMenu" class="navbar-item"><a href="help.html">Help</a></li>
-        </ul>
-    </div>
-    <div id="mainview">
-        <div id="mainview-content">
-            <div id="page-container">
-                <div class="page">
-                    <h1>
-                        History</h1>
-                    <div class="displaytable">
-                        <section>
-                            <h3>Language</h3>
-                            <div>
-                                <select id="language" title="Select a language to display translations history">
-                                </select>
-                                <button id="clearHistory" title="Remove all history entries for the selected language">Clear history</button>
-                                <label><input type="checkbox" id="showDate" title="Show date" /> Show date</label>
-                            </div>
-                        </section>
-                        <section>
-                            <h3>Translations</h3>
-                            <div>
-                                <div id="history"></div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
+    <nav class="lxNav">
+        <span class="lxNavBrand">Lexin — History</span>
+        <a id="HistoryMenu" class="lxNavLink" href="history.html" aria-current="page">History</a>
+        <a id="OptionsMenu" class="lxNavLink" href="options.html">Options</a>
+        <a id="HelpMenu" class="lxNavLink" href="help.html">Help</a>
+    </nav>
+
+    <!-- One tab per Language Direction that has history, plus All. Built at runtime:
+         a reader may have up to twenty, and most have two or three. -->
+    <div class="lxTabs" id="directionTabs" role="tablist" aria-label="Language direction"></div>
+
+    <div class="lxToolbar">
+        <label class="lxSearch">
+            <span class="lxSearchIcon" id="searchIcon"></span>
+            <input id="historySearch" class="lxInput" type="search" autocomplete="off"
+                placeholder="Search history" aria-label="Search history" />
+        </label>
+        <span class="lxToolbarSpacer"></span>
+        <span class="lxCount" id="historyCount" aria-live="polite"></span>
+        <div class="lxMenu">
+            <button type="button" id="exportButton" class="lxButton lxButtonSecondary"
+                aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu">Export ▾</button>
+            <ul class="lxMenuList" id="exportMenu" role="menu" hidden>
+                <li role="menuitem" tabindex="-1" data-format="tsv">TSV (Quizlet-ready)</li>
+                <li role="menuitem" tabindex="-1" data-format="csv">CSV</li>
+                <li role="menuitem" tabindex="-1" data-format="anki">Anki .txt</li>
+                <li role="menuitem" tabindex="-1" data-format="clipboard">Copy to clipboard</li>
+            </ul>
         </div>
+        <button type="button" id="clearHistory" class="lxButton lxButtonGhost">Clear…</button>
     </div>
+
+    <main class="lxPage">
+        <div id="history"></div>
+    </main>
+
     <script src="../scripts/history-main.js" type="module"></script>
 </body>
 </html>

@@ -1,72 +1,78 @@
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Lexin dictionary Help</title>
-    <link href="../css/common.css" rel="stylesheet" type="text/css" />
+    <!-- tokens first - everything below resolves its values from them -->
+    <link href="../css/tokens.css" rel="stylesheet" type="text/css" />
+    <link href="../css/components.css" rel="stylesheet" type="text/css" />
     <link href="../css/help.css" rel="stylesheet" type="text/css" />
-    <link href="../css/chrome_shared.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
-   <div id="navbar-container">
-        <h1 id="navbar-content-title">Lexin</h1>
-        <ul id="navbar">
-            <li id="HistoryMenu" class="navbar-item"><a href="history.html">History</a></li>
-            <li id="OptionsMenu" class="navbar-item "><a href="options.html">Options</a></li>
-            <li id="HelpMenu" class="navbar-item navbar-item-selected"><a href="help.html">Help</a></li>
+    <nav class="lxNav">
+        <span class="lxNavBrand">Lexin — Help</span>
+        <a id="HistoryMenu" class="lxNavLink" href="history.html">History</a>
+        <a id="OptionsMenu" class="lxNavLink" href="options.html">Options</a>
+        <a id="HelpMenu" class="lxNavLink" href="help.html" aria-current="page">Help</a>
+    </nav>
+
+    <main class="lxPage">
+        <!-- Three ways to trigger a translation, drawn rather than numbered in prose.
+             Most readers are on their second or third language. -->
+        <h2 class="lxSectionTitle">Look a word up</h2>
+        <ol class="lxSteps">
+            <li class="lxStep">
+                <span class="lxStepNumber">01</span>
+                <span class="lxStepIcon" data-icon="keyboard"></span>
+                <span class="lxStepTitle">Alt + double-click a word</span>
+                <span class="lxStepDetail">On any Swedish page.</span>
+            </li>
+            <li class="lxStep">
+                <span class="lxStepNumber">02</span>
+                <span class="lxStepIcon" data-icon="pointer"></span>
+                <span class="lxStepTitle">Select, then Alt + click</span>
+                <span class="lxStepDetail">If you'd rather select first.</span>
+            </li>
+            <li class="lxStep">
+                <span class="lxStepNumber">03</span>
+                <span class="lxStepIcon" data-icon="frame"></span>
+                <span class="lxStepTitle">Select, click the toolbar icon</span>
+                <span class="lxStepDetail">Opens the popup instead. You can also type a word there.</span>
+            </li>
+        </ol>
+
+        <hr class="lxHr" />
+
+        <h2 class="lxSectionTitle">Export your history</h2>
+        <p class="lxProse">
+            Every lookup is stored, per language. Go to <a class="lxLink" href="history.html">History</a>,
+            tick the rows you want, and choose <b>Export ▾</b>. Pick <b>TSV (Quizlet-ready)</b> and paste
+            the file straight into Quizlet's import box — the default separators already match.
+            <b>Anki .txt</b> and <b>CSV</b> are there too, and <b>Copy to clipboard</b> skips the file
+            altogether. With nothing ticked, you export everything in view.
+        </p>
+
+        <hr class="lxHr" />
+
+        <h2 class="lxSectionTitle">Settings</h2>
+        <p class="lxProse">
+            <a class="lxLink" href="options.html">Options</a> is where you choose which languages appear
+            in the picker, which one a lookup uses by default, whether the extension follows your
+            system's light or dark appearance, and whether lookups are recorded at all.
+        </p>
+
+        <hr class="lxHr" />
+
+        <ul class="lxLinks">
+            <li><a class="lxLink" id="lexinLink" href="http://lexin.nada.kth.se/lexin/" target="_blank"
+                rel="noopener">Lexin dictionary</a></li>
+            <li><a class="lxLink" id="folketsLink" href="http://folkets-lexikon.csc.kth.se/folkets/"
+                target="_blank" rel="noopener">Folkets Lexikon</a></li>
+            <li><a class="lxLink" id="issueLink"
+                href="https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues" target="_blank"
+                rel="noopener">Report an issue</a></li>
         </ul>
-    </div>
-    <div id="mainview">
-        <div id="mainview-content">
-            <div id="page-container">
-                <div class="page">
-                    <h1>Help</h1>
-                    <div class="displaytable">
-                        <section>
-                            <h3>Quick Help</h3>
-                            <div>
-                                Translation could be achieved in three ways:
-                                <ol>
-                                    <li><b>Alt + double click</b> a word</li>
-                                    <li>Select a word and <b>Alt + left click</b> it</li>
-                                    <li>Select a word and press Lexin dictionary <b>extension button</b> on a toolbar</li>
-                                </ol>
-                            </div>
-                        </section>
-                        <section>
-                            <h3>History</h3>
-                            <div>
-                                <p>
-                                    All words translations are stored in the history. The history page link can be found on the pop-up window 
-                                    and on the options page. The history is useful when you learning the language and want to store the 
-                                    new words in order to practice with them later. You can use the history to create a flashcards, 
-                                    here is how it can be used with <a href="http://quizlet.com">Quizlet</a> :
-                                </p>
-                                <ol>
-                                    <li>Open History page</li>
-                                    <li>Copy table with translations history (without the header) to the clipboard</li>
-                                    <li>Open your flashcards set in Quizlet for edit</li>
-                                    <li>Press Import data</li>
-                                    <li>Paste translations</li>
-                                    <li>Select "Tab" in "Between Term and Definition" selector</li>
-                                    <li>Select "New Line" in "Between Definition and Term" selector</li>
-                                    <li>Press "Import" button!</li>
-                                </ol>
-                            </div>
-                        </section>
-                        <section>
-                            <h3>Links</h3>
-                            <div>
-                                <ul>
-                                    <li><a href="http://lexin2.nada.kth.se/lexin/">Lexin Dictionary site</a></li>
-                                    <li><a href="http://github.com/SergVro/Lexin-dictionary-Chrome-Extension/wiki/Lexin-dictionary-extension">Lexin extension Wiki</a></li>
-                                    <li><a href="http://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues">Report an issue on Lexin extension</a></li>                                    
-                                </ul>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-   <script src="../scripts/help-main.js" type="module"></script>
+    </main>
+
+    <script src="../scripts/help-main.js" type="module"></script>
 </body>
 </html>

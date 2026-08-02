@@ -1,34 +1,60 @@
 import LanguageManager from "../common/LanguageManager.js";
+import LanguageLabel from "../common/LanguageLabel.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 import { IMessageService, ITranslation } from "../common/Interfaces.js";
 import Tracker from "../common/Tracker.js";
 import * as DomUtils from "../util/DomUtils.js";
-import { fadeOut } from "../util/AnimationUtils.js";
+import * as Icons from "../util/Icons.js";
+import * as States from "../util/States.js";
+import Combobox from "../util/Combobox.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
 
+/** How many past lookups the Recent row offers. */
+const RECENT_COUNT = 5;
+
+/** The lookup fires this long after typing stops. */
+const TYPING_DELAY = 500;
+
 class PopupPage {
-    private history = [];
-    private historyIndex = -1;
-    private currentWord: string;
-    private messageService: IMessageService;
-    private languageManager: LanguageManager;
+
+    /** Every word looked up since the popup opened, for the session nav. */
+    private lookups: string[] = [];
+    private lookupIndex = -1;
+    private currentWord: string = "";
+    private currentLanguage: string = "";
     private currentDirection: TranslationDirection;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager) {
+    /** Identifies the newest lookup, so slower earlier ones can be dropped. */
+    private lookupToken = 0;
+
+    private messageService: IMessageService;
+    private languageManager: LanguageManager;
+    private languageLabel: LanguageLabel;
+    private languagePicker: Combobox;
+
+    constructor(MessageService: IMessageService, languageManager: LanguageManager, languageLabel: LanguageLabel) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
+        this.languageLabel = languageLabel;
 
         this.initialize();
     }
 
     private async initialize(): Promise<void> {
+        this.renderIcons();
+        this.buildLanguagePicker();
+
         await this.languageManager.waitForInitialization();
         await this.fillLanguages();
-        const currentLang = await this.languageManager.getCurrentLanguage();
-        this.currentLanguage = currentLang;
+        this.currentLanguage = await this.languageManager.getCurrentLanguage();
+        this.languagePicker.value = this.currentLanguage;
         // Restore saved translation direction, default to "to" (Swedish → Language)
         this.currentDirection = await this.getSavedDirection();
+        await this.useSupportedDirection();
+        this.renderDirectionBadge();
+
         this.translateSelectedWord();
+        this.refreshRecent();
 
         this.subscribeOnEvents();
         this.setupResponsiveSizing();
@@ -36,86 +62,132 @@ class PopupPage {
 
     /**
      * Setup responsive popup sizing based on viewport dimensions
-     * 
+     *
      * Note: Chrome extension popups cannot access browser window dimensions directly.
      * We use screen height as a proxy. Chrome extension popups have a maximum height
      * of 600px enforced by the browser, so we cap at that limit.
      */
     private setupResponsiveSizing(): void {
         const updatePopupSize = () => {
-            // Get screen height (closest proxy for browser window size in extension popups)
-            // Extension popups don't have direct access to browser window dimensions
             const screenHeight = window.screen?.height || window.innerHeight || 800;
-
-            // Calculate 70% of screen height
             const targetHeight = Math.floor(screenHeight * 0.7);
-
-            // Chrome extension popups have a maximum height of 600px (enforced by browser)
             const maxHeight = Math.min(targetHeight, 600);
 
-            // Set max-height on body to allow popup to expand up to this size
             const body = document.body;
             if (body) {
-                // Use CSS custom property for dynamic sizing
                 body.style.setProperty("--popup-max-height", `${maxHeight}px`);
                 body.style.maxHeight = `${maxHeight}px`;
             }
         };
 
-        // Set initial size after a brief delay to ensure DOM is ready
         setTimeout(updatePopupSize, 0);
-
-        // Update on resize (though popups rarely resize, this handles edge cases)
         window.addEventListener("resize", updatePopupSize);
     }
 
-    set currentLanguage(value: string) {
-        DomUtils.setValue(DomUtils.$("#language"), value);
+    /** The chrome's icons are inline SVG - the old clock emoji was an icon button. */
+    private renderIcons(): void {
+        DomUtils.append(DomUtils.$("#optionsLink"), Icons.settings());
+        DomUtils.append(DomUtils.$("#swapDirection"), Icons.swap());
+        DomUtils.append(DomUtils.$("#historyBack"), Icons.chevronLeft());
+        DomUtils.append(DomUtils.$("#historyForward"), Icons.chevronRight());
     }
 
-    get currentLanguage(): string {
-        return DomUtils.getValue(DomUtils.$("#language"));
+    private buildLanguagePicker(): void {
+        this.languagePicker = new Combobox(
+            DomUtils.$("#languagePicker") as HTMLElement, "languageLabel", "Search languages…");
+        this.languagePicker.onChange = async (value: string) => {
+            this.currentLanguage = value;
+            Tracker.track("language", "changed", value);
+            await this.languageManager.setCurrentLanguage(value);
+            await this.useSupportedDirection();
+            this.renderDirectionBadge();
+            this.getTranslation();
+            this.refreshRecent();
+        };
+    }
+
+    async fillLanguages(): Promise<void> {
+        const languages = await this.languageManager.getEnabledLanguages();
+        this.languagePicker.setOptions(languages);
+    }
+
+    /**
+     * The badge is the only thing on screen saying which way the lookup runs. Before,
+     * that was implied by which of two text fields you happened to type in.
+     */
+    private renderDirectionBadge(): void {
+        const label = this.languageLabel.describeDirection(this.currentLanguage, this.currentDirection);
+        DomUtils.setText(DomUtils.$("#directionBadgeText"), label.code);
+        DomUtils.setAttr(DomUtils.$("#directionBadge"), "title", label.name);
+        DomUtils.setAttr(DomUtils.$("#directionBadge"), "aria-label", label.name);
+
+        // The monolingual Swedish dictionary is not a pair, so there is nothing to
+        // swap - and asking it for the "from" direction returns nothing at all.
+        const swap = DomUtils.$("#swapDirection") as HTMLButtonElement;
+        if (swap) {
+            swap.disabled = this.languageLabel.isMonolingual(this.currentLanguage);
+        }
+    }
+
+    /**
+     * Points the monolingual Swedish dictionary back at "to".
+     *
+     * A "from" left over from a pair language would otherwise be carried into every
+     * lookup, which the monolingual dictionary answers with nothing - and with its swap
+     * control disabled there is no way back on screen short of switching languages
+     * twice. Persisted, not just corrected in memory, so the next popup opens right.
+     */
+    private async useSupportedDirection(): Promise<void> {
+        if (this.languageLabel.isMonolingual(this.currentLanguage)
+            && this.currentDirection !== TranslationDirection.to) {
+            await this.setDirection(TranslationDirection.to);
+        }
     }
 
     getTranslation(direction?: TranslationDirection): void {
-        let word = DomUtils.getValue(DomUtils.$("#word"));
-        word = DomUtils.trim(word);
-        if (!word || word === "") {
+        const word = DomUtils.trim(this.currentWord);
+        if (!word) {
             return;
         }
         // Use provided direction, or fall back to saved direction
         const translationDirection = direction || this.currentDirection;
         const translationBox = DomUtils.$("#translation") as HTMLElement;
-        DomUtils.setHtml(translationBox, "Searching for '" + word + "'...");
+        States.render(translationBox, States.loadingState(word));
+
+        // A slower earlier lookup must not overwrite a later one's result. Counted
+        // rather than compared against the current word, because swapping the direction
+        // or changing the language looks up the *same* word again - and rendering the
+        // stale one of those would contradict the badge beside it.
+        const lookup = ++this.lookupToken;
+
         this.messageService.getTranslation(word, translationDirection).then((response: ITranslation) => {
-            if (word === this.currentWord) {
-                const html = response.translation || response.error;
-                processTranslationHtml(html, translationBox);
+            if (lookup !== this.lookupToken) {
+                return;
+            }
+            if (response.error) {
+                States.render(translationBox, States.errorState(response.error));
+            } else {
+                processTranslationHtml(response.translation || "", translationBox);
+            }
+            this.refreshRecent();
+        }).catch((error) => {
+            if (lookup === this.lookupToken) {
+                States.render(translationBox, States.errorState(String(error)));
             }
         });
     }
 
     setCurrentWord(word: string, skipHistory?: boolean, skipInput?: boolean) {
         this.currentWord = word = DomUtils.trim(word);
-        DomUtils.setValue(DomUtils.$("#word"), word);
 
         if (!skipInput) {
             DomUtils.setValue(DomUtils.$("#wordInput"), word);
         }
         if (!skipHistory) {
-            this.history.push(word);
-            this.historyIndex = -1;
+            this.lookups.push(word);
+            this.lookupIndex = this.lookups.length - 1;
         }
-    }
-
-    async fillLanguages(): Promise<void> {
-        const languages = await this.languageManager.getEnabledLanguages();
-        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
-        DomUtils.empty(languageSelect);
-        for (const lang of languages) {
-            const option = DomUtils.createElement("option", { value: lang.value }, lang.text);
-            DomUtils.append(languageSelect, option);
-        }
+        this.renderSessionNav();
     }
 
     private async setDirection(direction: TranslationDirection): Promise<void> {
@@ -138,32 +210,115 @@ class PopupPage {
 
                 Tracker.track("translation", "popup");
             } else {
-                DomUtils.setHtml(DomUtils.$("#translation"), "No word selected");
+                States.render(DomUtils.$("#translation") as HTMLElement, States.emptyState(
+                    "No word selected",
+                    "Alt + double-click a word on the page, or type above."));
             }
         });
+    }
+
+    /**
+     * The last few lookups for this Language Direction, as chips.
+     *
+     * Reads the same per-direction store the History page does - already newest-first,
+     * because HistoryManager.getHistory sorts on `added` descending - so nothing new
+     * is stored to make this work.
+     */
+    private async refreshRecent(): Promise<void> {
+        if (!this.currentLanguage) {
+            return;
+        }
+        const items = await this.messageService.loadHistory(this.currentLanguage);
+        const chips = DomUtils.$("#recentChips") as HTMLElement;
+        if (!chips) {
+            return;
+        }
+        DomUtils.empty(chips);
+
+        const recent = (items || []).slice(0, RECENT_COUNT);
+        for (const item of recent) {
+            const chip = DomUtils.createElement("button",
+                { type: "button", title: item.translation }, item.word);
+            DomUtils.addClass(chip, "lxChip");
+            chip.addEventListener("click", () => {
+                this.setCurrentWord(item.word);
+                this.getTranslation();
+                Tracker.track("recent", "clicked");
+            });
+            DomUtils.append(chips, chip);
+        }
+
+        // Kept even with no recent words: this is the popup's only route to the
+        // History page, now that the clock emoji is gone.
+        const all = DomUtils.createElement("button", { type: "button" }, "→ All history");
+        DomUtils.addClass(all, "lxChip");
+        DomUtils.addClass(all, "lxChipAccent");
+        all.addEventListener("click", () => {
+            Tracker.track("history", "clicked");
+            this.messageService.createNewTab("html/history.html");
+        });
+        DomUtils.append(chips, all);
+
+        const label = DomUtils.$(".lxRecentLabel") as HTMLElement;
+        if (recent.length > 0) {
+            label.removeAttribute("hidden");
+        } else {
+            DomUtils.setAttr(label, "hidden", "hidden");
+        }
+        (DomUtils.$("#recent") as HTMLElement).removeAttribute("hidden");
+    }
+
+    /**
+     * Ctrl+←/→ has always stepped through the session's lookups with nothing on screen
+     * saying so. The buttons appear once there is more than one to step between.
+     */
+    private renderSessionNav(): void {
+        const nav = DomUtils.$("#sessionNav") as HTMLElement;
+        const back = DomUtils.$("#historyBack") as HTMLButtonElement;
+        const forward = DomUtils.$("#historyForward") as HTMLButtonElement;
+        if (!nav || !back || !forward) {
+            return;
+        }
+        if (this.lookups.length > 1) {
+            nav.removeAttribute("hidden");
+        } else {
+            DomUtils.setAttr(nav, "hidden", "hidden");
+        }
+        back.disabled = this.lookupIndex <= 0;
+        forward.disabled = this.lookupIndex >= this.lookups.length - 1;
+    }
+
+    private step(delta: number): void {
+        const next = this.lookupIndex + delta;
+        if (next < 0 || next >= this.lookups.length) {
+            return;
+        }
+        this.lookupIndex = next;
+        this.setCurrentWord(this.lookups[next], true);
+        this.getTranslation();
     }
 
     private subscribeOnEvents(): void {
 
         const self = this;
 
-        const languageSelect = DomUtils.$("#language");
-        if (languageSelect) {
-            languageSelect.addEventListener("change", async () => {
-                Tracker.track("language", "changed", this.currentLanguage);
-                await this.languageManager.setCurrentLanguage(this.currentLanguage);
-                this.getTranslation();
-            });
-        }
+        DomUtils.$("#optionsLink")?.addEventListener("click", () => {
+            Tracker.track("options", "clicked");
+            this.messageService.createNewTab("html/options.html");
+        });
 
-        const historyLink = DomUtils.$("a#historyLink");
-        if (historyLink) {
-            historyLink.addEventListener("click", (e) => {
-                e.preventDefault();
-                Tracker.track("history", "clicked");
-                this.messageService.createNewTab("html/history.html");
-            });
-        }
+        DomUtils.$("#swapDirection")?.addEventListener("click", async () => {
+            const next = this.currentDirection === TranslationDirection.to
+                ? TranslationDirection.from
+                : TranslationDirection.to;
+            await this.setDirection(next);
+            this.renderDirectionBadge();
+            Tracker.track("direction", "swapped");
+            this.getTranslation();
+        });
+
+        DomUtils.$("#historyBack")?.addEventListener("click", () => this.step(-1));
+        DomUtils.$("#historyForward")?.addEventListener("click", () => this.step(1));
 
         // if something was clicked inside the translation article
         const translationBox = DomUtils.$("#translation");
@@ -178,94 +333,45 @@ class PopupPage {
             });
         }
 
-        // manual word search
+        // manual word search - one field now, with the direction taken from the badge
+        // rather than from which of two boxes the reader happened to pick
         let timer: ReturnType<typeof setTimeout> | null = null;
         const wordInput = DomUtils.$("#wordInput") as HTMLInputElement;
         if (wordInput) {
             wordInput.addEventListener("keyup", function (e: KeyboardEvent) {
-                if (e.altKey) {
+                if (e.altKey || e.ctrlKey) {
                     return;
                 }
                 if (timer) {
                     clearTimeout(timer);
                 }
                 const word = (this as HTMLInputElement).value;
-                if (word.length >= 2) {
-                    timer = setTimeout(async () => {
-                        Tracker.track("word", "typed", "from_sv");
-                        self.setCurrentWord(word, false, true);
-                        await self.setDirection(TranslationDirection.to);
-                        self.getTranslation(TranslationDirection.to);
-                    }, 500);
+                if (word.length < 2) {
+                    return;
                 }
+                // Enter means "now", not "in half a second".
+                const delay = e.key === "Enter" ? 0 : TYPING_DELAY;
+                timer = setTimeout(() => {
+                    Tracker.track("word", "typed", TranslationDirection[self.currentDirection]);
+                    self.setCurrentWord(word, false, true);
+                    self.getTranslation();
+                }, delay);
             });
             wordInput.focus();
         }
 
-        const fromWordInput = DomUtils.$("#fromWordInput") as HTMLInputElement;
-        if (fromWordInput) {
-            fromWordInput.addEventListener("keyup", function (e: KeyboardEvent) {
-                if (e.altKey) {
-                    return;
-                }
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                const word = (this as HTMLInputElement).value;
-                if (word.length >= 2) {
-                    timer = setTimeout(async () => {
-                        Tracker.track("word", "typed", "to_sv");
-                        self.setCurrentWord(word, false, true);
-                        await self.setDirection(TranslationDirection.from);
-                        self.getTranslation(TranslationDirection.from);
-                    }, 500);
-                }
-            });
-        }
-
         document.addEventListener("keyup", (e: KeyboardEvent) => {
             if (e.ctrlKey) {
-                if (e.key === "ArrowLeft") { // left arrow
+                if (e.key === "ArrowLeft") {
                     e.preventDefault();
-                    if (this.historyIndex < 0) {
-                        this.historyIndex = this.history.length - 1;
-                    }
-                    if (this.historyIndex === 0) {
-                        return;
-                    }
-                    this.historyIndex--;
-                    this.setCurrentWord(this.history[this.historyIndex], true);
-                    this.getTranslation();
+                    this.step(-1);
                 }
-                if (e.key === "ArrowRight") { // right arrow
+                if (e.key === "ArrowRight") {
                     e.preventDefault();
-                    if (this.historyIndex === this.history.length - 1) {
-                        this.historyIndex = -1;
-                    }
-                    if (this.historyIndex < 0) {
-                        return;
-                    }
-                    this.historyIndex++;
-                    this.setCurrentWord(this.history[this.historyIndex], true);
-                    this.getTranslation();
+                    this.step(1);
                 }
             }
         });
-
-        //window.localStorage.setItem("showQuickTip", "Yes");
-        const showQuickTip = window.localStorage.getItem("showQuickTip");
-        if (showQuickTip !== "No") {
-            const tipContainer = DomUtils.$(".quickTipContainer") as HTMLElement;
-            if (tipContainer) {
-                DomUtils.setCss(tipContainer, "display", "block");
-                tipContainer.addEventListener("click", function () {
-                    fadeOut(tipContainer, 200, () => {
-                        DomUtils.setCss(tipContainer, "display", "none");
-                    });
-                    window.localStorage.setItem("showQuickTip", "No");
-                });
-            }
-        }
     }
 }
 

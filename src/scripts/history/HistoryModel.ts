@@ -1,90 +1,67 @@
-import { IMessageService, IAsyncSettingsStorage, ILanguage, IHistoryItem } from "../common/Interfaces.js";
+import { IMessageService, IHistoryItem } from "../common/Interfaces.js";
 import LanguageManager from "../common/LanguageManager.js";
 
+/** A history entry plus which Language Direction it came from. */
+export interface IHistoryRow extends IHistoryItem {
+    langDirection: string;
+}
+
+/** The All tab, as a Language Direction value. Never a real one. */
+export const ALL_DIRECTIONS = "*";
+
 class HistoryModel {
-    private settingsStorage: IAsyncSettingsStorage;
     private messageService: IMessageService;
     private languageManager: LanguageManager;
-    private cachedLanguage: string | null = null;
-    private cachedShowDate: boolean | null = null;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager, storage: IAsyncSettingsStorage) {
+    constructor(MessageService: IMessageService, languageManager: LanguageManager) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
-        this.settingsStorage = storage;
     }
 
+    /** The reader's default Language Direction, used to pick the opening tab. */
     async getLanguage(): Promise<string> {
         return await this.languageManager.getCurrentLanguage();
     }
 
-    get language() : string {
-        // Synchronous getter for backward compatibility - returns cached value or default
-        if (this.cachedLanguage !== null) {
-            return this.cachedLanguage;
+    /**
+     * The Language Directions that have something stored.
+     *
+     * Deliberately not filtered by the *enabled* set: history a reader accumulated
+     * before turning a language off is still theirs, and still worth exporting.
+     */
+    loadDirections(): Promise<string[]> {
+        return this.messageService.loadHistoryDirections();
+    }
+
+    /**
+     * Rows for one direction, or for all of them merged newest-first.
+     *
+     * Each row carries its direction either way, so the All tab can name it and a
+     * per-row delete knows which store to write back to.
+     */
+    async loadHistory(langDirection: string, directions?: string[]): Promise<IHistoryRow[]> {
+        if (langDirection !== ALL_DIRECTIONS) {
+            const items = await this.messageService.loadHistory(langDirection);
+            return (items || []).map((item) => ({ ...item, langDirection: langDirection }));
         }
-        return "swe_swe"; // default
+
+        const all = directions || await this.loadDirections();
+        const lists = await Promise.all(all.map((direction) => this.loadHistory(direction)));
+        // Each list already arrives newest-first; merging needs one more sort.
+        return lists.reduce((merged, list) => merged.concat(list), [])
+            .sort((first, second) => second.added - first.added);
     }
 
-    async setLanguage(value: string): Promise<void> {
-        await this.languageManager.setCurrentLanguage(value);
-        this.cachedLanguage = value;
-        this.fireOnChange();
+    clearHistory(langDirection: string): Promise<void> {
+        return this.messageService.clearHistory(langDirection);
     }
 
-    set language(value : string) {
-        // Synchronous setter for backward compatibility
-        this.setLanguage(value).catch(err => {
-            console.error("Error setting language:", err);
-        });
+    async clearAll(directions: string[]): Promise<void> {
+        await Promise.all(directions.map((direction) => this.clearHistory(direction)));
     }
 
-    async getShowDate(): Promise<boolean> {
-        const value = await this.settingsStorage.getItem("showDate");
-        return !!value;
-    }
-
-    get showDate() : boolean {
-        // Synchronous getter for backward compatibility - returns cached value or false
-        if (this.cachedShowDate !== null) {
-            return this.cachedShowDate;
-        }
-        return false; // default
-    }
-
-    async setShowDate(value: boolean): Promise<void> {
-        await this.settingsStorage.setItem("showDate", value ? "true" : "false");
-        this.cachedShowDate = value;
-        this.fireOnChange();
-    }
-
-    set showDate(value: boolean) {
-        // Synchronous setter for backward compatibility
-        this.setShowDate(value).catch(err => {
-            console.error("Error setting showDate:", err);
-        });
-    }
-
-    async loadLanguages(): Promise<ILanguage[]> {
-        await this.languageManager.waitForInitialization();
-        const languages = await this.languageManager.getEnabledLanguages();
-        return languages.filter((item) => item.value !== "swe_swe");
-    }
-
-    loadHistory(language: string) : Promise<IHistoryItem[]> {
-        return this.messageService.loadHistory(language);
-    }
-
-    clearHistory(language : string) : Promise<void> {
-        return this.messageService.clearHistory(language);
-    }
-
-    onChange : (settings : HistoryModel) => void;
-
-    private fireOnChange() : void {
-        if (this.onChange) {
-            this.onChange(this);
-        }
+    removeItem(row: IHistoryRow): Promise<void> {
+        return this.messageService.removeHistoryItem(row.langDirection, row.word, row.added);
     }
 }
 

@@ -1,6 +1,7 @@
 import { IDictionary, IHistoryItem, ILanguage, ILoader } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import TranslationParser from "./TranslationParser.js";
+import { decodeHtmlEntities } from "../util/HtmlEntities.js";
 
 class DictionaryBase extends TranslationParser implements IDictionary{
 
@@ -67,48 +68,13 @@ class DictionaryBase extends TranslationParser implements IDictionary{
         }
     }
 
+    /**
+     * Used by isWordFound to compare the response against the word that was asked
+     * for. Shared with TranslationParser and the history store, which need the same
+     * decoding for text they lift out of the markup - see util/HtmlEntities.
+     */
     htmlDecode(value: string): string {
-        // Decode HTML entities without using DOM (service workers don't have DOMParser)
-        // Use a pure JavaScript implementation
-        
-        // Create a mapping of common HTML entities
-        const entityMap: { [key: string]: string } = {
-            "&amp;": "&",
-            "&lt;": "<",
-            "&gt;": ">",
-            "&quot;": "\"",
-            "&#39;": "'",
-            "&apos;": "'",
-            "&nbsp;": " ",
-            "&copy;": "©",
-            "&reg;": "®",
-            "&trade;": "™",
-            "&auml;": "ä",
-            "&ouml;": "ö",
-            "&aring;": "å",
-            "&Auml;": "Ä",
-            "&Ouml;": "Ö",
-            "&Aring;": "Å"
-        };
-        
-        // Replace named entities
-        let decoded = value;
-        for (const entity in entityMap) {
-            if (Object.prototype.hasOwnProperty.call(entityMap, entity)) {
-                decoded = decoded.replace(new RegExp(entity, "g"), entityMap[entity]);
-            }
-        }
-        
-        // Replace numeric entities (&#123; and &#x1F;)
-        decoded = decoded.replace(/&#(\d+);/g, (match, dec) => {
-            return String.fromCharCode(parseInt(dec, 10));
-        });
-        
-        decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
-            return String.fromCharCode(parseInt(hex, 16));
-        });
-        
-        return decoded;
+        return decodeHtmlEntities(value);
     }
 }
 

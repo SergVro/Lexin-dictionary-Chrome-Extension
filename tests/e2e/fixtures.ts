@@ -110,31 +110,110 @@ export { expect } from '@playwright/test';
  */
 export class ExtensionHelpers {
   /**
-   * Wait for the language dropdown to be populated
+   * Put the extension on a Language Direction before opening any surface.
+   *
+   * Writes the setting the extension reads rather than driving the Action Popup's
+   * language picker, so tests that are not *about* the picker do not break every time
+   * it changes - and so a card test does not have to open the popup at all. Same
+   * approach the upgrade test uses to rewind storage.
+   */
+  static async setLanguage(context: BrowserContext, extensionId: string, value: string): Promise<void> {
+    // help.html is the cheapest extension page: its script is empty, so nothing runs
+    // and nothing races with the write.
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.evaluate(async (language) => {
+      await chrome.storage.local.set({ defaultLanguage: language });
+    }, value);
+    await page.close();
+  }
+
+  /**
+   * Put the extension on a translation direction, as the Action Popup's swap control
+   * would leave it. Stored as the TranslationDirection number: 1 is "from", 2 is "to".
+   */
+  static async setTranslationDirection(
+    context: BrowserContext, extensionId: string, value: 1 | 2
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.evaluate(async (direction) => {
+      await chrome.storage.local.set({ translationDirection: direction });
+    }, String(value));
+    await page.close();
+  }
+
+  /** Reads one settings key back, for assertions about what a surface persisted. */
+  static async getStoredValue(
+    context: BrowserContext, extensionId: string, key: string
+  ): Promise<string | undefined> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    const value = await page.evaluate(async (storageKey) => {
+      const stored = await chrome.storage.local.get(storageKey);
+      return stored[storageKey];
+    }, key);
+    await page.close();
+    return value;
+  }
+
+  /**
+   * Put rows in the history store without going near the dictionary services.
+   *
+   * Keyed exactly as HistoryManager keys them ("history" + langDirection), which is
+   * also what its getDirections() reads back to build the History page's tabs.
+   */
+  static async seedHistory(
+    context: BrowserContext,
+    extensionId: string,
+    byDirection: Record<string, { word: string; translation: string; added: number }[]>
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.evaluate(async (seed) => {
+      const entries: Record<string, string> = {};
+      for (const [direction, items] of Object.entries(seed)) {
+        entries['history' + direction] = JSON.stringify(items);
+      }
+      await chrome.storage.local.set(entries);
+    }, byDirection);
+    await page.close();
+  }
+
+  /**
+   * Wait for the Action Popup's language picker to have resolved a language.
    */
   static async waitForLanguagesLoaded(page: Page): Promise<void> {
     await page.waitForFunction(() => {
-      const select = document.querySelector('#language') as HTMLSelectElement;
-      return select && select.options.length > 0;
+      const input = document.querySelector('[role="combobox"]') as HTMLInputElement;
+      return !!input && input.value.length > 0;
     });
   }
 
   /**
-   * Get the currently selected language
+   * Get the language the Action Popup is currently showing.
    */
   static async getSelectedLanguage(page: Page): Promise<string> {
-    return page.locator('#language').inputValue();
+    return page.locator('[role="combobox"]').inputValue();
   }
 
   /**
-   * Select a language by value
+   * Drive the language picker the way a reader would - type, then pick. Use this only
+   * where the picker itself is what is under test; use setLanguage otherwise.
    */
-  static async selectLanguage(page: Page, value: string): Promise<void> {
-    await page.selectOption('#language', value);
+  static async pickLanguage(page: Page, text: string): Promise<void> {
+    const input = page.locator('[role="combobox"]');
+    await input.click();
+    await input.fill(text);
+    await page.locator('[role="option"]').filter({ hasText: text }).first().click();
   }
 
   /**
-   * Enter a word in the "From Swedish" input
+   * Enter a word in the search field
    */
   static async enterWord(page: Page, word: string): Promise<void> {
     await page.fill('#wordInput', word);

@@ -1,35 +1,103 @@
+/*
+ * Options page layout. The nav, toolbar, table, segmented control, chip and toast are
+ * components.css; only what is specific to this page lives here.
+ */
 
-.statusContainer
-{
-    float: left;
-    color: Gray;
+body {
+    margin: 0;
+    font-family: var(--lx-font-body);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--lx-text);
+    background: var(--lx-surface);
 }
 
-.languageButtons
-{
-    list-style-type: none;
+.lxPage {
+    padding: 0 var(--lx-space-6) var(--lx-space-8);
+    max-width: 1000px;
 }
 
-.languageButtons li label {
-    padding-left: 1em;
-    width: 150px;
-    display: inline-block;
+/* ── Search (shares the History page's shape) ────────────────────────────────── */
+
+.lxSearch {
+    position: relative;
+    display: block;
+    width: 240px;
+    flex: none;
 }
 
-.checkAll {
-    padding-left: 40px;
-
-}
-.checkAll label {
-    padding-left: 28px;
-    width: 145px;
-    display: inline-block;
-}
-.checkAll input {
-    padding-left: 20px;
+.lxSearchIcon {
+    position: absolute;
+    inset-inline-start: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    pointer-events: none;
+    color: var(--lx-text-muted);
 }
 
-.languageTitle span{
-    padding-left: 48px;
-    font-weight: bold;
+.lxSearch .lxInput {
+    padding-inline-start: 30px;
+}
+
+/* ── Language table ──────────────────────────────────────────────────────────── */
+
+.lxColVisible,
+.lxColDefault {
+    width: 160px;
+}
+
+.lxTable input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+/* The default language's checkbox is checked and disabled rather than absent, so the
+   column reads consistently down the page and the row still says "yes, visible". */
+.lxTable input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+/* A language that is not visible cannot be made the default - make it visible first.
+   This is what the em dash in that cell means. */
+.lxNoDefault {
+    color: var(--lx-text-muted);
+}
+
+.lxHint {
+    display: block;
+    margin: var(--lx-space-3) 0 0;
+    max-width: 60ch;
+    font-size: 12px;
+    color: var(--lx-text-muted);
+}
+
+/* ── New settings ────────────────────────────────────────────────────────────── */
+
+.lxSectionTitle {
+    margin: 0 0 var(--lx-space-4);
+    font-size: 16px;
+    font-weight: var(--lx-font-heading-weight);
+    letter-spacing: var(--lx-heading-tracking);
+}
+
+.lxSettings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--lx-space-6);
+    max-width: 800px;
+}
+
+.lxSettings .lxField > label {
+    font-size: 12px;
+}
+
+/* .lxField is a column flexbox, so a segmented control would otherwise stretch to the
+   grid cell's full width and trail an empty bordered box past its last option. */
+.lxSettings .lxSeg {
+    align-self: start;
+}
+
+.lxSettings .lxHint {
+    margin-top: var(--lx-space-2);
 }

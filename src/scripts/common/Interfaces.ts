@@ -26,8 +26,13 @@ export interface IAsyncStorage {
     setItem(key: string, value: string): Promise<void>;
     removeItem(key: string): Promise<void>;
     clear(): Promise<void>;
-    getLength(): Promise<number>;
-    key(index: number): Promise<string | null>;
+    /**
+     * Every key currently stored. Replaced the getLength()/key(index) pair inherited
+     * from the old localStorage shim, which nothing ever called and which cost a full
+     * read of the store per index - enumerating history that way would have re-read
+     * every word list once for each key.
+     */
+    keys(): Promise<string[]>;
 }
 
 export interface IAsyncSettingsStorage {
@@ -38,16 +43,21 @@ export interface IAsyncSettingsStorage {
 
 export interface IHistoryManager {
     getHistory(langDirection: string): Promise<IHistoryItem[]>;
+    getDirections(): Promise<string[]>;
     clearHistory(langDirection: string): Promise<void>;
     addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void>;
+    removeItem(langDirection: string, word: string, added: number): Promise<void>;
 }
 
 export interface IMessageService {
     loadHistory(language: string) : Promise<IHistoryItem[]>;
+    loadHistoryDirections() : Promise<string[]>;
     clearHistory(language: string) : Promise<void>;
+    removeHistoryItem(language: string, word: string, added: number) : Promise<void>;
     getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation>;
     getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
+    openActionPopup(): Promise<void>;
 }
 
 export interface ITranslationManager {
@@ -93,15 +103,30 @@ export interface ClearHistoryHandler {
     (langDirection: string): Promise<void>;
 }
 
+export interface LoadHistoryDirectionsHandler {
+    (): Promise<string[]>;
+}
+
+export interface RemoveHistoryItemHandler {
+    (langDirection: string, word: string, added: number): Promise<void>;
+}
+
 export interface GetSelectionHandler {
     (): string;
+}
+
+export interface OpenActionPopupHandler {
+    (): Promise<void>;
 }
 
 export interface IMessageHandlers {
     registerGetTranslationHandler(handler: GetTranslationHandler): void ;
     registerLoadHistoryHandler(handler: LoadHistoryHandler): void;
     registerClearHistoryHandler(handler: ClearHistoryHandler): void;
+    registerLoadHistoryDirectionsHandler(handler: LoadHistoryDirectionsHandler): void;
+    registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void;
     registerGetSelectionHandler(handler: GetSelectionHandler): void;
+    registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void;
 }
 
 

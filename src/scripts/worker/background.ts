@@ -3,6 +3,7 @@ import DictionaryFactory from "../dictionary/DictionaryFactory.js";
 import TranslationManager from "../dictionary/TranslationManager.js";
 import HistoryManager from "../history/HistoryManager.js";
 import LanguageManager from "../common/LanguageManager.js";
+import Settings from "../common/Settings.js";
 import BackgroundWorker from "./BackgroundWorker.js";
 import MessageHandlers from "../messaging/MessageHandlers.js";
 import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
@@ -29,8 +30,9 @@ try {
     // Now initialize all components
     const translationParser = new TranslationParser();
     const languageManager = new LanguageManager(settingsStorage, dictionaryFactory);
+    const settings = new Settings(settingsStorage);
     const historyManager = new HistoryManager(translationParser, storage);
-    const translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager);
+    const translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager, settings);
     const messageHandlers = new MessageHandlers();
     const backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers);
     

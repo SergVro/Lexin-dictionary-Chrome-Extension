@@ -1,171 +1,443 @@
-import HistoryModel from "./HistoryModel.js";
+import HistoryModel, { IHistoryRow, ALL_DIRECTIONS } from "./HistoryModel.js";
+import LanguageLabel from "../common/LanguageLabel.js";
 import Tracker from "../common/Tracker.js";
-import { IHistoryItem, ILanguage } from "../common/Interfaces.js";
 import * as DomUtils from "../util/DomUtils.js";
+import * as Icons from "../util/Icons.js";
+import * as States from "../util/States.js";
+import * as HistoryExport from "./HistoryExport.js";
+import { confirmDialog } from "../util/Dialog.js";
+import { showToast } from "../util/Toast.js";
+import { fold } from "../util/Combobox.js";
+
+/** Identifies a row across a re-render, so selection survives searching. */
+function rowKey(row: IHistoryRow): string {
+    return `${row.langDirection}|${row.added}|${row.word}`;
+}
+
+/**
+ * "Aug 1", or "Aug 1, 2025" once the year is no longer the current one.
+ *
+ * Not toDateString(): "Sat Aug 01 2026" is four times the width for one more fact,
+ * in a column that repeats down a list of hundreds.
+ */
+function formatDate(added: number): string {
+    const date = new Date(added);
+    const thisYear = date.getFullYear() === new Date().getFullYear();
+    return date.toLocaleDateString(undefined, thisYear
+        ? { month: "short", day: "numeric" }
+        : { year: "numeric", month: "short", day: "numeric" });
+}
 
 class HistoryPage {
 
-    private languages : ILanguage[];
-    private model : HistoryModel;
+    private model: HistoryModel;
+    private languageLabel: LanguageLabel;
 
-    constructor(model: HistoryModel) {
+    private directions: string[] = [];
+    private readerLanguage: string = "";
+    private currentDirection: string = ALL_DIRECTIONS;
+    private rows: IHistoryRow[] = [];
+    private visible: IHistoryRow[] = [];
+    private selected = new Set<string>();
+    private query = "";
+
+    constructor(model: HistoryModel, languageLabel: LanguageLabel) {
         this.model = model;
+        this.languageLabel = languageLabel;
         this.initialize();
     }
 
     private async initialize(): Promise<void> {
-        this.languages = await this.model.loadLanguages();
-        this.renderLanguageSelector();
-        const currentLang = await this.model.getLanguage();
-        this.currentLanguage = currentLang;
-        const showDate = await this.model.getShowDate();
-        this.showDate = showDate;
+        DomUtils.append(DomUtils.$("#searchIcon"), Icons.search());
+
+        this.readerLanguage = await this.model.getLanguage();
+        this.directions = this.sortDirections(await this.model.loadDirections());
+
+        // Open on the reader's own language when it has history; otherwise All, which
+        // is also what a reader with a single direction sees.
+        this.currentDirection = this.directions.indexOf(this.readerLanguage) >= 0
+            ? this.readerLanguage
+            : ALL_DIRECTIONS;
+
+        this.renderTabs();
         this.subscribeOnEvents();
-        this.updateHistory();
+        await this.reload();
     }
 
-    private subscribeOnEvents() {
-        const self = this;
-        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
-        if (languageSelect) {
-            languageSelect.addEventListener("change", function () {
-                self.updateHistory();
-                Tracker.track("language", "changed", this.value);
-            });
-        }
+    // ── Data ─────────────────────────────────────────────────────────────────────
 
-        const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
-        if (showDateCheckbox) {
-            showDateCheckbox.addEventListener("change", async function () {
-                await self.model.setShowDate(self.showDate);
-                self.updateHistory();
-                Tracker.track("showDate", "changed", self.showDate.toString());
-            });
-        }
-
-        const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
-        if (clearHistoryButton) {
-            clearHistoryButton.addEventListener("click", function () {
-                const langDirection = self.currentLanguage;
-                const langOption = DomUtils.$(`#language option[value='${langDirection}']`) as HTMLOptionElement;
-                const langName = langOption ? langOption.text : langDirection;
-                if (confirm("Are you sure you want to clear history for language " + langName)) {
-                    self.model.clearHistory(langDirection).then(() => self.updateHistory());
-                    Tracker.track("history", "cleared");
-                }
-            });
-        }
-    }
-
-    get currentLanguage() : string {
-        return DomUtils.getValue(DomUtils.$("#language"));
-    }
-    set currentLanguage(value: string) {
-        DomUtils.setValue(DomUtils.$("#language"), value);
-    }
-
-    get showDate() : boolean {
-        const checkbox = DomUtils.$("#showDate") as HTMLInputElement;
-        return checkbox ? checkbox.checked : false;
-    }
-    set showDate(value : boolean) {
-        const checkbox = DomUtils.$("#showDate") as HTMLInputElement;
-        if (checkbox) {
-            checkbox.checked = value;
-        }
-    }
-
-    updateHistory() {
-        this.renderHistory(this.currentLanguage, this.showDate);
-    }
-
-    renderHistory(langDirection: string, showDate: boolean) {
-        const historyContainer = DomUtils.$("#history") as HTMLElement;
-        DomUtils.empty(historyContainer);
-        this.model.loadHistory(langDirection).then((history: IHistoryItem[]) => {
-
-            const table = DomUtils.createElement("table");
-            const thead = DomUtils.createElement("thead");
-            DomUtils.append(table, thead);
-
-            const dateHead = DomUtils.createElement("th", undefined, "Date");
-            const wordHead = DomUtils.createElement("th", undefined, "Word");
-            const translationHead = DomUtils.createElement("th", undefined, "Translation");
-
-            if (showDate) {
-                DomUtils.append(thead, dateHead);
+    private async reload(): Promise<void> {
+        this.rows = await this.model.loadHistory(this.currentDirection, this.directions);
+        // A row that is gone can no longer be exported or deleted.
+        const present = new Set(this.rows.map(rowKey));
+        this.selected.forEach((key) => {
+            if (!present.has(key)) {
+                this.selected.delete(key);
             }
-            DomUtils.append(thead, wordHead);
-            DomUtils.append(thead, translationHead);
+        });
+        this.applyFilter();
+    }
 
-            DomUtils.append(historyContainer, table);
-            if (history && history.length > 0) {
-                let prevAddedDateStr = "";
-                history.forEach((item) => {
+    private applyFilter(): void {
+        const needle = fold(this.query.trim());
+        this.visible = needle
+            ? this.rows.filter((row) =>
+                fold(row.word).indexOf(needle) >= 0 || fold(row.translation).indexOf(needle) >= 0)
+            : this.rows.slice();
+        this.renderTable();
+        this.renderCount();
+    }
 
-                    const tr = DomUtils.createElement("tr");
-                    const tdWord = DomUtils.createElement("td");
-                    const tdTrans = DomUtils.createElement("td");
-                    const tdAdded = DomUtils.createElement("td");
+    /** Checked rows, or - when nothing is checked - everything currently in view. */
+    private exportSet(): IHistoryRow[] {
+        const checked = this.visible.filter((row) => this.selected.has(rowKey(row)));
+        return checked.length > 0 ? checked : this.visible;
+    }
 
-                    DomUtils.setHtml(tdWord, item.word);
-                    DomUtils.setHtml(tdTrans, item.translation);
-                    let addedDateStr = new Date(item.added).toDateString();
-                    if (addedDateStr === prevAddedDateStr) {
-                        addedDateStr = "";
-                        DomUtils.addClass(tdAdded, "noBottomBorder");
-                    } else {
-                        prevAddedDateStr = addedDateStr;
-                    }
-                    DomUtils.setHtml(tdAdded, addedDateStr);
+    // ── Rendering ────────────────────────────────────────────────────────────────
 
-                    if (showDate) {
-                        DomUtils.append(tr, tdAdded);
-                    }
-                    DomUtils.append(tr, tdWord);
-                    DomUtils.append(tr, tdTrans);
+    /**
+     * The reader's own Language Direction first, then the rest alphabetically.
+     *
+     * Storage hands them back in whatever order the keys happen to sit in, which
+     * changes as directions come and go - a tab strip that reshuffles between visits
+     * is one the eye cannot learn.
+     */
+    private sortDirections(directions: string[]): string[] {
+        return directions.slice().sort((first, second) => {
+            if (first === this.readerLanguage) { return -1; }
+            if (second === this.readerLanguage) { return 1; }
+            return this.languageLabel.describe(first).code
+                .localeCompare(this.languageLabel.describe(second).code);
+        });
+    }
 
-                    DomUtils.append(table, tr);
+    private renderTabs(): void {
+        const tabs = DomUtils.$("#directionTabs") as HTMLElement;
+        DomUtils.empty(tabs);
 
-                });
-                const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
-                const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
-                if (clearHistoryButton) {clearHistoryButton.disabled = false;}
-                if (showDateCheckbox) {showDateCheckbox.disabled = false;}
-            } else {
-                const noTranslationsTd = DomUtils.createElement("td", undefined, "No translations in history");
-                if (showDate) {
-                    DomUtils.setAttr(noTranslationsTd, "colspan", "3");
+        // A single direction needs no tabs at all - "All" and "sv→eng" would be the
+        // same list under two names.
+        if (this.directions.length < 2) {
+            DomUtils.setAttr(tabs, "hidden", "hidden");
+            return;
+        }
+        tabs.removeAttribute("hidden");
+
+        const add = (direction: string, label: string, title: string) => {
+            const tab = DomUtils.createElement("button", {
+                type: "button",
+                role: "tab",
+                title: title,
+                "aria-selected": direction === this.currentDirection ? "true" : "false"
+            }, label);
+            DomUtils.addClass(tab, "lxTab");
+            tab.addEventListener("click", () => this.selectDirection(direction));
+            DomUtils.append(tabs, tab);
+        };
+
+        add(ALL_DIRECTIONS, "All", "Every language direction");
+        for (const direction of this.directions) {
+            const label = this.languageLabel.describe(direction);
+            add(direction, label.code, label.name);
+        }
+    }
+
+    private async selectDirection(direction: string): Promise<void> {
+        if (direction === this.currentDirection) {
+            return;
+        }
+        this.currentDirection = direction;
+        this.selected.clear();
+        Tracker.track("language", "changed", direction);
+        this.renderTabs();
+        await this.reload();
+    }
+
+    private renderCount(): void {
+        const count = DomUtils.$("#historyCount") as HTMLElement;
+        const selectedInView = this.visible.filter((row) => this.selected.has(rowKey(row))).length;
+        const words = `${this.visible.length} ${this.visible.length === 1 ? "word" : "words"}`;
+        DomUtils.setText(count, selectedInView > 0 ? `${words} · ${selectedInView} selected` : words);
+    }
+
+    private renderTable(): void {
+        const container = DomUtils.$("#history") as HTMLElement;
+        DomUtils.empty(container);
+
+        if (this.rows.length === 0) {
+            DomUtils.append(container, States.emptyState(
+                "No translations yet",
+                "Alt + double-click a word on any Swedish page to start building your list."));
+            this.setToolbarEnabled(false);
+            return;
+        }
+        this.setToolbarEnabled(true);
+
+        if (this.visible.length === 0) {
+            DomUtils.append(container, States.emptyState(
+                "No matches",
+                `Nothing in this list matches “${this.query.trim()}”.`));
+            return;
+        }
+
+        const showLanguage = this.currentDirection === ALL_DIRECTIONS;
+
+        const table = DomUtils.createElement("table");
+        DomUtils.addClass(table, "lxTable");
+
+        const thead = DomUtils.createElement("thead");
+        const headRow = DomUtils.createElement("tr");
+
+        const selectAllCell = DomUtils.createElement("th");
+        DomUtils.addClass(selectAllCell, "lxColSelect");
+        const selectAll = DomUtils.createElement("input", {
+            type: "checkbox",
+            "aria-label": "Select all rows in view"
+        }) as HTMLInputElement;
+        const allChecked = this.visible.every((row) => this.selected.has(rowKey(row)));
+        selectAll.checked = allChecked;
+        selectAll.addEventListener("change", () => {
+            for (const row of this.visible) {
+                if (selectAll.checked) {
+                    this.selected.add(rowKey(row));
                 } else {
-                    DomUtils.setAttr(noTranslationsTd, "colspan", "2");
+                    this.selected.delete(rowKey(row));
                 }
-                const tr = DomUtils.createElement("tr");
-                DomUtils.append(tr, noTranslationsTd);
-                DomUtils.append(table, tr);
-                const clearHistoryButton = DomUtils.$("#clearHistory") as HTMLButtonElement;
-                const showDateCheckbox = DomUtils.$("#showDate") as HTMLInputElement;
-                if (clearHistoryButton) {clearHistoryButton.disabled = true;}
-                if (showDateCheckbox) {showDateCheckbox.disabled = true;}
+            }
+            this.renderTable();
+            this.renderCount();
+        });
+        DomUtils.append(selectAllCell, selectAll);
+        DomUtils.append(headRow, selectAllCell);
+
+        const head = (text: string, className?: string) => {
+            const cell = DomUtils.createElement("th", undefined, text);
+            if (className) {
+                DomUtils.addClass(cell, className);
+            }
+            DomUtils.append(headRow, cell);
+        };
+        head("Date", "lxColDate");
+        head("Word");
+        head("Translation");
+        if (showLanguage) {
+            head("Language", "lxColLanguage");
+        }
+        head("", "lxColActions");
+
+        DomUtils.append(thead, headRow);
+        DomUtils.append(table, thead);
+
+        const tbody = DomUtils.createElement("tbody");
+        // One fragment, one reflow - the list runs to a thousand rows per direction.
+        const fragment = document.createDocumentFragment();
+
+        let previousDate = "";
+        for (const row of this.visible) {
+            const key = rowKey(row);
+            const tr = DomUtils.createElement("tr");
+
+            // Grouped on the full date, shown in the short one - two August 1sts a
+            // year apart are different days.
+            const dayKey = new Date(row.added).toDateString();
+            const repeatsDay = dayKey === previousDate;
+            previousDate = dayKey;
+
+            const selectCell = DomUtils.createElement("td");
+            DomUtils.addClass(selectCell, "lxColSelect");
+            const checkbox = DomUtils.createElement("input", {
+                type: "checkbox",
+                "aria-label": `Select ${row.word}`
+            }) as HTMLInputElement;
+            checkbox.checked = this.selected.has(key);
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) {
+                    this.selected.add(key);
+                } else {
+                    this.selected.delete(key);
+                }
+                selectAll.checked = this.visible.every((each) => this.selected.has(rowKey(each)));
+                this.renderCount();
+            });
+            DomUtils.append(selectCell, checkbox);
+            DomUtils.append(tr, selectCell);
+
+            // Blanked on a repeat so a day reads as one group.
+            const dateCell = DomUtils.createElement("td", undefined,
+                repeatsDay ? "" : formatDate(row.added));
+            DomUtils.addClass(dateCell, "lxColDate");
+            DomUtils.append(tr, dateCell);
+
+            const wordCell = DomUtils.createElement("td", undefined, row.word);
+            DomUtils.addClass(wordCell, "lxWord");
+            DomUtils.append(tr, wordCell);
+
+            DomUtils.append(tr, DomUtils.createElement("td", undefined, row.translation));
+
+            if (showLanguage) {
+                const label = this.languageLabel.describe(row.langDirection);
+                const languageCell = DomUtils.createElement("td", { title: label.name }, label.code);
+                DomUtils.addClass(languageCell, "lxColLanguage");
+                DomUtils.append(tr, languageCell);
             }
 
+            const actionsCell = DomUtils.createElement("td");
+            DomUtils.addClass(actionsCell, "lxColActions");
+            const remove = DomUtils.createElement("button", {
+                type: "button",
+                title: `Remove ${row.word}`,
+                "aria-label": `Remove ${row.word}`
+            });
+            DomUtils.addClass(remove, "lxRowDelete");
+            DomUtils.append(remove, Icons.trash());
+            remove.addEventListener("click", async () => {
+                await this.model.removeItem(row);
+                this.selected.delete(key);
+                Tracker.track("history", "removed");
+                await this.reload();
+            });
+            DomUtils.append(actionsCell, remove);
+            DomUtils.append(tr, actionsCell);
+
+            fragment.appendChild(tr);
+        }
+
+        tbody.appendChild(fragment);
+        DomUtils.append(table, tbody);
+        DomUtils.append(container, table);
+    }
+
+    private setToolbarEnabled(enabled: boolean): void {
+        for (const id of ["#exportButton", "#clearHistory"]) {
+            const button = DomUtils.$(id) as HTMLButtonElement;
+            if (button) {
+                button.disabled = !enabled;
+            }
+        }
+    }
+
+    // ── Events ───────────────────────────────────────────────────────────────────
+
+    private subscribeOnEvents(): void {
+        const search = DomUtils.$("#historySearch") as HTMLInputElement;
+        search?.addEventListener("input", () => {
+            this.query = search.value;
+            this.applyFilter();
         });
 
+        this.subscribeOnExportMenu();
+
+        DomUtils.$("#clearHistory")?.addEventListener("click", () => this.clear());
     }
 
-    renderLanguageSelector() : void {
-        const languageSelect = DomUtils.$("#language") as HTMLSelectElement;
-        if (languageSelect) {
-            DomUtils.empty(languageSelect);
-            if (this.languages.length > 0) {
-                for (const lang of this.languages) {
-                    const option = DomUtils.createElement("option", { value: lang.value }, lang.text);
-                    DomUtils.append(languageSelect, option);
-                }
-                languageSelect.disabled = false;
-            } else {
-                languageSelect.disabled = true;
-            }
+    private subscribeOnExportMenu(): void {
+        const button = DomUtils.$("#exportButton") as HTMLButtonElement;
+        const menu = DomUtils.$("#exportMenu") as HTMLElement;
+        if (!button || !menu) {
+            return;
         }
+
+        const setOpen = (open: boolean) => {
+            DomUtils.setAttr(button, "aria-expanded", open ? "true" : "false");
+            if (open) {
+                menu.removeAttribute("hidden");
+                (menu.children[0] as HTMLElement).focus();
+            } else {
+                DomUtils.setAttr(menu, "hidden", "hidden");
+            }
+        };
+
+        button.addEventListener("click", () => {
+            setOpen(button.getAttribute("aria-expanded") !== "true");
+        });
+
+        DomUtils.each(menu.children, (_index, child) => {
+            const item = child as HTMLElement;
+            const run = () => {
+                setOpen(false);
+                button.focus();
+                this.exportAs(DomUtils.getAttr(item, "data-format") as HistoryExport.ExportFormat);
+            };
+            item.addEventListener("click", run);
+            item.addEventListener("keydown", (e: KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    run();
+                }
+            });
+        });
+
+        menu.addEventListener("keydown", (e: KeyboardEvent) => {
+            const items = Array.from(menu.children) as HTMLElement[];
+            const index = items.indexOf(document.activeElement as HTMLElement);
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                items[Math.min(items.length - 1, index + 1)].focus();
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                items[Math.max(0, index - 1)].focus();
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                setOpen(false);
+                button.focus();
+            }
+        });
+
+        document.addEventListener("click", (e: MouseEvent) => {
+            if (!menu.hasAttribute("hidden") && !(e.target as Node).parentElement?.closest(".lxMenu")) {
+                setOpen(false);
+            }
+        });
+    }
+
+    private async exportAs(exportFormat: HistoryExport.ExportFormat): Promise<void> {
+        const items = this.exportSet();
+        if (items.length === 0) {
+            return;
+        }
+        const text = HistoryExport.format(items, exportFormat);
+        Tracker.track("history", "exported", exportFormat);
+
+        if (exportFormat === "clipboard") {
+            const copied = await HistoryExport.copyToClipboard(text);
+            showToast(copied
+                ? `${items.length} copied to clipboard`
+                : "Could not copy to the clipboard");
+            return;
+        }
+        HistoryExport.download(text, HistoryExport.fileNameFor(exportFormat));
+    }
+
+    private async clear(): Promise<void> {
+        const clearingAll = this.currentDirection === ALL_DIRECTIONS;
+        const what = clearingAll
+            ? "every language direction"
+            : this.languageLabel.describe(this.currentDirection).name;
+
+        const confirmed = await confirmDialog({
+            title: "Clear history?",
+            body: `This removes every stored translation for ${what}. It cannot be undone — export first if you want to keep them.`,
+            confirmLabel: "Clear history"
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        if (clearingAll) {
+            await this.model.clearAll(this.directions);
+        } else {
+            await this.model.clearHistory(this.currentDirection);
+        }
+        Tracker.track("history", "cleared");
+
+        this.selected.clear();
+        this.directions = this.sortDirections(await this.model.loadDirections());
+        if (this.directions.indexOf(this.currentDirection) < 0) {
+            this.currentDirection = ALL_DIRECTIONS;
+        }
+        this.renderTabs();
+        await this.reload();
     }
 }
 

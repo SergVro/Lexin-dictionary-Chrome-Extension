@@ -9,8 +9,17 @@ class MessageService implements IMessageService{
         return MessageBus.Instance.sendMessage(MessageType.getHistory, {langDirection: language});
     }
 
+    loadHistoryDirections() : Promise<string[]> {
+        return MessageBus.Instance.sendMessage(MessageType.getHistoryDirections);
+    }
+
     clearHistory(language: string) : Promise<void> {
         return MessageBus.Instance.sendMessage(MessageType.clearHistory, {langDirection: language});
+    }
+
+    removeHistoryItem(language: string, word: string, added: number) : Promise<void> {
+        return MessageBus.Instance.sendMessage(MessageType.removeHistoryItem,
+            {langDirection: language, word: word, added: added});
     }
 
     getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation> {
@@ -27,6 +36,13 @@ class MessageService implements IMessageService{
 
     createNewTab(url: string): void {
         MessageBus.Instance.createNewTab(url);
+    }
+
+    openActionPopup(): Promise<void> {
+        // Only the service worker can open the Action Popup, so this is a message
+        // rather than a direct call - the Translation Card's expand button runs in a
+        // content script, which has no chrome.action.
+        return MessageBus.Instance.sendMessage(MessageType.openActionPopup);
     }
 }
 

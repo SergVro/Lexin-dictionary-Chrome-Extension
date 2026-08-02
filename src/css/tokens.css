@@ -1,0 +1,100 @@
+/*
+ * The Modernist design tokens - the one design language shared by every surface.
+ *
+ * Ported from the Claude Design project "Design specifications annotated"
+ * (_ds/modernist-.../styles.css). Where this file deviates from that source, the
+ * reason is recorded in docs/adr/0002-modernist-token-layer.md; the short version:
+ *
+ *   - Archivo is replaced by the system font stack. No web fonts (CSP, and the card
+ *     must not phone home from every page it floats over), and the twenty languages
+ *     include Amharic, Greek and Cyrillic that one display face would not set.
+ *   - Names are prefixed --lx-. Custom properties inherit through a shadow boundary,
+ *     so a page's own --color-accent could otherwise reach into the Translation Card.
+ *   - --lx-divider is solid per theme rather than the source's
+ *     color-mix(... 40%, transparent): a translucent rule resolves against whatever
+ *     is behind it, and the card floats over grounds we do not control.
+ *
+ * The selector list is what lets one file serve both contexts. Inside the card's
+ * shadow root :root matches nothing - the shadow root is not a document - so the
+ * tokens are declared on .lexinTranslationContainer as well. That is also the
+ * defence: declaring every token *on* the card's own element means no value
+ * inherited from the host page can win, whatever it is called.
+ */
+
+:root,
+.lexinTranslationContainer {
+    /* Ink and ground */
+    --lx-surface: #ffffff;
+    --lx-surface-sunken: #f3f2f2;
+    --lx-text: #201e1d;
+    --lx-text-muted: #605d5d;
+    --lx-divider: #a6a5a5;
+
+    /* One accent ramp, used sparingly - the primary action and small emphasis.
+       -text is the deep step, the only one with enough contrast for body copy. */
+    --lx-accent: #ec3013;
+    --lx-accent-hover: #dd2b0f;
+    --lx-accent-text: #ae1800;
+    --lx-accent-tint: #fff2ef;
+    /* For the few surfaces that invert - the toast paints itself in --lx-text and
+       needs the accent step from the *other* theme to stay legible on it. */
+    --lx-accent-inverse: #ff9783;
+
+    /* 4/8/16/24 step scale */
+    --lx-space-1: 4px;
+    --lx-space-2: 8px;
+    --lx-space-3: 12px;
+    --lx-space-4: 16px;
+    --lx-space-6: 24px;
+    --lx-space-8: 32px;
+
+    /* Zero on purpose - Modernist rounds no corner anywhere. */
+    --lx-radius: 0;
+
+    --lx-shadow-sm: 0 1px 2px rgba(45, 43, 43, 0.14);
+    --lx-shadow-md: 0 3px 10px rgba(45, 43, 43, 0.16);
+
+    --lx-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    /* Archivo sets headings at 800. The system stack tops out at 700 on most
+       platforms, so 700 plus the tight tracking below carries the same weight. */
+    --lx-font-heading-weight: 700;
+    --lx-heading-tracking: -0.015em;
+
+    /* The Translation Card grows to fit its entry and stops here, rather than
+       standing at a fixed height with a short entry rattling around inside it. */
+    --lx-card-max-height: 480px;
+}
+
+/*
+ * Dark is opt-in per element, keyed off data-lx-theme, not a bare
+ * prefers-color-scheme block. The surfaces adopt it one at a time; a media query
+ * would darken the tokens under pages whose own CSS has not been converted yet and
+ * leave them half-dark. ThemeManager sets the attribute from the stored Appearance
+ * setting, falling back to prefers-color-scheme when that setting is "system".
+ */
+/*
+ * The middle selector is not optional. Because the light block above declares every
+ * token *on* .lexinTranslationContainer, that element would otherwise reset itself to
+ * light inside a dark extension page - the Action Popup's whole result area rendered
+ * light ink on a dark ground. A container inside a dark document is dark, and the
+ * descendant selector (0,2,0) is what beats the bare class (0,1,0).
+ */
+:root[data-lx-theme="dark"],
+:root[data-lx-theme="dark"] .lexinTranslationContainer,
+.lexinTranslationContainer[data-lx-theme="dark"] {
+    --lx-surface: #2d2b2b;
+    --lx-surface-sunken: #201e1d;
+    --lx-text: #f3f2f2;
+    --lx-text-muted: #d7d3d3;
+    --lx-divider: #3a3630;
+
+    /* One ramp step lighter, so the accent still clears AA on a dark ground. */
+    --lx-accent: #ff9783;
+    --lx-accent-hover: #ffc4b8;
+    --lx-accent-text: #ff9783;
+    --lx-accent-tint: #443330;
+    --lx-accent-inverse: #ae1800;
+
+    --lx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --lx-shadow-md: 0 3px 10px rgba(0, 0, 0, 0.55);
+}

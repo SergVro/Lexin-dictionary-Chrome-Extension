@@ -79,6 +79,125 @@ describe("HistoryManager", () => {
         });
     });
 
+    describe("entries stored before the parser decoded them", () => {
+        it("should decode them on the way out and write the result back", async () => {
+            await fakeStorage.setItem("historyswe_rus", JSON.stringify([
+                {word: "sport", translation: "&#1089;&#1087;&#1086;&#1088;&#1090;", added: 1}
+            ]));
+
+            const history = await historyManager.getHistory("swe_rus");
+
+            expect(history[0].translation).toBe("спорт");
+            // Written back, so the store is clean for everything that reads it next.
+            expect(await fakeStorage.getItem("historyswe_rus")).toContain("спорт");
+        });
+
+        it("should let an encoded entry merge with its decoded twin", async () => {
+            // Otherwise the same word sits in the list twice, once per spelling, and
+            // exports carry both.
+            await fakeStorage.setItem("historyswe_rus", JSON.stringify([
+                {word: "sport", translation: "&#1089;&#1087;&#1086;&#1088;&#1090;", added: 1},
+                {word: "sport", translation: "спорт", added: 2}
+            ]));
+
+            const history = await historyManager.getHistory("swe_rus");
+
+            expect(history.length).toBe(1);
+            expect(history[0].translation).toBe("спорт");
+        });
+    });
+
+    describe("getDirections", () => {
+        it("should list only directions that have history", async () => {
+            await historyManager.addToHistory("swe_foo", [
+                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
+            ]);
+            await historyManager.addToHistory("swe_bar", [
+                {word: "test_word2", translation: "test_translation2", added: new Date().getTime()}
+            ]);
+            // Settings share the store, and must not be mistaken for a direction.
+            await fakeStorage.setItem("defaultLanguage", "swe_foo");
+            await fakeStorage.setItem("knownLanguages", "swe_foo,swe_bar");
+
+            const directions = await historyManager.getDirections();
+
+            expect(directions.sort()).toEqual(["swe_bar", "swe_foo"]);
+        });
+
+        it("should return nothing for a reader who has looked nothing up", async () => {
+            expect(await historyManager.getDirections()).toEqual([]);
+        });
+
+        it("should not return a direction whose store is empty", async () => {
+            // Opening the Action Popup refreshes its Recent row through getHistory, which
+            // writes [] for a language nothing was ever looked up in; deleting the last
+            // row leaves the same. Either would otherwise become a permanent empty tab.
+            await fakeStorage.setItem("historyswe_foo", "[]");
+            expect(await historyManager.getDirections()).toEqual([]);
+        });
+
+        it("should still return a direction once something is looked up in it", async () => {
+            await fakeStorage.setItem("historyswe_foo", "[]");
+            await historyManager.addToHistory("swe_foo", [
+                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
+            ]);
+
+            expect(await historyManager.getDirections()).toEqual(["swe_foo"]);
+        });
+
+        it("should not return a direction whose store cannot be read", async () => {
+            // The History page could not show it either, and one broken key must not
+            // take the rest of the tabs with it.
+            await fakeStorage.setItem("historyswe_foo", "not json");
+            await historyManager.addToHistory("swe_bar", [
+                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
+            ]);
+
+            expect(await historyManager.getDirections()).toEqual(["swe_bar"]);
+        });
+
+        it("should not return the bare storage key as a direction", async () => {
+            // A stray "history" key with no direction appended would otherwise become
+            // a tab pointing at nothing.
+            await fakeStorage.setItem("history", "[]");
+            expect(await historyManager.getDirections()).toEqual([]);
+        });
+    });
+
+    describe("removeItem", () => {
+        it("should remove the matching entry and leave the rest", async () => {
+            const added = new Date().getTime();
+            await historyManager.addToHistory("swe_foo", [
+                {word: "test_word", translation: "test_translation", added: added},
+                {word: "test_word2", translation: "test_translation2", added: added + 1}
+            ]);
+
+            await historyManager.removeItem("swe_foo", "test_word", added);
+
+            const history = await historyManager.getHistory("swe_foo");
+            expect(history.length).toBe(1);
+            expect(history[0].word).toBe("test_word2");
+        });
+
+        it("should match on the timestamp as well as the word", async () => {
+            // _removeDuplicates merges same-word entries, so the word alone does not
+            // identify a row - deleting on it would take the wrong one.
+            const added = new Date().getTime();
+            await historyManager.addToHistory("swe_foo", [
+                {word: "test_word", translation: "one", added: added}
+            ]);
+
+            await historyManager.removeItem("swe_foo", "test_word", added + 1000);
+
+            expect((await historyManager.getHistory("swe_foo")).length).toBe(1);
+        });
+
+        it("should do nothing for a direction with no history", async () => {
+            await historyManager.removeItem("swe_foo", "test_word", 1);
+            expect((await historyManager.getHistory("swe_foo")).length).toBe(0);
+        });
+    });
+
     describe("clearHistory", () => {
         it("should clear history for specific language", async () => {
             await historyManager.addToHistory("swe_foo", [
