@@ -1,5 +1,5 @@
 import zlib from "node:zlib";
-import { toRgbPng, describePng } from "../../scripts/screenshots/png.mjs";
+import { toRgbPng, describePng } from "../../scripts/store-assets/png.mjs";
 
 /**
  * Guards the one thing the store screenshot pipeline does that no library is doing

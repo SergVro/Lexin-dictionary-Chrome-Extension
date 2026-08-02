@@ -1,19 +1,21 @@
 /*
- * Regenerates the four Chrome Web Store screenshots from the built extension.
+ * Regenerates every Chrome Web Store asset from the built extension: the four
+ * screenshots, and the two promotional tiles.
  *
- *     npm run build && node scripts/screenshots/capture.mjs
+ *     npm run store-assets
  *
  * Every picture is of the real extension, driven the way a reader drives it: the
  * Translation Card is summoned by an actual Alt+double-click on an actual page, and
- * the entries in it come from the live dictionary services. Nothing here is a mockup,
- * so a screenshot cannot quietly outlive the interface it claims to show - if a
- * surface changes shape, this script's captures change with it or it fails outright.
+ * the entries in it come from the live dictionary services - as do the translations
+ * printed on the promo tiles. Nothing here is a mockup, so an asset cannot quietly
+ * outlive the interface it claims to show: if a surface changes shape, this script's
+ * captures change with it or it fails outright.
  *
  * The two things it does stage are the reader's own data, because a fresh profile has
  * none: the stored settings and the history rows are written straight into
  * chrome.storage, the same way the E2E fixtures do it.
  *
- * Output: docs/store-assets/screenshots/*.png, 1280x800, 24-bit, no alpha.
+ * Output: docs/store-assets/{screenshots,promo}/*.png, all 24-bit and free of alpha.
  */
 
 import { chromium } from "@playwright/test";
@@ -21,13 +23,18 @@ import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { toRgbPng, describePng } from "./png.mjs";
+import { describePng } from "./png.mjs";
+import { writeAsset, dataUri } from "./asset.mjs";
 import { tileHtml, TILE } from "./tile.mjs";
+import {
+    smallPromoHtml, marqueePromoHtml, SMALL, MARQUEE, PROMO_WORD, MARQUEE_LANGUAGES
+} from "./promo.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_PATH = path.resolve(HERE, "../../dist");
 const PAGES_PATH = path.join(HERE, "pages");
-const OUTPUT_PATH = path.resolve(HERE, "../../docs/store-assets/screenshots");
+const ICON_PATH = path.resolve(HERE, "../../src/icons/icon128.png");
+const OUTPUT_PATH = path.resolve(HERE, "../../docs/store-assets");
 
 /** Content scripts only run on http(s), so the article page needs a real origin. */
 const PORT = 3457;
@@ -124,10 +131,20 @@ const COPY = {
         headline: "21 dictionaries. Show only the ones you use.",
         subhead: "Choose which languages appear in the picker, which one is the default, "
             + "and whether the extension follows light, dark or your system appearance."
+    },
+    // The promo tiles are often drawn small, so their copy is shorter than the tiles
+    // above and says one thing each.
+    small: {
+        subhead: "Swedish into 21 languages, right on the page you are reading."
+    },
+    marquee: {
+        headline: "Swedish, translated where you are reading it",
+        subhead: "Alt+double-click any word on any page. 21 dictionaries "
+            + "from Lexin and Folkets Lexikon."
     }
 };
 
-/** Serves scripts/screenshots/pages, so the content script has an origin to run on. */
+/** Serves scripts/store-assets/pages, so the content script has an origin to run on. */
 function startPageServer() {
     const types = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".png": "image/png" };
     const server = http.createServer(async (request, response) => {
@@ -312,6 +329,86 @@ async function stageSettings(page) {
 }
 
 /**
+ * Looks the promo word up in each of the marquee's languages, and reads back what the
+ * dictionaries said.
+ *
+ * Driving the Action Popup rather than calling the services directly is what makes
+ * the answers trustworthy: the popup's own language picker supplies the language
+ * name, and the translation is read out of the history store, which means it has been
+ * through the same parser that produces every other translation the extension shows.
+ * A tile that printed a hand-typed Amharic word would be unverifiable by anyone here.
+ *
+ * Must run after the surface captures. These lookups are real, so they land in the
+ * history store, and the History page is photographed with a deliberate set of rows.
+ */
+async function collectTranslations(context, extensionId) {
+    const collected = [];
+
+    for (const language of MARQUEE_LANGUAGES) {
+        await setLanguage(context, extensionId, language);
+
+        // A fresh popup per language rather than one reloaded five times. The popup
+        // reads the stored language once, on load, and reuses it for the rest of its
+        // life - a page kept open across a change of language would go on answering
+        // for the language it started with.
+        const page = await context.newPage();
+        await page.setViewportSize({ width: 380, height: 640 });
+        await page.goto(`chrome-extension://${extensionId}/html/popup.html`);
+        await page.waitForLoadState("domcontentloaded");
+        // The picker fills itself from the stored language. It staying empty means no
+        // dictionary claims this one - which is what a mistyped code looks like from
+        // here, and is worth saying rather than timing out on.
+        await page.waitForFunction(() => {
+            const input = document.querySelector('[role="combobox"]');
+            return !!input && input.value.length > 0;
+        }, undefined, { timeout: DICTIONARY_TIMEOUT }).catch(() => {
+            throw new Error(`"${language}" is not a Language Direction the extension offers - `
+                + "check it against LexinDictionary and FolketsDictionary getSupportedLanguages()");
+        });
+        const label = await page.locator('[role="combobox"]').inputValue();
+
+        await page.fill("#wordInput", PROMO_WORD);
+        await page.press("#wordInput", "Enter");
+        await waitForEntry(page, "#translation");
+
+        const stored = await page.evaluate(async (key) => {
+            const entries = await chrome.storage.local.get(key);
+            return JSON.parse(entries[key] || "[]");
+        }, `history${language}`);
+        await page.close();
+
+        const row = stored.find((item) => item.word.toLowerCase() === PROMO_WORD);
+        if (!row) {
+            throw new Error(`${language}: the dictionary returned no entry for "${PROMO_WORD}"`);
+        }
+
+        // Lexin often answers with several synonyms. The tile has room for one, and
+        // the first is the dictionary's own primary sense - not a choice made here.
+        // Both separators are needed: the Ukrainian entry for "hund" comes back as
+        // "пес; собака", where a comma split alone would set the semicolon on the tile.
+        const text = row.translation.split(/[,;]/)[0].trim();
+        if (!text || text.length > 28) {
+            throw new Error(`${language}: "${text}" is not a translation this tile can set`);
+        }
+        console.log(`  ${language}  ${label} - ${text}`);
+        collected.push({ label, text });
+    }
+
+    return collected;
+}
+
+/** Points the extension at one Language Direction, as the Options page would. */
+async function setLanguage(context, extensionId, language) {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState("domcontentloaded");
+    await page.evaluate(async (value) => {
+        await chrome.storage.local.set({ defaultLanguage: value });
+    }, language);
+    await page.close();
+}
+
+/**
  * How wide to draw an inset, as a magnification of what it was captured at.
  *
  * Drawn at 1.0 it would be a detail at the same scale as the page behind it and read
@@ -325,28 +422,17 @@ function insetWidth(shot, zoom) {
 
 /** Mounts a capture on the 1280x800 canvas and writes it out. */
 async function writeTile(browser, name, spec) {
-    const dataUri = (buffer) => `data:image/png;base64,${buffer.toString("base64")}`;
-    const page = await browser.newPage({ viewport: TILE, deviceScaleFactor: 1 });
-    await page.setContent(tileHtml({
-        ...spec,
-        shot: dataUri(spec.shot),
-        inset: spec.inset ? { ...spec.inset, shot: dataUri(spec.inset.shot) } : undefined
-    }));
-    await page.waitForLoadState("networkidle");
-    const composed = await page.screenshot();
-    await page.close();
-
-    const png = toRgbPng(composed);
-    const shape = describePng(png);
-    if (shape.width !== TILE.width || shape.height !== TILE.height || shape.hasAlpha) {
-        throw new Error(`${name}: store needs ${TILE.width}x${TILE.height} without alpha, `
-            + `got ${shape.width}x${shape.height} colourType ${shape.colourType}`);
-    }
-
-    const file = path.join(OUTPUT_PATH, `${name}.png`);
-    await fs.writeFile(file, png);
-    console.log(`  ${path.relative(process.cwd(), file)}  `
-        + `${shape.width}x${shape.height}  ${(png.length / 1024).toFixed(0)} KB`);
+    return writeAsset(browser, {
+        file: path.join(OUTPUT_PATH, "screenshots", `${name}.png`),
+        size: TILE,
+        html: tileHtml({
+            ...spec,
+            shot: await dataUri(spec.shot),
+            inset: spec.inset
+                ? { ...spec.inset, shot: await dataUri(spec.inset.shot) }
+                : undefined
+        })
+    });
 }
 
 async function main() {
@@ -384,6 +470,9 @@ async function main() {
             options: await page("options.html", { width: 980, height: 660 }),
             settings: await page("options.html", { width: 980, height: 660 }, stageSettings)
         };
+
+        console.log("Looking the promo word up in each marquee language...");
+        const translations = await collectTranslations(context, extensionId);
         await context.close();
 
         console.log("Composing tiles...");
@@ -400,6 +489,20 @@ async function main() {
                 placement: { width: 980, top: 300 },
                 inset: { shot: shots.settings, width: insetWidth(shots.settings, 1.3), top: 505, right: 96 }
             });
+
+        const icon = await dataUri(ICON_PATH);
+        await writeAsset(browser, {
+            file: path.join(OUTPUT_PATH, "promo", "small-promo-tile.png"),
+            size: SMALL,
+            html: smallPromoHtml({
+                icon, word: PROMO_WORD, translation: translations[0].text, ...COPY.small
+            })
+        });
+        await writeAsset(browser, {
+            file: path.join(OUTPUT_PATH, "promo", "marquee-promo-tile.png"),
+            size: MARQUEE,
+            html: marqueePromoHtml({ icon, word: PROMO_WORD, translations, ...COPY.marquee })
+        });
         await browser.close();
     } finally {
         await context.close().catch(() => {});
