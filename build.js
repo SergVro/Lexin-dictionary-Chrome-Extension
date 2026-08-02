@@ -109,11 +109,6 @@ async function build() {
     await copyDir('dist/temp/scripts', 'dist/scripts');
     console.log('Copied additional script files');
 
-    // Write dist/manifest.json (stamped with the build time); build:copy handles
-    // the remaining static assets.
-    await writeManifest();
-    console.log('Wrote manifest');
-
     // Clean up temp directory
     await fs.rm('dist/temp', { recursive: true, force: true });
     console.log('Cleaned up temp files');

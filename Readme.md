@@ -25,10 +25,10 @@ npm install
 
 # Build the extension
 npm run build
-
-# Create a distribution package
-npm run package
 ```
+
+Releases are cut by pushing a `vX.Y.Z` git tag, which packages and publishes
+to the Chrome Web Store via CI — see [RELEASE.md](RELEASE.md).
 
 ### Available Scripts
 
@@ -37,12 +37,11 @@ npm run package
 - `npm run build` - Build the extension (TypeScript compilation, bundling, and copying assets)
 - `npm run build:ts` - Compile TypeScript files
 - `npm run build:bundle` - Bundle JavaScript with esbuild
-- `npm run build:copy` - Copy static assets to dist
+- `npm run build:copy` - Copy static assets (CSS, HTML, icons, manifest) to dist
 - `npm run watch` - Rebuild dist/ on every change, without opening a browser
 - `npm run typecheck` - Type check without emitting (the watch loop does not type check)
 - `npm run lint` - Run ESLint on source files
 - `npm run lint:fix` - Fix ESLint issues automatically
-- `npm run package` - Build and create a ZIP file for distribution
 
 ### Development loop
 

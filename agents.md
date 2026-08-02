@@ -583,10 +583,10 @@ Animation utilities:
    - Bundles dependencies and polyfills
 
 3. **Asset Copying** (`npm run build:copy`)
-   - Copies CSS, HTML, icons, manifest to `dist/`
+   - Copies CSS, HTML, icons, and the (build-time stamped) manifest to `dist/`
 
-4. **Package** (`npm run package`)
-   - Creates `lexin-extension.zip` for distribution
+Releases are packaged and published to the Chrome Web Store by CI on a `vX.Y.Z`
+tag push (`scripts/webstore/package.js`); see [RELEASE.md](RELEASE.md).
 
 ---
 
@@ -642,7 +642,6 @@ npm run build           # Full build (compile + bundle + copy)
 npm run watch           # Watch mode for development
 npm run lint            # Run ESLint
 npm run test            # Run unit tests (Vitest)
-npm run package         # Create distribution ZIP
 ```
 
 ---
@@ -736,7 +735,6 @@ npm run lint:fix         # ESLint with auto-fix
 npm run test             # Run unit tests with Vitest (no browser needed)
 npm run test:watch       # Vitest in watch mode
 npm run test:e2e         # Playwright e2e tests (requires build + headed Chrome)
-npm run package          # Full build + create lexin-extension.zip for distribution
 npm run dev              # Build then watch
 ```
 

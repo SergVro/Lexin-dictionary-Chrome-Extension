@@ -7,7 +7,8 @@
     "prebuild": "npm run clean",
     "build:ts": "tsc",
     "build:bundle": "node build.js",
-    "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/",
+    "build:manifest": "node scripts/write-manifest.js",
+    "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/ && npm run build:manifest",
     "build": "npm run build:ts && npm run build:bundle && npm run build:copy",
     "watch": "node build.js --watch",
     "typecheck": "tsc --noEmit",
@@ -20,7 +21,6 @@
     "test:e2e:debug": "npm run build && npx playwright test --debug",
     "test:e2e:ui": "npm run build && npx playwright test --ui",
     "test:e2e:docker": "./scripts/run-tests-docker.sh",
-    "package": "npm run build && cd dist && zip -r ../lexin-extension.zip .",
     "dev": "node scripts/dev.js"
   },
   "devDependencies": {
