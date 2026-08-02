@@ -5,6 +5,7 @@ import swe_rus_translation_multi from "./data/swe_rus_translation_multi.html";
 import swe_ukr_translation_multi from "./data/swe_ukr_translation_multi.html";
 import swe_ara_translation_multi from "./data/swe_ara_translation_multi.html";
 import swe_amh_translation_multi from "./data/swe_amh_translation_multi.html";
+import swe_swe_definition_multi from "./data/swe_swe_definition_multi.html";
 
 describe("LexinDictionary", () => {
     let dictionary: LexinDictionary;
@@ -143,13 +144,34 @@ describe("LexinDictionary", () => {
         expect(dictionary.parseTranslation(empty, "swe_ukr")).toEqual([]);
     });
 
-    it("should not record history for the monolingual Swedish dictionary", () => {
-        // swe_swe answers with a definition where the others answer with a
-        // translation, so there is no word pair to store.
-        const swedish = "<p><div><b>ordbok</b> [<span lang=sv_S'e>²o:r_dbo:k</span>] subst.&nbsp;&nbsp;</div>" +
-            "<p><div><span lang=sv_SE>bok som innehåller orden i ett språk</span></div></p></p>";
+    // swe_swe answers with a definition where the others answer with a translation,
+    // so it is read with its own pattern and the definition is what gets stored.
+    describe("monolingual Swedish", () => {
+        it("should record definitions as history", () => {
+            // Two homographs of "under", so the same word twice - the first behind a
+            // sense number, the second not.
+            const history = dictionary.parseTranslation(swe_swe_definition_multi, "swe_swe");
 
-        expect(dictionary.parseTranslation(swedish, "swe_swe")).toEqual([]);
+            expect(history.length).toBe(2);
+            expect(history[0].word).toBe("under");
+            expect(history[0].translation).toBe("i läge nedanför");
+            expect(history[1].word).toBe("under");
+            expect(history[1].translation).toBe("märklig händelse, mirakel, underverk");
+        });
+
+        it("should skip an entry that stops at the headword", () => {
+            const stub = "<p><div><b>mycket</b> <b>(2)</b>  [<span lang=sv_S'e>²myk:e(t)</span>] adv.&nbsp;&nbsp;</div></p>";
+
+            expect(dictionary.parseTranslation(stub, "swe_swe")).toEqual([]);
+        });
+
+        it("should not read a bilingual entry with the monolingual pattern", () => {
+            // The Swedish definition sits where the pattern looks, so swe_rus must
+            // not be routed to it - the Russian translation is what belongs there.
+            const history = dictionary.parseTranslation(swe_rus_translation_multi, "swe_rus");
+
+            expect(history[0].translation).toBe("писатель");
+        });
     });
 
     it("should preserve Swedish characters (å, ä, ö) in translation HTML", async () => {

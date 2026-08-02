@@ -2,6 +2,9 @@ import { ILanguage } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 import DictionaryBase from "./DictionaryBase.js";
 
+/** Lexin's Swedish-to-Swedish direction, which explains rather than translates. */
+const MONOLINGUAL = "swe_swe";
+
 class LexinDictionary extends DictionaryBase {
     get supportedLanguages(): ILanguage[]{
         return [
@@ -49,13 +52,37 @@ class LexinDictionary extends DictionaryBase {
      * Trailing `&nbsp;&nbsp;` is not required: only the first shape has it, and it
      * pins nothing the closing `</b>` does not.
      *
-     * swe_swe stays unmatched by design; the monolingual dictionary has a definition
-     * where the others have a translation, and no bold non-Swedish run at all.
+     * swe_swe has no bold non-Swedish run at all and is read by
+     * monolingualParsingRegExp instead.
      */
     get parsingRegExp(): RegExp {
         /* tslint:disable:max-line-length */
         return  /^<p><div><b>(?:<span lang=sv_SE>)?(.+?)(?:<\/span>)?<\/b>.*?<b>((?:<span dir="?rtl"?>)?<span [^>]*lang=(?!sv)[^>]*>.*?)<\/b>/igm;
         /* tslint:enable:max-line-length */
+    }
+
+    /**
+     * Reads swe_swe, where the answer is a definition rather than a translation.
+     *
+     * The definition opens the entry's second paragraph - `</div><p><div>` - either
+     * on its own or behind a sense number, and the entry proper never repeats that
+     * marker, so the first one after the headword is the one to take:
+     *
+     *   `<p><div><b>hund</b> …</div><div>〈hunden, …〉</div><p><div><span lang=sv_SE>ett husdjur …</span>`
+     *   `<p><div><b>stor</b> …</div><div>〈stort, …〉</div><p><div><b>1.</b> <span lang=sv_SE>som överskrider …</span>`
+     *
+     * Only the first sense is stored, the way only the first of several translations
+     * is for the other languages. Entries that stop at the headword - Lexin has a
+     * few, mostly homograph stubs - store nothing, since there is nothing to store.
+     */
+    get monolingualParsingRegExp(): RegExp {
+        /* tslint:disable:max-line-length */
+        return  /^<p><div><b>(?:<span lang=sv_SE>)?(.+?)(?:<\/span>)?<\/b>.*?<p><div>(?:<b>\d+\.<\/b>\s*)?<span lang=sv_SE>(.+?)<\/span>/igm;
+        /* tslint:enable:max-line-length */
+    }
+
+    getParsingRegExp(langDirection: string): RegExp {
+        return langDirection === MONOLINGUAL ? this.monolingualParsingRegExp : this.parsingRegExp;
     }
 
 
