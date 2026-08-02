@@ -1,5 +1,20 @@
 class LinkAdapter {
 
+    private static readonly FOLKETS_BASE = "https://folkets-lexikon.csc.kth.se/folkets/";
+
+    /**
+     * Both dictionary services still write http:// into the markup they return - into
+     * the playAudio() handlers and the image paths alike. Those subresources load under
+     * the host page's origin once the Translation Card renders in a content script, so
+     * on an https:// page the browser blocks them as mixed content: the LYSSNA button
+     * plays nothing and the inflection images never appear, while the same card works
+     * in the popup. Both hosts serve the identical content over TLS, so upgrading the
+     * scheme is the whole fix.
+     */
+    private static toSecureUrl(url: string): string {
+        return url.replace(/^http:\/\//i, "https://");
+    }
+
     /**
      * Adapts links in translation content:
      * 1. Links with onclick="playAudio(...)" - Convert to event listeners (make functional)
@@ -37,6 +52,7 @@ class LinkAdapter {
                 }
                 
                 if (audioUrl) {
+                    audioUrl = LinkAdapter.toSecureUrl(audioUrl);
                     // Remove both onclick and data-onclick attributes
                     anchor.removeAttribute("onclick");
                     anchor.removeAttribute("data-onclick");
@@ -81,9 +97,13 @@ class LinkAdapter {
         const images = translationContainer.querySelectorAll("img");
         images.forEach((img) => {
             const url = img.getAttribute("src");
-            if (url && !url.match(/^http/)) {
-                img.setAttribute("src", "http://folkets-lexikon.csc.kth.se/folkets/" + url); // relative image links for Folkets lexikon fix
+            if (!url) {
+                return;
             }
+            // relative image links for Folkets lexikon fix
+            img.setAttribute("src", url.match(/^http/)
+                ? LinkAdapter.toSecureUrl(url)
+                : LinkAdapter.FOLKETS_BASE + url);
         });
     }
 }

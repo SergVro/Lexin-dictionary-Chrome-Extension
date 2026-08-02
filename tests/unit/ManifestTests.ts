@@ -22,11 +22,18 @@ describe("manifest permissions", () => {
         expect(manifest.permissions).not.toContain("tabs");
     });
 
-    it("should limit host permissions to the two dictionary services", () => {
-        expect(manifest.host_permissions).toEqual([
-            "http://lexin.nada.kth.se/*",
-            "http://folkets-lexikon.csc.kth.se/*"
-        ]);
+    it("should not request any host permission", () => {
+        // host_permissions buys an extension one thing here: a CORS bypass for the
+        // dictionary lookups. Neither service needs it - both answer with
+        // `Access-Control-Allow-Origin: *`, so the fetch in FetchLoader succeeds on
+        // its own. Every fetch runs from the service worker or an extension page,
+        // never from a content script, so none of them inherits a web page's origin;
+        // and the content scripts are injected by content_scripts.matches, which is
+        // independent of this field.
+        //
+        // If lookups ever start failing with a CORS error, check whether the service
+        // dropped that header before re-adding the hosts here.
+        expect(manifest).not.toHaveProperty("host_permissions");
     });
 
     it("should not expose any resource to web pages", () => {

@@ -17,7 +17,7 @@ class FolketsDictionary extends DictionaryBase{
     createQueryUrl(word: string, langDirection: string, direction: TranslationDirection) : string {
         const directionString = direction === TranslationDirection.from ? "en" : "sv";
         const wordEncoded = encodeURIComponent(word);
-        const query = `http://folkets-lexikon.csc.kth.se/folkets/service?lang=${directionString}&interface=en&word=${wordEncoded}`;
+        const query = `https://folkets-lexikon.csc.kth.se/folkets/service?lang=${directionString}&interface=en&word=${wordEncoded}`;
         return query;
     }
 

@@ -223,7 +223,7 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 
 #### `createQueryUrl(word, langDirection, direction): string`
 - Constructs Lexin API URL
-- Format: `http://lexin.nada.kth.se/lexin/service?searchinfo={direction},{langDirection},{word}`
+- Format: `https://lexin.nada.kth.se/lexin/service?searchinfo={direction},{langDirection},{word}`
 - Encodes word for URL safety
 - Direction: "to" or "from"
 
