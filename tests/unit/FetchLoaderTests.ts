@@ -80,6 +80,45 @@ describe("FetchLoader", () => {
         expect(result).toContain("ö");
     });
 
+    // Lexin answers every request with charset=utf-8 and then sends ISO-8859-1 bytes.
+    // Taking the header at its word turned every Swedish vowel in the response into a
+    // replacement character - 71 of them in a single swe_rus entry.
+    it("should fall back to ISO-8859-1 when a response is not the UTF-8 it claims", async () => {
+        const swedish = "<b>författare</b> subst. person som skriver längre texter";
+        const latin1 = new Uint8Array(swedish.length);
+        for (let i = 0; i < swedish.length; i++) {
+            latin1[i] = swedish.charCodeAt(i);
+        }
+
+        global.fetch = vi.fn(() => {
+            return Promise.resolve({
+                ok: true,
+                headers: new Headers({ "Content-Type": "text/html;charset=utf-8" }),
+                arrayBuffer: () => Promise.resolve(latin1.buffer),
+            } as Response);
+        });
+
+        const result = await loader.get("http://example.com/test");
+
+        expect(result).toBe(swedish);
+        expect(result).not.toContain("�");
+    });
+
+    it("should fall back when the declared encoding is one TextDecoder does not know", async () => {
+        const text = "hej";
+        const buffer = new TextEncoder().encode(text);
+
+        global.fetch = vi.fn(() => {
+            return Promise.resolve({
+                ok: true,
+                headers: new Headers({ "Content-Type": "text/html;charset=not-an-encoding" }),
+                arrayBuffer: () => Promise.resolve(buffer.buffer),
+            } as Response);
+        });
+
+        expect(await loader.get("http://example.com/test")).toBe(text);
+    });
+
     it("should throw error when response is not ok", async () => {
         global.fetch = vi.fn(() => {
             return Promise.resolve({

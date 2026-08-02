@@ -55,7 +55,18 @@ class DictionaryBase extends TranslationParser implements IDictionary{
 
     parseTranslation(translation: string, langDirection: string): IHistoryItem[] {
         this.checkLanguage(langDirection);
-        return this.parse(translation, this.parsingRegExp);
+        return this.parse(translation, this.getParsingRegExp(langDirection));
+    }
+
+    /**
+     * Which pattern reads an entry for this language direction.
+     *
+     * One per dictionary is the normal case, hence the parsingRegExp default. It is a
+     * method taking the direction because Lexin's monolingual Swedish is a different
+     * kind of answer - a definition rather than a translation - and needs its own.
+     */
+    getParsingRegExp(_langDirection: string): RegExp {
+        return this.parsingRegExp;
     }
 
     createQueryUrl(_word: string, _langDirection: string, _direction: TranslationDirection) : string {

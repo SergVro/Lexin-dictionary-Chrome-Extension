@@ -9,7 +9,8 @@
  * text, where an undecoded entity shows through verbatim.
  *
  * Hand-rolled rather than `DOMParser` or an off-screen element because the service
- * worker that owns the history store has neither.
+ * worker that owns the history store has neither - which is also why stripHtmlTags
+ * lives here rather than leaning on textContent.
  */
 
 const NAMED_ENTITIES: { [entity: string]: string } = {
@@ -38,6 +39,23 @@ function fromCodePoint(code: number): string {
     } catch {
         return "";
     }
+}
+
+/**
+ * Drops the tags from a fragment of Translation Markup, keeping the text between
+ * them.
+ *
+ * Lexin puts a headword's translations in one bold run rather than one element -
+ * Arabic arrives as two `<span lang=ar_SA>` siblings with the separator sitting
+ * between them as text - so the parser captures the run whole and flattens it here.
+ * The text nodes already carry whatever punctuation the entry uses to separate them,
+ * so nothing needs to be inserted in a tag's place.
+ */
+export function stripHtmlTags(value: string): string {
+    if (!value || value.indexOf("<") < 0) {
+        return value;
+    }
+    return value.replace(/<[^>]*>/g, "");
 }
 
 export function decodeHtmlEntities(value: string): string {

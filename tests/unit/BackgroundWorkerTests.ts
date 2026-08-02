@@ -60,8 +60,16 @@ describe("BackgroundWorker", () => {
             // chrome.action.openPopup is Chrome 127+ and rejects when there is no
             // focused window. The card the reader already has open must survive it.
             (global as any).chrome = { action: { openPopup: () => Promise.reject(new Error("no window")) } };
+            // Spying keeps the expected warning out of the test runner's output,
+            // where it otherwise reads like a genuine failure.
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-            await expect(backgroundWorker.openActionPopup()).resolves.toBeUndefined();
+            try {
+                await expect(backgroundWorker.openActionPopup()).resolves.toBeUndefined();
+                expect(warn).toHaveBeenCalled();
+            } finally {
+                warn.mockRestore();
+            }
         });
     });
 
