@@ -2,7 +2,6 @@ import LanguageManager from "../common/LanguageManager.js";
 import LanguageLabel from "../common/LanguageLabel.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 import { IMessageService, ITranslation } from "../common/Interfaces.js";
-import Tracker from "../common/Tracker.js";
 import * as DomUtils from "../util/DomUtils.js";
 import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
@@ -97,7 +96,6 @@ class PopupPage {
             DomUtils.$("#languagePicker") as HTMLElement, "languageLabel", "Search languages…");
         this.languagePicker.onChange = async (value: string) => {
             this.currentLanguage = value;
-            Tracker.track("language", "changed", value);
             await this.languageManager.setCurrentLanguage(value);
             await this.useSupportedDirection();
             this.renderDirectionBadge();
@@ -207,8 +205,6 @@ class PopupPage {
             if (response) {
                 this.setCurrentWord(response);
                 this.getTranslation();
-
-                Tracker.track("translation", "popup");
             } else {
                 States.render(DomUtils.$("#translation") as HTMLElement, States.emptyState(
                     "No word selected",
@@ -243,7 +239,6 @@ class PopupPage {
             chip.addEventListener("click", () => {
                 this.setCurrentWord(item.word);
                 this.getTranslation();
-                Tracker.track("recent", "clicked");
             });
             DomUtils.append(chips, chip);
         }
@@ -254,7 +249,6 @@ class PopupPage {
         DomUtils.addClass(all, "lxChip");
         DomUtils.addClass(all, "lxChipAccent");
         all.addEventListener("click", () => {
-            Tracker.track("history", "clicked");
             this.messageService.createNewTab("html/history.html");
         });
         DomUtils.append(chips, all);
@@ -303,7 +297,6 @@ class PopupPage {
         const self = this;
 
         DomUtils.$("#optionsLink")?.addEventListener("click", () => {
-            Tracker.track("options", "clicked");
             this.messageService.createNewTab("html/options.html");
         });
 
@@ -313,7 +306,6 @@ class PopupPage {
                 : TranslationDirection.to;
             await this.setDirection(next);
             this.renderDirectionBadge();
-            Tracker.track("direction", "swapped");
             this.getTranslation();
         });
 
@@ -324,7 +316,6 @@ class PopupPage {
         const translationBox = DomUtils.$("#translation");
         if (translationBox) {
             translationBox.addEventListener("click", () => {
-                Tracker.track("translation", "clicked");
                 const selection = window.getSelection()?.toString() || "";
                 if (selection !== "") {
                     this.setCurrentWord(selection);
@@ -352,7 +343,6 @@ class PopupPage {
                 // Enter means "now", not "in half a second".
                 const delay = e.key === "Enter" ? 0 : TYPING_DELAY;
                 timer = setTimeout(() => {
-                    Tracker.track("word", "typed", TranslationDirection[self.currentDirection]);
                     self.setCurrentWord(word, false, true);
                     self.getTranslation();
                 }, delay);

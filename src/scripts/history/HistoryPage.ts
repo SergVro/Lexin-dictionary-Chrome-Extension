@@ -1,6 +1,5 @@
 import HistoryModel, { IHistoryRow, ALL_DIRECTIONS } from "./HistoryModel.js";
 import LanguageLabel from "../common/LanguageLabel.js";
-import Tracker from "../common/Tracker.js";
 import * as DomUtils from "../util/DomUtils.js";
 import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
@@ -151,7 +150,6 @@ class HistoryPage {
         }
         this.currentDirection = direction;
         this.selected.clear();
-        Tracker.track("language", "changed", direction);
         this.renderTabs();
         await this.reload();
     }
@@ -325,7 +323,6 @@ class HistoryPage {
             remove.addEventListener("click", async () => {
                 await this.model.removeItem(row);
                 this.selected.delete(key);
-                Tracker.track("history", "removed");
                 await this.reload();
             });
             DomUtils.append(actionsCell, remove);
@@ -371,7 +368,6 @@ class HistoryPage {
     private async enableRecording(): Promise<void> {
         await this.model.setRecordHistory(true);
         this.recording = true;
-        Tracker.track("recordHistory", "changed", "true");
         showToast("Recording is on");
         this.renderTable();
     }
@@ -465,7 +461,6 @@ class HistoryPage {
             return;
         }
         const text = HistoryExport.format(items, exportFormat);
-        Tracker.track("history", "exported", exportFormat);
 
         if (exportFormat === "clipboard") {
             const copied = await HistoryExport.copyToClipboard(text);
@@ -497,7 +492,6 @@ class HistoryPage {
         } else {
             await this.model.clearHistory(this.currentDirection);
         }
-        Tracker.track("history", "cleared");
 
         this.selected.clear();
         this.directions = this.sortDirections(await this.model.loadDirections());

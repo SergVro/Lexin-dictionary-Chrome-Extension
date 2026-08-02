@@ -1,7 +1,6 @@
 import DictionaryFactory from "./DictionaryFactory.js";
 import LanguageManager from "../common/LanguageManager.js";
 import Settings from "../common/Settings.js";
-import Tracker from "../common/Tracker.js";
 import { IHistoryManager } from "../common/Interfaces.js";
 import TranslationDirection from "./TranslationDirection.js";
 
@@ -32,21 +31,15 @@ class TranslationManager {
         const langDirection = languageDirection || await this.languageManager.getCurrentLanguage();
         const dictionary = this.dictionaryFactory.getDictionary(langDirection);
         
-        try {
-            const data = await dictionary.getTranslation(word, langDirection, direction);
-            Tracker.translation(langDirection);
-            // skipHistory is the caller's decision for one lookup; the setting is the
-            // reader's for all of them. Checked after the request so the translation
-            // itself is unaffected either way.
-            if (!skipHistory && await this.settings.getRecordHistory()) {
-                const translations = dictionary.parseTranslation(data, langDirection);
-                await this.historyManager.addToHistory(langDirection, translations);
-            }
-            return data;
-        } catch (error) {
-            Tracker.translationError(langDirection);
-            throw error;
+        const data = await dictionary.getTranslation(word, langDirection, direction);
+        // skipHistory is the caller's decision for one lookup; the setting is the
+        // reader's for all of them. Checked after the request so the translation
+        // itself is unaffected either way.
+        if (!skipHistory && await this.settings.getRecordHistory()) {
+            const translations = dictionary.parseTranslation(data, langDirection);
+            await this.historyManager.addToHistory(langDirection, translations);
         }
+        return data;
     }
 }
 

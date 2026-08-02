@@ -5,7 +5,6 @@ import { fold } from "../util/Combobox.js";
 import LanguageManager from "../common/LanguageManager.js";
 import ThemeManager, { Appearance, applyTheme } from "../common/ThemeManager.js";
 import Settings from "../common/Settings.js";
-import Tracker from "../common/Tracker.js";
 import { ILanguage } from "../common/Interfaces.js";
 
 class OptionsPage {
@@ -120,7 +119,6 @@ class OptionsPage {
         } else {
             this.enabled.delete(lang.value);
         }
-        Tracker.track("enabled_language", "changed", lang.value);
         await this.saveEnabled();
         // The Default cell for this row turns into a button or an em dash.
         this.renderLanguages();
@@ -133,7 +131,6 @@ class OptionsPage {
         this.enabled.add(lang.value);
         await this.languageManager.setCurrentLanguage(lang.value);
         await this.saveEnabled();
-        Tracker.track("language", "changed", lang.value);
         this.renderLanguages();
     }
 
@@ -157,7 +154,6 @@ class OptionsPage {
                 this.enabled.delete(lang.value);
             }
         }
-        Tracker.track("enabled_language", "changed_all", visible.toString());
         await this.saveEnabled();
         this.renderLanguages();
     }
@@ -194,14 +190,12 @@ class OptionsPage {
             // Applied here and now: the page carrying the control is where a reader
             // expects to see what they just chose.
             applyTheme(document.documentElement, this.themeManager.resolveTheme(appearance));
-            Tracker.track("appearance", "changed", appearance);
             showToast("Options saved");
         });
 
         DomUtils.$("#recordHistory")?.addEventListener("change", async (e: Event) => {
             const recording = (e.target as HTMLInputElement).value === "on";
             await this.settings.setRecordHistory(recording);
-            Tracker.track("recordHistory", "changed", recording.toString());
             showToast("Options saved");
         });
     }

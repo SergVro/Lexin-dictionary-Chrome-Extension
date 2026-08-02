@@ -1,5 +1,4 @@
 import { ITranslationParser, IHistoryManager, IHistoryItem, IAsyncStorage } from "../common/Interfaces.js";
-import Tracker from "../common/Tracker.js";
 import { decodeHtmlEntities } from "../util/HtmlEntities.js";
 
 class HistoryManager implements IHistoryManager {
@@ -196,8 +195,6 @@ class HistoryManager implements IHistoryManager {
         if (this.needToCompress(history)) {
             const countToRemove = history.length - this.maxHistoryLength;
             history.splice(-countToRemove, countToRemove);
-
-            Tracker.track("history", "compress");
         }
     }
 
