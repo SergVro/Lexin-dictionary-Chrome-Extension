@@ -6,9 +6,9 @@ the same lint/test/build gate ([`ci.yml`](.github/workflows/ci.yml)) and Docker
 E2E suite ([`test.yml`](.github/workflows/test.yml)) as ordinary CI runs - both
 are declared with `workflow_call` so `release.yml` calls them as jobs instead
 of duplicating their steps - then packages a deterministic ZIP, authenticates
-to Google Cloud via OIDC (no stored service-account key), and submits the
-package to the Chrome Web Store API v2 for automatic publication once
-Google's review succeeds.
+to Google Cloud via OIDC (no stored service-account key), submits the package
+to the Chrome Web Store API v2 for automatic publication once Google's review
+succeeds, and publishes a GitHub release for the tag.
 
 ## Cutting a release
 
@@ -22,6 +22,15 @@ written to `dist/manifest.json` during packaging and never touches
 `src/manifest.json`. Pick a version higher than both the version currently in
 `src/manifest.json` and whatever is already published to the store; the
 workflow's preflight check rejects non-incrementing versions.
+
+The GitHub release page appears as soon as the store accepts the submission,
+which is earlier than the extension going live - Google publishes it
+automatically hours to days later, once review passes, and the release notes
+say so. In the rare case a submission is rejected, delete that release by hand
+(`gh release delete v2.0.1`) and cut a new version.
+
+Its notes are generated from the titles of the pull requests merged since the
+previous release, so PR titles are what readers of the release page see.
 
 ## One-time setup
 
@@ -139,6 +148,18 @@ first release doubles as the test of the OIDC path.
    "accepted and submitted for review", not "live in the store".
 9. Writes a job summary with the version, checksum, extension ID, and
    returned submission state. Credentials are never printed.
+10. In a separate `github-release` job, downloads that artifact and creates the
+    GitHub release for the tag with auto-generated notes and the ZIP and its
+    checksum attached, so the exact submitted package outlives the 90-day
+    artifact retention.
+
+    It is a distinct job on purpose. The store submission is not repeatable -
+    the preflight in step 6 blocks a second upload while the first still awaits
+    review - so if release creation were a step on the publish job, a transient
+    GitHub API failure would be unrecoverable: GitHub re-runs whole jobs, and
+    the retry would fail at the store step before ever reaching it. Split out,
+    "Re-run failed jobs" replays only this job. It also re-uploads the assets
+    rather than failing if the release already exists.
 
 The release job runs under the `chrome-web-store-production` environment with
 a non-cancelling concurrency group, so two tag pushes can't race each other

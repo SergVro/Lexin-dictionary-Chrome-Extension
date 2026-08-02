@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: chrome-web-store-production
@@ -27,6 +26,13 @@ jobs:
     needs: [verify, e2e]
     runs-on: ubuntu-latest
     environment: chrome-web-store-production
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      zip: ${{ steps.package.outputs.zip }}
+      extension_id: ${{ vars.CWS_EXTENSION_ID }}
 
     steps:
       - name: Checkout code
@@ -81,3 +87,46 @@ jobs:
           CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
           CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
         run: node scripts/webstore/publish.js "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.version }}"
+
+  # A job of its own rather than a step on `publish`, because the store
+  # submission is not repeatable: `assertReleasable` rejects an upload while a
+  # previous submission awaits review. If release creation were a step here, a
+  # transient GitHub API failure would leave no way back - GitHub re-runs whole
+  # jobs, so the retry would die on the store step and never reach it. Split
+  # out, "Re-run failed jobs" replays only this job against the artifact that
+  # `publish` already uploaded.
+  github-release:
+    name: Create GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release package
+        uses: actions/download-artifact@v7
+        with:
+          name: chrome-web-store-package-${{ needs.publish.outputs.version }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ZIP: ${{ needs.publish.outputs.zip }}
+          EXTENSION_ID: ${{ needs.publish.outputs.extension_id }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "${ZIP}" "${ZIP}.sha256" --clobber
+          else
+            # gh appends the generated notes after --notes rather than
+            # replacing them, so the trailing newline keeps a blank line
+            # between this line and the "What's Changed" heading.
+            newline=$'\n'
+            notes="Submitted to the Chrome Web Store on $(date -u +%Y-%m-%d). Google publishes it automatically once review passes - see the [store listing](https://chromewebstore.google.com/detail/${EXTENSION_ID}).${newline}"
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --latest \
+              --generate-notes \
+              --notes "${notes}" \
+              "${ZIP}" "${ZIP}.sha256"
+          fi
