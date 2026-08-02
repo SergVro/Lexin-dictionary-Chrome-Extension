@@ -9,7 +9,8 @@
     "build:bundle": "node build.js",
     "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/ && cp src/manifest.json dist/",
     "build": "npm run build:ts && npm run build:bundle && npm run build:copy",
-    "watch": "tsc --watch",
+    "watch": "node build.js --watch",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint 'src/**/*.{ts,js}'",
     "lint:fix": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "vitest run",
@@ -20,7 +21,7 @@
     "test:e2e:ui": "npm run build && npx playwright test --ui",
     "test:e2e:docker": "./scripts/run-tests-docker.sh",
     "package": "npm run build && cd dist && zip -r ../lexin-extension.zip .",
-    "dev": "npm run build && npm run watch"
+    "dev": "node scripts/dev.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

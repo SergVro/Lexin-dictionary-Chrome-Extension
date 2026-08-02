@@ -32,16 +32,40 @@ npm run package
 
 ### Available Scripts
 
+- `npm run dev` - Development loop: opens Chrome with the extension loaded and reloads it on every save (see below)
 - `npm run clean` - Remove build artifacts
 - `npm run build` - Build the extension (TypeScript compilation, bundling, and copying assets)
 - `npm run build:ts` - Compile TypeScript files
 - `npm run build:bundle` - Bundle JavaScript with esbuild
 - `npm run build:copy` - Copy static assets to dist
-- `npm run watch` - Watch TypeScript files for changes
+- `npm run watch` - Rebuild dist/ on every change, without opening a browser
+- `npm run typecheck` - Type check without emitting (the watch loop does not type check)
 - `npm run lint` - Run ESLint on source files
 - `npm run lint:fix` - Fix ESLint issues automatically
 - `npm run package` - Build and create a ZIP file for distribution
-- `npm run dev` - Build and start watch mode
+
+### Development loop
+
+```bash
+npm run dev
+```
+
+Opens a Chrome window with the extension loaded from `dist/`, plus the static test
+page the E2E suite uses. Saving anything in `src/` rebuilds in about 50ms, reloads
+the extension, and reloads the open pages - no visit to `chrome://extensions`.
+
+The extension's ID is derived from the path to `dist/`, so it is the same on every
+run and the surface URLs printed at startup can be bookmarked. Settings, history and
+open tabs live in `.chrome-dev-profile/` and survive a restart.
+
+Two things to know:
+
+- **Types are not checked in this loop.** It bundles with esbuild alone, which strips
+  types without reading them. Run `npm run typecheck` (or `npm run build`, which
+  compiles with `tsc`) before committing.
+- **`CHROME_CHANNEL=chrome npm run dev`** runs against installed Chrome instead of
+  the Chromium Playwright ships. The default matches what the E2E suite tests
+  against.
 
 ### Project Structure
 
@@ -111,6 +135,8 @@ This extension has been modernized from the legacy build system:
 
 ### Loading the Extension in Chrome
 
+`npm run dev` does this for you. To load it into your own Chrome instead:
+
 1. Build the extension: `npm run build`
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode"
@@ -150,8 +176,9 @@ Web Store / Google Cloud setup it depends on.
 
 Contributions are welcome! Please ensure:
 1. Code follows ESLint rules: `npm run lint`
-2. TypeScript compiles without errors: `npm run build:ts`
+2. TypeScript compiles without errors: `npm run typecheck`
 3. Extension builds successfully: `npm run build`
+4. Tests pass: `npm test` and `npm run test:e2e`
 
 ## License
 
