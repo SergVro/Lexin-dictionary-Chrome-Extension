@@ -1,10 +1,10 @@
-import { test as base, chromium, BrowserContext, Page } from '@playwright/test';
-import path from 'path';
+import { test as base, chromium, BrowserContext, Page } from "@playwright/test";
+import path from "path";
 
 /**
  * Path to the built extension (dist folder)
  */
-const EXTENSION_PATH = path.resolve(__dirname, '../../dist');
+const EXTENSION_PATH = path.resolve(__dirname, "../../dist");
 
 /**
  * Custom test fixtures for Chrome extension testing.
@@ -25,20 +25,22 @@ export const test = base.extend<{
   historyPage: () => Promise<Page>;
 }>({
   // Override the default context to load the extension
+  // Playwright throws unless the first argument is an object destructuring pattern.
+  // eslint-disable-next-line no-empty-pattern
   context: async ({ }, use) => {
-    const context = await chromium.launchPersistentContext('', {
+    const context = await chromium.launchPersistentContext("", {
       headless: false, // Extensions require headed mode
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
         // Disable various features for cleaner testing
-        '--no-first-run',
-        '--disable-default-apps',
-        '--disable-popup-blocking',
-        '--disable-translate',
-        '--disable-background-timer-throttling',
-        '--disable-renderer-backgrounding',
-        '--disable-device-discovery-notifications',
+        "--no-first-run",
+        "--disable-default-apps",
+        "--disable-popup-blocking",
+        "--disable-translate",
+        "--disable-background-timer-throttling",
+        "--disable-renderer-backgrounding",
+        "--disable-device-discovery-notifications",
       ],
     });
     
@@ -53,12 +55,12 @@ export const test = base.extend<{
     
     if (!serviceWorker) {
       // Wait for the service worker to appear
-      serviceWorker = await context.waitForEvent('serviceworker');
+      serviceWorker = await context.waitForEvent("serviceworker");
     }
     
     // Extract extension ID from the service worker URL
     // Format: chrome-extension://<extension-id>/scripts/background-main.js
-    const extensionId = serviceWorker.url().split('/')[2];
+    const extensionId = serviceWorker.url().split("/")[2];
     
     await use(extensionId);
   },
@@ -69,7 +71,7 @@ export const test = base.extend<{
       const popupUrl = `chrome-extension://${extensionId}/html/popup.html`;
       const page = await context.newPage();
       await page.goto(popupUrl);
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       return page;
     };
     
@@ -82,7 +84,7 @@ export const test = base.extend<{
       const optionsUrl = `chrome-extension://${extensionId}/html/options.html`;
       const page = await context.newPage();
       await page.goto(optionsUrl);
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       return page;
     };
     
@@ -95,7 +97,7 @@ export const test = base.extend<{
       const historyUrl = `chrome-extension://${extensionId}/html/history.html`;
       const page = await context.newPage();
       await page.goto(historyUrl);
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       return page;
     };
     
@@ -103,7 +105,7 @@ export const test = base.extend<{
   },
 });
 
-export { expect } from '@playwright/test';
+export { expect } from "@playwright/test";
 
 /**
  * Page object helpers for common extension operations
@@ -122,7 +124,7 @@ export class ExtensionHelpers {
     // and nothing races with the write.
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/help.html`);
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.evaluate(async (language) => {
       await chrome.storage.local.set({ defaultLanguage: language });
     }, value);
@@ -138,7 +140,7 @@ export class ExtensionHelpers {
   ): Promise<void> {
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/help.html`);
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.evaluate(async (direction) => {
       await chrome.storage.local.set({ translationDirection: direction });
     }, String(value));
@@ -151,7 +153,7 @@ export class ExtensionHelpers {
   ): Promise<string | undefined> {
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/help.html`);
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     const value = await page.evaluate(async (storageKey) => {
       const stored = await chrome.storage.local.get(storageKey);
       return stored[storageKey];
@@ -173,11 +175,11 @@ export class ExtensionHelpers {
   ): Promise<void> {
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/help.html`);
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.evaluate(async (seed) => {
       const entries: Record<string, string> = {};
       for (const [direction, items] of Object.entries(seed)) {
-        entries['history' + direction] = JSON.stringify(items);
+        entries["history" + direction] = JSON.stringify(items);
       }
       await chrome.storage.local.set(entries);
     }, byDirection);
@@ -216,14 +218,14 @@ export class ExtensionHelpers {
    * Enter a word in the search field
    */
   static async enterWord(page: Page, word: string): Promise<void> {
-    await page.fill('#wordInput', word);
+    await page.fill("#wordInput", word);
   }
 
   /**
    * Get the translation result
    */
   static async getTranslation(page: Page): Promise<string> {
-    return page.locator('#translation').innerText();
+    return page.locator("#translation").innerText();
   }
 
   /**
@@ -234,12 +236,12 @@ export class ExtensionHelpers {
   static async waitForTranslation(page: Page, timeout = 10000): Promise<void> {
     await page.waitForFunction(
       () => {
-        const el = document.querySelector('#translation');
-        if (!el) return false;
-        const text = el.textContent || '';
+        const el = document.querySelector("#translation");
+        if (!el) {return false;}
+        const text = el.textContent || "";
         return text.length > 0
-          && !text.includes('Searching')
-          && !text.includes('No word selected');
+          && !text.includes("Searching")
+          && !text.includes("No word selected");
       },
       { timeout }
     );

@@ -3,7 +3,7 @@
 (global as any)._gaq = [];
 
 // Mock localStorage if needed
-if (typeof localStorage === 'undefined') {
+if (typeof localStorage === "undefined") {
   const localStorageMock = (() => {
     let store: { [key: string]: string } = {};
     return {
@@ -19,7 +19,7 @@ if (typeof localStorage === 'undefined') {
       },
     };
   })();
-  Object.defineProperty(global, 'localStorage', {
+  Object.defineProperty(global, "localStorage", {
     value: localStorageMock
   });
 }

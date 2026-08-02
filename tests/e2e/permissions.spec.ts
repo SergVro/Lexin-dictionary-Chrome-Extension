@@ -1,5 +1,5 @@
-import { test, expect } from './fixtures';
-import MessageType from '../../src/scripts/messaging/MessageType';
+import { test, expect } from "./fixtures";
+import MessageType from "../../src/scripts/messaging/MessageType";
 
 /**
  * Verifies that the tab-dependent code paths still work under the permission
@@ -15,14 +15,14 @@ import MessageType from '../../src/scripts/messaging/MessageType';
 
 declare const chrome: any;
 
-const TEST_PAGE = 'http://localhost:3456/swedish-text.html';
+const TEST_PAGE = "http://localhost:3456/swedish-text.html";
 
 /** Text of #test-word on the test page, which each test selects. */
-const SELECTED_WORD = 'bil';
+const SELECTED_WORD = "bil";
 
-test.describe('Shipped permission surface', () => {
+test.describe("Shipped permission surface", () => {
 
-  test('loaded extension requests only the storage permission', async ({ context, extensionId }) => {
+  test("loaded extension requests only the storage permission", async ({ context, extensionId }) => {
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/popup.html`);
 
@@ -30,7 +30,7 @@ test.describe('Shipped permission surface', () => {
     // stale or hand-edited build is caught too - ManifestTests covers source.
     const manifest = await page.evaluate(() => chrome.runtime.getManifest());
 
-    expect(manifest.permissions).toEqual(['storage']);
+    expect(manifest.permissions).toEqual(["storage"]);
     expect(manifest.web_accessible_resources).toBeUndefined();
 
     await page.close();
@@ -49,7 +49,7 @@ test.describe('Shipped permission surface', () => {
     }));
 
     expect(tab.error).toBeNull();
-    expect(typeof tab.id).toBe('number');
+    expect(typeof tab.id).toBe("number");
 
     // Chrome strips url/title/favIconUrl without "tabs". sendMessageToActiveTab
     // must therefore route on the id alone; a non-null url here means someone
@@ -60,13 +60,13 @@ test.describe('Shipped permission surface', () => {
     await page.close();
   });
 
-  test('content script answers getSelection over tabs.sendMessage', async ({ context, extensionId }) => {
+  test("content script answers getSelection over tabs.sendMessage", async ({ context, extensionId }) => {
     const web = await context.newPage();
     await web.goto(TEST_PAGE);
-    await web.waitForLoadState('domcontentloaded');
+    await web.waitForLoadState("domcontentloaded");
     await web.evaluate(() => {
       const range = document.createRange();
-      range.selectNodeContents(document.querySelector('#test-word')!);
+      range.selectNodeContents(document.querySelector("#test-word")!);
       const selection = window.getSelection()!;
       selection.removeAllRanges();
       selection.addRange(range);

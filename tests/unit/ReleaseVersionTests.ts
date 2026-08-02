@@ -32,7 +32,7 @@ describe("parseTagVersion", () => {
     });
 
     it("rejects a non-string tag", () => {
-        // @ts-expect-error exercising runtime guard against non-string input
+        // Exercises the runtime guard against non-string input.
         expect(() => parseTagVersion(undefined)).toThrow(/must be a string/);
     });
 });

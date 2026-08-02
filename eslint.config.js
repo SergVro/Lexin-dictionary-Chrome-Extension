@@ -19,7 +19,13 @@ export default tseslint.config(
       ecmaVersion: 2020,
       sourceType: "module",
       parserOptions: {
-        project: "./tsconfig.json",
+        // Resolves each file against the nearest tsconfig (src -> ./tsconfig.json,
+        // tests -> tests/tsconfig.json, e2e -> tests/e2e/tsconfig.json) instead of
+        // forcing everything through the build config, which excludes tests.
+        projectService: {
+          // Root-level configs live outside every tsconfig's "include".
+          allowDefaultProject: ["*.ts"]
+        },
         tsconfigRootDir: import.meta.dirname
       },
       globals: {
