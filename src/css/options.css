@@ -64,6 +64,18 @@ body {
     color: var(--lx-text-muted);
 }
 
+/* This cell holds an em dash, a "Set default" button or the Default chip depending on
+   the row's state, and the button's own padding makes it the tallest of the three - so
+   ticking Visible would grow the row under the pointer. All three sit in one slot of a
+   fixed height instead, and the row keeps its height as the state changes. */
+.lxColDefault > * {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding-block: 0;
+}
+
 .lxHint {
     display: block;
     margin: var(--lx-space-3) 0 0;
