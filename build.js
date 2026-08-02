@@ -121,13 +121,52 @@ async function build() {
 }
 
 /**
+ * Makes `destination` match `source`, deleting anything in it that the source no
+ * longer has.
+ *
+ * A plain recursive copy would only ever merge, so a deleted or renamed asset would
+ * live on in dist/ - and an extension that still works in the dev loop because it is
+ * being served a file the release build omits is exactly the kind of breakage this
+ * loop exists to catch early. The release build sidesteps this by starting from
+ * `rm -rf dist`, which watch mode cannot do while Chrome has dist/ loaded.
+ */
+async function mirrorDirectory(source, destination) {
+  await fs.mkdir(destination, { recursive: true });
+
+  const sourceEntries = await fs.readdir(source, { withFileTypes: true });
+  const destinationEntries = await fs.readdir(destination, { withFileTypes: true })
+    .catch(() => []);
+
+  const sourceNames = new Set(sourceEntries.map((entry) => entry.name));
+  for (const entry of destinationEntries) {
+    if (!sourceNames.has(entry.name)) {
+      await fs.rm(path.join(destination, entry.name), { recursive: true, force: true });
+    }
+  }
+
+  for (const entry of sourceEntries) {
+    const from = path.join(source, entry.name);
+    const to = path.join(destination, entry.name);
+
+    if (entry.isDirectory()) {
+      await mirrorDirectory(from, to);
+    } else {
+      await fs.copyFile(from, to);
+    }
+  }
+}
+
+/**
  * The JavaScript half of the `build:copy` script, for watch mode - which cannot
  * shell out to `cp` on every keystroke and, more importantly, must never delete
  * dist/ while Chrome has the unpacked extension loaded from it.
+ *
+ * Only the asset directories are mirrored. dist/scripts/ belongs to esbuild and
+ * dist/manifest.json is written straight from src.
  */
-export async function copyAssets() {
+export async function syncAssets() {
   for (const directory of assetDirectories) {
-    await fs.cp(`src/${directory}`, `dist/${directory}`, { recursive: true });
+    await mirrorDirectory(`src/${directory}`, `dist/${directory}`);
   }
   await fs.copyFile('src/manifest.json', 'dist/manifest.json');
 }
@@ -141,7 +180,7 @@ export async function copyAssets() {
  * callers are expected to debounce.
  */
 export async function watch(onRebuild = () => {}) {
-  await copyAssets();
+  await syncAssets();
 
   const notifyPlugin = {
     name: 'notify',
@@ -171,9 +210,16 @@ export async function watch(onRebuild = () => {}) {
   // exactly the kind that needs a reload to take effect.
   const assetWatcher = watchPath('src', { recursive: true }, (_event, filename) => {
     if (!filename) { return; }
+
+    // Matched on location rather than on extension, so that a rename or a delete -
+    // which fs.watch reports against the path that vanished, directories included -
+    // is handled the same as an edit.
     const changed = filename.split(path.sep).join('/');
-    if (changed.startsWith('scripts/') || !/\.(css|html|png|json)$/.test(changed)) { return; }
-    copyAssets().then(() => onRebuild([])).catch((error) => console.error(error));
+    const isAsset = changed === 'manifest.json'
+      || assetDirectories.some((directory) => changed.startsWith(`${directory}/`));
+    if (!isAsset) { return; }
+
+    syncAssets().then(() => onRebuild([])).catch((error) => console.error(error));
   });
 
   return async () => {

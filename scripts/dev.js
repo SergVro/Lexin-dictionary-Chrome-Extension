@@ -170,6 +170,12 @@ async function main() {
   // Reloading needs a browser-level CDP session; a page-level one rejects the
   // Extensions domain. Establish it now rather than on the first save, so a Chrome
   // too old to support it is reported before any time is spent editing.
+  //
+  // context.browser() is documented to return null for a persistent context, but
+  // has returned the Browser for years and does so in the version pinned here - the
+  // docs are what is out of date. It is called inside the try for the day that
+  // changes: the loop then degrades to rebuild-only with the warning below, rather
+  // than dying at startup.
   let extensionId;
   try {
     cdp = await context.browser().newBrowserCDPSession();
