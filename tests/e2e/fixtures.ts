@@ -130,6 +130,37 @@ export class ExtensionHelpers {
   }
 
   /**
+   * Put the extension on a translation direction, as the Action Popup's swap control
+   * would leave it. Stored as the TranslationDirection number: 1 is "from", 2 is "to".
+   */
+  static async setTranslationDirection(
+    context: BrowserContext, extensionId: string, value: 1 | 2
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.evaluate(async (direction) => {
+      await chrome.storage.local.set({ translationDirection: direction });
+    }, String(value));
+    await page.close();
+  }
+
+  /** Reads one settings key back, for assertions about what a surface persisted. */
+  static async getStoredValue(
+    context: BrowserContext, extensionId: string, key: string
+  ): Promise<string | undefined> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState('domcontentloaded');
+    const value = await page.evaluate(async (storageKey) => {
+      const stored = await chrome.storage.local.get(storageKey);
+      return stored[storageKey];
+    }, key);
+    await page.close();
+    return value;
+  }
+
+  /**
    * Put rows in the history store without going near the dictionary services.
    *
    * Keyed exactly as HistoryManager keys them ("history" + langDirection), which is

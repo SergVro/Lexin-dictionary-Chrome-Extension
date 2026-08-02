@@ -680,6 +680,26 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  test('the monolingual dictionary looks up even with a reversed direction left over', async ({ context, extensionId, popupPage }) => {
+    // Swapping on a pair language and then selecting swe_swe used to leave "from"
+    // persisted, and the disabled swap control gave no way back: every lookup came
+    // back empty until the reader changed languages twice.
+    await ExtensionHelpers.setLanguage(context, extensionId, 'swe_swe');
+    await ExtensionHelpers.setTranslationDirection(context, extensionId, 1);
+
+    const page = await popupPage();
+    await ExtensionHelpers.waitForLanguagesLoaded(page);
+    await lookUp(page, 'bil');
+
+    await expect(page.locator('#translation')).toContainText('ett fordon för ett litet antal personer', {
+      timeout: 15000
+    });
+    // Persisted, not just corrected on screen - the next popup has to open right too.
+    expect(await ExtensionHelpers.getStoredValue(context, extensionId, 'translationDirection')).toBe('2');
+
+    await page.close();
+  });
+
   test('recent lookups appear as chips and can be looked up again', async ({ context, extensionId, popupPage }) => {
     await ExtensionHelpers.setLanguage(context, extensionId, 'swe_eng');
     const page = await popupPage();

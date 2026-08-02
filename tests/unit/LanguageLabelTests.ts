@@ -69,6 +69,19 @@ describe("LanguageLabel", () => {
         });
     });
 
+    describe("isMonolingual", () => {
+        it("should recognise the Swedish-only dictionary", () => {
+            // The Action Popup keeps this one pointing at "to": Lexin answers nothing
+            // when asked for its "from" direction, and the swap control is disabled.
+            expect(label.isMonolingual("swe_swe")).toBe(true);
+        });
+
+        it("should not treat a pair as monolingual", () => {
+            expect(label.isMonolingual("swe_eng")).toBe(false);
+            expect(label.isMonolingual("swe_srp_cyrillic")).toBe(false);
+        });
+    });
+
     describe("getCurrent", () => {
         it("should read the stored Language Direction", async () => {
             await storage.setItem(LANGUAGE_KEY, "swe_ara");

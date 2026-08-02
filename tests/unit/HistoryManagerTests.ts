@@ -128,6 +128,34 @@ describe("HistoryManager", () => {
             expect(await historyManager.getDirections()).toEqual([]);
         });
 
+        it("should not return a direction whose store is empty", async () => {
+            // Opening the Action Popup refreshes its Recent row through getHistory, which
+            // writes [] for a language nothing was ever looked up in; deleting the last
+            // row leaves the same. Either would otherwise become a permanent empty tab.
+            await fakeStorage.setItem("historyswe_foo", "[]");
+            expect(await historyManager.getDirections()).toEqual([]);
+        });
+
+        it("should still return a direction once something is looked up in it", async () => {
+            await fakeStorage.setItem("historyswe_foo", "[]");
+            await historyManager.addToHistory("swe_foo", [
+                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
+            ]);
+
+            expect(await historyManager.getDirections()).toEqual(["swe_foo"]);
+        });
+
+        it("should not return a direction whose store cannot be read", async () => {
+            // The History page could not show it either, and one broken key must not
+            // take the rest of the tabs with it.
+            await fakeStorage.setItem("historyswe_foo", "not json");
+            await historyManager.addToHistory("swe_bar", [
+                {word: "test_word", translation: "test_translation", added: new Date().getTime()}
+            ]);
+
+            expect(await historyManager.getDirections()).toEqual(["swe_bar"]);
+        });
+
         it("should not return the bare storage key as a direction", async () => {
             // A stray "history" key with no direction appended would otherwise become
             // a tab pointing at nothing.

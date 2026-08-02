@@ -24,6 +24,9 @@ class PopupPage {
     private currentLanguage: string = "";
     private currentDirection: TranslationDirection;
 
+    /** Identifies the newest lookup, so slower earlier ones can be dropped. */
+    private lookupToken = 0;
+
     private messageService: IMessageService;
     private languageManager: LanguageManager;
     private languageLabel: LanguageLabel;
@@ -47,6 +50,7 @@ class PopupPage {
         this.languagePicker.value = this.currentLanguage;
         // Restore saved translation direction, default to "to" (Swedish → Language)
         this.currentDirection = await this.getSavedDirection();
+        await this.useSupportedDirection();
         this.renderDirectionBadge();
 
         this.translateSelectedWord();
@@ -95,6 +99,7 @@ class PopupPage {
             this.currentLanguage = value;
             Tracker.track("language", "changed", value);
             await this.languageManager.setCurrentLanguage(value);
+            await this.useSupportedDirection();
             this.renderDirectionBadge();
             this.getTranslation();
             this.refreshRecent();
@@ -120,7 +125,22 @@ class PopupPage {
         // swap - and asking it for the "from" direction returns nothing at all.
         const swap = DomUtils.$("#swapDirection") as HTMLButtonElement;
         if (swap) {
-            swap.disabled = label.code === "sv";
+            swap.disabled = this.languageLabel.isMonolingual(this.currentLanguage);
+        }
+    }
+
+    /**
+     * Points the monolingual Swedish dictionary back at "to".
+     *
+     * A "from" left over from a pair language would otherwise be carried into every
+     * lookup, which the monolingual dictionary answers with nothing - and with its swap
+     * control disabled there is no way back on screen short of switching languages
+     * twice. Persisted, not just corrected in memory, so the next popup opens right.
+     */
+    private async useSupportedDirection(): Promise<void> {
+        if (this.languageLabel.isMonolingual(this.currentLanguage)
+            && this.currentDirection !== TranslationDirection.to) {
+            await this.setDirection(TranslationDirection.to);
         }
     }
 
@@ -134,9 +154,14 @@ class PopupPage {
         const translationBox = DomUtils.$("#translation") as HTMLElement;
         States.render(translationBox, States.loadingState(word));
 
+        // A slower earlier lookup must not overwrite a later one's result. Counted
+        // rather than compared against the current word, because swapping the direction
+        // or changing the language looks up the *same* word again - and rendering the
+        // stale one of those would contradict the badge beside it.
+        const lookup = ++this.lookupToken;
+
         this.messageService.getTranslation(word, translationDirection).then((response: ITranslation) => {
-            // A slower earlier lookup must not overwrite a later one's result.
-            if (word !== this.currentWord) {
+            if (lookup !== this.lookupToken) {
                 return;
             }
             if (response.error) {
@@ -146,7 +171,7 @@ class PopupPage {
             }
             this.refreshRecent();
         }).catch((error) => {
-            if (word === this.currentWord) {
+            if (lookup === this.lookupToken) {
                 States.render(translationBox, States.errorState(String(error)));
             }
         });

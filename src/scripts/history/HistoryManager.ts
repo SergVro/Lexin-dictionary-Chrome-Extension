@@ -70,12 +70,34 @@ class HistoryManager implements IHistoryManager {
      * Read off the keys rather than kept as an index: an index would be one more thing
      * to keep in step with addToHistory and clearHistory, and it would go stale for
      * anyone upgrading from a build that never wrote it.
+     *
+     * The key existing is not enough - an empty array gets written whenever a direction
+     * is merely *looked at* (opening the Action Popup refreshes its Recent row through
+     * getHistory) and when its last row is deleted. Reading each one keeps the History
+     * page from growing a tab per language the reader once had selected.
      */
     async getDirections(): Promise<string[]> {
         const keys = await this.storage.keys();
-        return keys
-            .filter((key) => key.indexOf(this.storageKey) === 0 && key.length > this.storageKey.length)
+        const candidates = keys
+            .filter((key) => key.indexOf(this.storageKey) === 0 && key.length > this.storageKey.length);
+        const stored = await Promise.all(candidates.map((key) => this.storage.getItem(key)));
+        return candidates
+            .filter((key, index) => this.hasEntries(stored[index]))
             .map((key) => key.substring(this.storageKey.length));
+    }
+
+    /** A store counts as a direction only once something has actually been looked up in it. */
+    private hasEntries(storedHistory: string | null): boolean {
+        if (!storedHistory) {
+            return false;
+        }
+        try {
+            const history = JSON.parse(storedHistory);
+            return Array.isArray(history) && history.length > 0;
+        } catch {
+            // A key we cannot read is a key the History page cannot show either.
+            return false;
+        }
     }
 
     /**

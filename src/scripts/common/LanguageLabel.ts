@@ -49,13 +49,11 @@ class LanguageLabel {
         const language = this.languages.filter((lang) => lang.value === langDirection)[0];
         const name = language ? language.text : langDirection;
 
-        // "swe_srp_cyrillic" -> "srp". The badge has room for a three-letter code, not
-        // a variant suffix; the full name rides along in the title attribute.
-        const target = langDirection.replace(/^swe_/, "").split("_")[0];
+        const target = this.targetOf(langDirection);
 
         // Swedish-to-Swedish is the monolingual dictionary. There is no pair to show,
         // and no direction to swap.
-        if (!target || target === "swe") {
+        if (this.isMonolingual(langDirection)) {
             return { code: SOURCE_CODE, name: name };
         }
 
@@ -69,6 +67,22 @@ class LanguageLabel {
             code: `${SOURCE_CODE}→${target}`,
             name: `Swedish → ${name}`
         };
+    }
+
+    /**
+     * Whether this is the monolingual Swedish dictionary - one language rather than a
+     * pair. It has no direction to swap, and Lexin answers nothing at all when asked
+     * for its "from" direction, so callers have to keep it pointing at "to".
+     */
+    isMonolingual(langDirection: string): boolean {
+        const target = this.targetOf(langDirection);
+        return !target || target === "swe";
+    }
+
+    /** "swe_srp_cyrillic" -> "srp". The badge has room for a three-letter code, not a
+     * variant suffix; the full name rides along in the title attribute. */
+    private targetOf(langDirection: string): string {
+        return langDirection.replace(/^swe_/, "").split("_")[0];
     }
 }
 
