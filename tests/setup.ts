@@ -1,7 +1,4 @@
 // Jest setup file
-// Mock global variables that might be needed
-(global as any)._gaq = [];
-
 // Mock localStorage if needed
 if (typeof localStorage === "undefined") {
   const localStorageMock = (() => {
