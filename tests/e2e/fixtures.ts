@@ -147,6 +147,23 @@ export class ExtensionHelpers {
     await page.close();
   }
 
+  /**
+   * Turn history recording off (or on) without walking the Options page.
+   *
+   * Stored as the string Settings writes: anything other than "false" means on.
+   */
+  static async setRecordHistory(
+    context: BrowserContext, extensionId: string, value: boolean
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState("domcontentloaded");
+    await page.evaluate(async (recording) => {
+      await chrome.storage.local.set({ recordHistory: recording });
+    }, value ? "true" : "false");
+    await page.close();
+  }
+
   /** Reads one settings key back, for assertions about what a surface persisted. */
   static async getStoredValue(
     context: BrowserContext, extensionId: string, key: string

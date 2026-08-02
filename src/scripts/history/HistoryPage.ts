@@ -40,6 +40,7 @@ class HistoryPage {
     private visible: IHistoryRow[] = [];
     private selected = new Set<string>();
     private query = "";
+    private recording = true;
 
     constructor(model: HistoryModel, languageLabel: LanguageLabel) {
         this.model = model;
@@ -51,6 +52,7 @@ class HistoryPage {
         DomUtils.append(DomUtils.$("#searchIcon"), Icons.search());
 
         this.readerLanguage = await this.model.getLanguage();
+        this.recording = await this.model.getRecordHistory();
         this.directions = this.sortDirections(await this.model.loadDirections());
 
         // Open on the reader's own language when it has history; otherwise All, which
@@ -182,13 +184,26 @@ class HistoryPage {
         DomUtils.empty(container);
 
         if (this.rows.length === 0) {
-            DomUtils.append(container, States.emptyState(
-                "No translations yet",
-                "Alt + double-click a word on any Swedish page to start building your list."));
+            // An empty list has two quite different causes, and only one of them is
+            // answered by "go and look a word up".
+            DomUtils.append(container, this.recording
+                ? States.emptyState(
+                    "No translations yet",
+                    "Alt + double-click a word on any Swedish page to start building your list.")
+                : States.emptyState(
+                    "Recording is off",
+                    "Lookups are not being saved, so this list stays empty.",
+                    this.recordingButton("Turn recording on", "lxButtonPrimary")));
             this.setToolbarEnabled(false);
             return;
         }
         this.setToolbarEnabled(true);
+
+        // The list is here but frozen. Said once, above it, rather than leaving a
+        // reader to work out for themselves why today's words never arrived.
+        if (!this.recording) {
+            DomUtils.append(container, this.recordingNotice());
+        }
 
         if (this.visible.length === 0) {
             DomUtils.append(container, States.emptyState(
@@ -322,6 +337,43 @@ class HistoryPage {
         tbody.appendChild(fragment);
         DomUtils.append(table, tbody);
         DomUtils.append(container, table);
+    }
+
+    /** A one-line reminder above a list that has stopped growing. */
+    private recordingNotice(): HTMLElement {
+        const notice = DomUtils.createElement("div", { role: "status" });
+        DomUtils.addClass(notice, "lxNotice");
+
+        const icon = Icons.info();
+        icon.setAttribute("class", "lxNoticeIcon");
+        DomUtils.append(notice, icon);
+
+        DomUtils.append(notice, DomUtils.createElement("span", undefined,
+            "Recording is off — new lookups are not being added to this list."));
+        DomUtils.append(notice, this.recordingButton("Turn on", "lxButtonSecondary"));
+        return notice;
+    }
+
+    private recordingButton(label: string, variant: string): HTMLElement {
+        const button = DomUtils.createElement("button", { type: "button" }, label);
+        DomUtils.addClass(button, "lxButton");
+        DomUtils.addClass(button, variant);
+        button.addEventListener("click", () => this.enableRecording());
+        return button;
+    }
+
+    /**
+     * Turned on from here rather than by sending the reader to Options.
+     *
+     * The service worker reads the setting per lookup out of the same chrome.storage,
+     * so the next word is recorded without either page reloading.
+     */
+    private async enableRecording(): Promise<void> {
+        await this.model.setRecordHistory(true);
+        this.recording = true;
+        Tracker.track("recordHistory", "changed", "true");
+        showToast("Recording is on");
+        this.renderTable();
     }
 
     private setToolbarEnabled(enabled: boolean): void {

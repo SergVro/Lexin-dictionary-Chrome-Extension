@@ -56,11 +56,19 @@ export function errorState(detail: string): HTMLElement {
     return element;
 }
 
-/** Shown when there is nothing to look up yet. */
-export function emptyState(title: string, detail: string): HTMLElement {
+/**
+ * Shown when there is nothing to look up yet.
+ *
+ * `action` is for the empty that has a way out - a control that fills the list rather
+ * than a sentence telling the reader to go and find one elsewhere.
+ */
+export function emptyState(title: string, detail: string, action?: HTMLElement): HTMLElement {
     const element = state();
     DomUtils.append(element, line(title, "lxStateTitle"));
     DomUtils.append(element, line(detail));
+    if (action) {
+        DomUtils.append(element, action);
+    }
     return element;
 }
 

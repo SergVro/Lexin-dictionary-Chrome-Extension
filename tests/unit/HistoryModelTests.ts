@@ -1,6 +1,7 @@
 import HistoryModel, { ALL_DIRECTIONS } from "../../src/scripts/history/HistoryModel.js";
 import DictionaryFactory from "../../src/scripts/dictionary/DictionaryFactory.js";
 import LanguageManager from "../../src/scripts/common/LanguageManager.js";
+import Settings from "../../src/scripts/common/Settings.js";
 import { TestMessageService, FakeAsyncSettingsStorage } from "./util/fakes.js";
 import { IAsyncSettingsStorage } from "../../src/scripts/common/Interfaces.js";
 
@@ -9,6 +10,7 @@ describe("HistoryModel", () => {
     let mockSettingsStorage: IAsyncSettingsStorage;
     let dictionaryFactory: DictionaryFactory;
     let languageManager: LanguageManager;
+    let settings: Settings;
     let historyModel: HistoryModel;
 
     beforeEach(async () => {
@@ -17,7 +19,8 @@ describe("HistoryModel", () => {
         dictionaryFactory = new DictionaryFactory();
         languageManager = new LanguageManager(mockSettingsStorage, dictionaryFactory);
         await languageManager.waitForInitialization();
-        historyModel = new HistoryModel(mockMessageService, languageManager);
+        settings = new Settings(mockSettingsStorage);
+        historyModel = new HistoryModel(mockMessageService, languageManager, settings);
     });
 
     it("should report the reader's own Language Direction, used to pick the opening tab", async () => {
@@ -68,6 +71,26 @@ describe("HistoryModel", () => {
             const rows = await historyModel.loadHistory(ALL_DIRECTIONS);
 
             expect(rows.length).toBe(1);
+        });
+    });
+
+    describe("recording", () => {
+        it("should report recording as on until it has been turned off", async () => {
+            expect(await historyModel.getRecordHistory()).toBe(true);
+
+            await settings.setRecordHistory(false);
+
+            expect(await historyModel.getRecordHistory()).toBe(false);
+        });
+
+        it("should turn recording back on, so the History page need not send the reader to Options", async () => {
+            await settings.setRecordHistory(false);
+
+            await historyModel.setRecordHistory(true);
+
+            // Read back through Settings: the service worker reads the same key when
+            // it decides whether to store the next lookup.
+            expect(await settings.getRecordHistory()).toBe(true);
         });
     });
 

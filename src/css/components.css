@@ -382,6 +382,38 @@
     margin-top: var(--lx-space-2);
 }
 
+/* ── Notice ──────────────────────────────────────────────────────────────────── */
+
+/* A standing condition the reader should know about, with the control that ends it.
+   Unlike the toast, it reports something still true rather than something that just
+   happened, so it sits in the flow above the content it qualifies and stays put. */
+.lxNotice {
+    display: flex;
+    align-items: center;
+    gap: var(--lx-space-2);
+    margin-block: var(--lx-space-3);
+    padding: var(--lx-space-2) var(--lx-space-3);
+    border: 1px solid var(--lx-divider);
+    border-radius: var(--lx-radius);
+    background: var(--lx-accent-tint);
+    font-size: 13px;
+    color: var(--lx-text);
+}
+
+.lxNoticeIcon {
+    flex: none;
+    color: var(--lx-accent-text);
+}
+
+/* The control last, and hard against the inline end - the sentence is what gets read
+   first, and the button is the answer to it. */
+.lxNotice .lxButton {
+    margin-inline-start: auto;
+    flex: none;
+    font-size: 13px;
+    background: var(--lx-surface);
+}
+
 /* ── Toast ───────────────────────────────────────────────────────────────────── */
 
 /* Confirms something that already happened. Fixed, so it never reflows the page it
