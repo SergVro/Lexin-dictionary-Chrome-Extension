@@ -29,12 +29,12 @@ describe("LexinDictionary", () => {
     describe("queryUrl", () => {
         it("should create query URL for bil swe_rus to", () => {
             expect(dictionary.createQueryUrl("bil", "swe_rus", TranslationDirection.to))
-                .toBe("http://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,bil");
+                .toBe("https://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,bil");
         });
 
         it("should create query URL for katt swe_swe from", () => {
             expect(dictionary.createQueryUrl("katt", "swe_swe", TranslationDirection.from))
-                .toBe("http://lexin.nada.kth.se/lexin/service?searchinfo=from,swe_swe,katt");
+                .toBe("https://lexin.nada.kth.se/lexin/service?searchinfo=from,swe_swe,katt");
         });
     });
 
@@ -54,8 +54,8 @@ describe("LexinDictionary", () => {
             loader.data = ["Författare - Ingen träff", swe_rus_translation_multi];
             const translation = await dictionary.getTranslation("Författare", "swe_rus", TranslationDirection.to);
             expect(loader.urls.length).toBe(2);
-            expect(loader.urls[0]).toBe("http://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,F%C3%B6rfattare");
-            expect(loader.urls[1]).toBe("http://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,f%C3%B6rfattare");
+            expect(loader.urls[0]).toBe("https://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,F%C3%B6rfattare");
+            expect(loader.urls[1]).toBe("https://lexin.nada.kth.se/lexin/service?searchinfo=to,swe_rus,f%C3%B6rfattare");
             expect(translation.length).toBeGreaterThan(0);
         });
     });

@@ -89,7 +89,7 @@ class LexinDictionary extends DictionaryBase {
     createQueryUrl(word: string, langDirection: string, direction: TranslationDirection) : string {
         const directionString = TranslationDirection[direction];
         const wordEncoded = encodeURIComponent(word);
-        const query = `http://lexin.nada.kth.se/lexin/service?searchinfo=${directionString},${langDirection},${wordEncoded}`;
+        const query = `https://lexin.nada.kth.se/lexin/service?searchinfo=${directionString},${langDirection},${wordEncoded}`;
         return query;
     }
 

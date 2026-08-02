@@ -25,12 +25,12 @@ describe("FolketsDictionary", () => {
     describe("queryUrl", () => {
         it("should create query URL for bil swe_eng to", () => {
             expect(dictionary.createQueryUrl("bil", "swe_eng", TranslationDirection.to))
-                .toBe("http://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=bil");
+                .toBe("https://folkets-lexikon.csc.kth.se/folkets/service?lang=sv&interface=en&word=bil");
         });
 
         it("should create query URL for katt swe_eng from", () => {
             expect(dictionary.createQueryUrl("katt", "swe_eng", TranslationDirection.from))
-                .toBe("http://folkets-lexikon.csc.kth.se/folkets/service?lang=en&interface=en&word=katt");
+                .toBe("https://folkets-lexikon.csc.kth.se/folkets/service?lang=en&interface=en&word=katt");
         });
     });
 
