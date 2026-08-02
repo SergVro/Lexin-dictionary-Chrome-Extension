@@ -116,7 +116,7 @@ body {
 }
 
 .lxMenuList li:hover,
-.lxMenuList li:focus {
+.lxMenuList li:focus-visible {
     background: var(--lx-accent);
     color: var(--lx-surface);
     outline: none;
