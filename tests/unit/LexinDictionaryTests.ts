@@ -3,6 +3,8 @@ import LexinDictionary from "../../src/scripts/dictionary/LexinDictionary.js";
 import TranslationDirection from "../../src/scripts/dictionary/TranslationDirection.js";
 import swe_rus_translation_multi from "./data/swe_rus_translation_multi.html";
 import swe_ukr_translation_multi from "./data/swe_ukr_translation_multi.html";
+import swe_ara_translation_multi from "./data/swe_ara_translation_multi.html";
+import swe_amh_translation_multi from "./data/swe_amh_translation_multi.html";
 
 describe("LexinDictionary", () => {
     let dictionary: LexinDictionary;
@@ -103,6 +105,51 @@ describe("LexinDictionary", () => {
         expect(history[2].translation).toBe("роман");
         expect(history[3].word).toBe("succé");
         expect(history[3].translation).toBe("успіх");
+    });
+
+    // Lexin serves Arabic, Persian and Somali from a different template: the headword
+    // is bold text rather than a lang=sv_SE span, and the translations are a run of
+    // spans inside one <b> with no trailing &nbsp;&nbsp;. Nothing matched, so every
+    // lookup in those languages recorded no history at all.
+    it("should parse Arabic translation", () => {
+        const history = dictionary.parseTranslation(swe_ara_translation_multi, "swe_ara");
+
+        expect(history.length).toBe(2);
+        expect(history[0].word).toBe("ordbok");
+        expect(history[0].translation).toBe("قاموس، مُعْجَم");
+        expect(history[1].word).toBe("bok");
+        expect(history[1].translation).toBe("كتاب");
+    });
+
+    // Amharic, Pashto and South Kurdish use the common template but write the
+    // translation span as dir=rtl lang=am_ET, which the old pattern did not allow for.
+    it("should parse Amharic translation", () => {
+        const history = dictionary.parseTranslation(swe_amh_translation_multi, "swe_amh");
+
+        expect(history.length).toBe(5);
+        expect(history[0].word).toBe("författare");
+        expect(history[0].translation).toBe("ደራሲ");
+        expect(history[1].word).toBe("ordbok");
+        expect(history[1].translation).toBe("መዝገበ ቃላት");
+        expect(history[4].word).toBe("succé");
+        expect(history[4].translation).toBe("ስኬት");
+    });
+
+    it("should skip entries Lexin leaves untranslated", () => {
+        // A bold span with nothing in it - swe_ukr has a few - is not history.
+        const empty = "<p><div><b><span lang=sv_SE>arbete</span></b> subst.&nbsp;&nbsp;</div>" +
+            "<div><b><span lang=uk_UA></span></b>&nbsp;&nbsp; </div></p>";
+
+        expect(dictionary.parseTranslation(empty, "swe_ukr")).toEqual([]);
+    });
+
+    it("should not record history for the monolingual Swedish dictionary", () => {
+        // swe_swe answers with a definition where the others answer with a
+        // translation, so there is no word pair to store.
+        const swedish = "<p><div><b>ordbok</b> [<span lang=sv_S'e>²o:r_dbo:k</span>] subst.&nbsp;&nbsp;</div>" +
+            "<p><div><span lang=sv_SE>bok som innehåller orden i ett språk</span></div></p></p>";
+
+        expect(dictionary.parseTranslation(swedish, "swe_swe")).toEqual([]);
     });
 
     it("should preserve Swedish characters (å, ä, ö) in translation HTML", async () => {

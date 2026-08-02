@@ -28,9 +28,33 @@ class LexinDictionary extends DictionaryBase {
         ];
     }
 
+    /**
+     * Pulls headword and translation out of an entry, one entry per line.
+     *
+     * Lexin serves three shapes of entry and the language decides which one, so this
+     * has to cover all three or a whole language records no history at all:
+     *
+     *   Swedish headword    `<b><span lang=sv_SE>ordbok</span></b>`   most languages
+     *                       `<b>ord|bok</b>`                          ara, per, som
+     *   Translation run     `<b><span lang=ru_RU>словарь</span></b>`  most languages
+     *                       `<b><span dir=rtl lang=am_ET>…</span></b>` amh, pus, sdh
+     *                       `<b><span dir="rtl"><span dir=rtl lang=ar_SA>…</span>،
+     *                        <span dir=rtl lang=ar_SA>…</span></span></b>`      ara, per
+     *
+     * Hence the optional Swedish span, the `[^>]*` before `lang=` that lets `dir`
+     * precede it, and the optional right-to-left wrapper. The translation is captured
+     * as the whole bold run rather than one span - Arabic and Somali list several
+     * translations as siblings inside it - and flattened to text by the parser.
+     *
+     * Trailing `&nbsp;&nbsp;` is not required: only the first shape has it, and it
+     * pins nothing the closing `</b>` does not.
+     *
+     * swe_swe stays unmatched by design; the monolingual dictionary has a definition
+     * where the others have a translation, and no bold non-Swedish run at all.
+     */
     get parsingRegExp(): RegExp {
         /* tslint:disable:max-line-length */
-        return  /^<p><div><b><span lang=sv_SE>(.+?)<\/span><\/b>.*<\/div><div><b><span lang=.+>(.+?)<\/span><\/b>&nbsp;&nbsp;.*?$/igm;
+        return  /^<p><div><b>(?:<span lang=sv_SE>)?(.+?)(?:<\/span>)?<\/b>.*?<b>((?:<span dir="?rtl"?>)?<span [^>]*lang=(?!sv)[^>]*>.*?)<\/b>/igm;
         /* tslint:enable:max-line-length */
     }
 
