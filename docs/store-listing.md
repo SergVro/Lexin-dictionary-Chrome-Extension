@@ -11,6 +11,11 @@ The store renders both fields as **plain text**. Line breaks survive; Markdown d
 not. Copy the blocks below verbatim into the Chrome Web Store developer dashboard,
 under *Store listing*.
 
+The screenshots and promo tiles that go on the same page live in `store-assets/`, and
+are generated from the built extension by `npm run store-assets`. Their captions
+repeat claims made below - the language count, the export formats - so the two are
+edited together.
+
 ## Short description
 
 Maximum 132 characters. This one is 128.
