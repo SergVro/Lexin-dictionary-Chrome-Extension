@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: chrome-web-store-production
@@ -27,6 +26,9 @@ jobs:
     needs: [verify, e2e]
     runs-on: ubuntu-latest
     environment: chrome-web-store-production
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -81,3 +83,30 @@ jobs:
           CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
           CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
         run: node scripts/webstore/publish.js "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.version }}"
+
+      # Runs only after the store accepts the submission, so a release page
+      # existing always means the package got that far. The view/upload branch
+      # keeps a re-run of this step recoverable: the store rejects a second
+      # submission while the first awaits review, so re-running the whole job
+      # is not an option.
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZIP: ${{ steps.package.outputs.zip }}
+          EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "${ZIP}" "${ZIP}.sha256" --clobber
+          else
+            # gh appends the generated notes after --notes rather than
+            # replacing them, so the trailing newline keeps a blank line
+            # between this line and the "What's Changed" heading.
+            newline=$'\n'
+            notes="Submitted to the Chrome Web Store on $(date -u +%Y-%m-%d). Google publishes it automatically once review passes - see the [store listing](https://chromewebstore.google.com/detail/${EXTENSION_ID}).${newline}"
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --latest \
+              --generate-notes \
+              --notes "${notes}" \
+              "${ZIP}" "${ZIP}.sha256"
+          fi
