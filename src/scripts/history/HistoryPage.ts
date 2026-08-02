@@ -161,6 +161,22 @@ class HistoryPage {
         DomUtils.setText(count, selectedInView > 0 ? `${words} · ${selectedInView} selected` : words);
     }
 
+    /**
+     * What the third column is called: "Definition" once everything in the tab came
+     * from the monolingual Swedish dictionary, which explains a word rather than
+     * translating it.
+     *
+     * Read off the rows rather than the selected tab because a reader whose only
+     * direction is swe_swe never sees a tab strip - their list arrives under All. Off
+     * this.rows rather than this.visible so that searching cannot rename a column
+     * mid-keystroke.
+     */
+    private translationHeading(): string {
+        return this.rows.every((row) => this.languageLabel.isMonolingual(row.langDirection))
+            ? "Definition"
+            : "Translation";
+    }
+
     private renderTable(): void {
         const container = DomUtils.$("#history") as HTMLElement;
         DomUtils.empty(container);
@@ -220,7 +236,7 @@ class HistoryPage {
         };
         head("Date", "lxColDate");
         head("Word");
-        head("Translation");
+        head(this.translationHeading());
         if (showLanguage) {
             head("Language", "lxColLanguage");
         }

@@ -333,6 +333,47 @@ test.describe('Extension Smoke Tests', () => {
     await page.close();
   });
 
+  /**
+   * The monolingual Swedish dictionary explains a word rather than translating it, so
+   * the column it fills is not a translation. A reader who only ever uses it gets no
+   * tab strip at all, which is why the heading follows the rows rather than the tab.
+   */
+  test('the third column is named for what the dictionary answers with', async ({ context, extensionId, historyPage }) => {
+    await ExtensionHelpers.seedHistory(context, extensionId, {
+      swe_swe: [
+        { word: 'hund', translation: 'ett husdjur som lever mycket nära människan', added: Date.parse('2026-08-01T10:00:00Z') }
+      ]
+    });
+    const soloPage = await historyPage();
+
+    await expect(soloPage.locator('#directionTabs')).toBeHidden();
+    await expect(soloPage.locator('.lxTable th', { hasText: 'Definition' })).toBeVisible();
+    await expect(soloPage.locator('.lxTable th', { hasText: 'Translation' })).toHaveCount(0);
+    await soloPage.close();
+
+    // Alongside a language pair it is per tab: All mixes the two, so "Translation"
+    // is the heading that covers both.
+    await ExtensionHelpers.seedHistory(context, extensionId, {
+      ...SEEDED_HISTORY,
+      swe_swe: [
+        { word: 'hund', translation: 'ett husdjur som lever mycket nära människan', added: Date.parse('2026-08-01T10:00:00Z') }
+      ]
+    });
+    const page = await historyPage();
+
+    await page.locator('.lxTab', { hasText: 'All' }).click();
+    await expect(page.locator('.lxTable th', { hasText: 'Translation' })).toBeVisible();
+
+    await page.locator('.lxTab', { hasText: 'sv→eng' }).click();
+    await expect(page.locator('.lxTable th', { hasText: 'Translation' })).toBeVisible();
+
+    await page.locator('.lxTab').filter({ hasText: /^sv$/ }).click();
+    await expect(page.locator('.lxTable th', { hasText: 'Definition' })).toBeVisible();
+    await expect(page.locator('.lxTable th', { hasText: 'Translation' })).toHaveCount(0);
+
+    await page.close();
+  });
+
   test('history search narrows the rows and the count follows', async ({ context, extensionId, historyPage }) => {
     await ExtensionHelpers.seedHistory(context, extensionId, SEEDED_HISTORY);
     const page = await historyPage();
