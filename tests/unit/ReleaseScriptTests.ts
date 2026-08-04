@@ -116,6 +116,14 @@ describe("assertReadyToRelease", () => {
         expect(() => assertReadyToRelease(resume)).not.toThrow();
     });
 
+    it("refuses a version that is the committed one spelled differently", () => {
+        // 3.0.0.0 compares equal to 3.0.0 but makes tag v3.0.0.0, which neither
+        // tag check knows about. The store reads them as one version and would
+        // reject the submission - after a full CI and E2E run.
+        expect(() => assertReadyToRelease({ ...ready, version: "3.0.0.0", tag: "v3.0.0.0" }))
+            .toThrow(/written differently/);
+    });
+
     it("still refuses that re-cut once the tag is on the remote", () => {
         const released = {
             ...ready,
@@ -209,6 +217,33 @@ describe("runRelease", () => {
         await runRelease("3.1.0", { push: true, yes: true }, deps);
 
         expect(deps.git.calls).toEqual(["push origin master", "tag v3.1.0", "push origin v3.1.0"]);
+    });
+
+    it("asks the remote about the tag even with --no-push", async () => {
+        // A stale clone has no local v3.1.0 to catch, so without this the run
+        // builds a release commit around a tag that is already taken.
+        const asked: string[] = [];
+        const git = fakeGit({
+            hasRemoteTag: (remote: string, tag: string) => { asked.push(`${remote} ${tag}`); return true; }
+        });
+
+        await expect(runRelease("3.1.0", { push: false, yes: true }, fakeDeps(git)))
+            .rejects.toThrow(/released already/);
+        expect(asked).toEqual(["origin v3.1.0"]);
+        expect(git.calls).toEqual([]);
+    });
+
+    it("carries on with a note when the remote cannot be reached", async () => {
+        const logged: string[] = [];
+        const git = fakeGit({
+            hasRemoteTag: () => { throw new Error("could not read from remote repository"); }
+        });
+        const deps = { ...fakeDeps(git), log: (line: string) => logged.push(line) };
+
+        const result = await runRelease("3.1.0", { push: false, yes: true }, deps);
+
+        expect(result.version).toBe("3.1.0");
+        expect(logged.some((line) => line.includes("could not reach origin"))).toBe(true);
     });
 
     it("honours --remote", async () => {

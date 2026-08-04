@@ -51,7 +51,21 @@ export function parseArgs(argv) {
 }
 
 function run(args) {
-  return execFileSync("git", args, { cwd: REPO_ROOT, encoding: "utf-8" }).trim();
+  try {
+    // stdio pipes git's stderr rather than letting it through to this script's,
+    // so the one probe whose failure is tolerated - hasRemoteTag on an
+    // unreachable remote - does not print a "fatal:" that reads like a crash.
+    // Everything else re-throws with git's own message attached, so a failing
+    // push still says why.
+    return execFileSync("git", args, {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"]
+    }).trim();
+  } catch (error) {
+    const details = String(error.stderr ?? "").trim();
+    throw new Error(details ? `git ${args[0]} failed - ${details}` : `git ${args[0]} failed`);
+  }
 }
 
 /** The git surface this script needs, narrow enough for a test to stand in for. */
@@ -88,7 +102,9 @@ export function assertReadyToRelease({ version, tag, state, remote }) {
     throw new Error("HEAD is detached. Check out the branch you are releasing from.");
   }
 
-  if (compareChromeVersions(version, state.current) < 0) {
+  const comparison = compareChromeVersions(version, state.current);
+
+  if (comparison < 0) {
     throw new Error(
       `Version ${version} is older than the committed version ${state.current}. ` +
       "The Chrome Web Store rejects a submission that does not increment the published one."
@@ -99,6 +115,18 @@ export function assertReadyToRelease({ version, tag, state, remote }) {
   // after a --no-push or a rejected push, where the bump commit landed and only
   // the tag is missing. Re-releasing a version that genuinely shipped is caught
   // by the tag checks below instead - the last release left its tag behind.
+  //
+  // Only a textually identical version, though. "3.0.0.0" against a committed
+  // "3.0.0" compares equal but makes a different tag name, so it slips past
+  // both tag checks - and the store, which compares the way Chrome does, then
+  // rejects the submission as non-incrementing after a full CI and E2E run.
+  if (comparison === 0 && version !== state.current) {
+    throw new Error(
+      `Version ${version} is the committed version ${state.current} written differently - ` +
+      "Chrome and the store read them as the same version. Pick a version that increments it."
+    );
+  }
+
   if (state.hasTag) {
     throw new Error(`Tag ${tag} already exists locally. Delete it (git tag -d ${tag}) or pick another version.`);
   }
@@ -138,15 +166,32 @@ export async function runRelease(input, options = {}, deps = {}) {
   const remote = options.remote ?? DEFAULT_REMOTE;
 
   const branch = git.currentBranch();
+  // Asked even for --no-push: a tag already on the remote makes the release
+  // commit a mistake, and a stale clone will not have that tag locally for the
+  // check above to catch. An unreachable remote is not fatal, though -
+  // preparing a release offline is a fair thing to want - so it degrades to a
+  // warning, and a push that needs the network fails loudly moments later.
+  let hasRemoteTag = false;
+  let remoteReachable = true;
+  try {
+    hasRemoteTag = git.hasRemoteTag(remote, tag);
+  } catch {
+    remoteReachable = false;
+  }
+
   const state = {
     dirty: git.isDirty(),
     branch,
     current: (await readCurrentVersions()).manifest,
     hasTag: git.hasTag(tag),
-    hasRemoteTag: options.push ? git.hasRemoteTag(remote, tag) : false
+    hasRemoteTag
   };
 
   assertReadyToRelease({ version, tag, state, remote });
+
+  if (!remoteReachable) {
+    log(`Note: could not reach ${remote}, so whether ${tag} already exists there is unknown.`);
+  }
 
   const message = `chore: release ${version}`;
   log(`Releasing ${state.current} -> ${version}`);
