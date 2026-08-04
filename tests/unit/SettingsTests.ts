@@ -32,4 +32,22 @@ describe("Settings", () => {
             expect(await settings.getRecordHistory()).toBe(true);
         });
     });
+
+    describe("lookupModifier", () => {
+        it("should default to Alt", async () => {
+            expect(await settings.getLookupModifier()).toBe("alt");
+        });
+
+        it("should round-trip supported alternatives", async () => {
+            await settings.setLookupModifier("control");
+            expect(await settings.getLookupModifier()).toBe("control");
+            await settings.setLookupModifier("shift");
+            expect(await settings.getLookupModifier()).toBe("shift");
+        });
+
+        it("should fall back to Alt for an unknown stored value", async () => {
+            await storage.setItem("lookupModifier", "meta");
+            expect(await settings.getLookupModifier()).toBe("alt");
+        });
+    });
 });

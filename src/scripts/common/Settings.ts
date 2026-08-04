@@ -1,6 +1,9 @@
 import { IAsyncSettingsStorage } from "./Interfaces.js";
 
 const RECORD_HISTORY_KEY = "recordHistory";
+const LOOKUP_MODIFIER_KEY = "lookupModifier";
+
+export type LookupModifier = "alt" | "control" | "shift";
 
 /**
  * The extension's plain stored preferences.
@@ -34,6 +37,16 @@ class Settings {
 
     async setRecordHistory(value: boolean): Promise<void> {
         await this.settingsStorage.setItem(RECORD_HISTORY_KEY, value ? "true" : "false");
+    }
+
+    /** Modifier held while clicking a word to open the on-page translation card. */
+    async getLookupModifier(): Promise<LookupModifier> {
+        const stored = await this.settingsStorage.getItem(LOOKUP_MODIFIER_KEY);
+        return stored === "control" || stored === "shift" ? stored : "alt";
+    }
+
+    async setLookupModifier(value: LookupModifier): Promise<void> {
+        await this.settingsStorage.setItem(LOOKUP_MODIFIER_KEY, value);
     }
 }
 

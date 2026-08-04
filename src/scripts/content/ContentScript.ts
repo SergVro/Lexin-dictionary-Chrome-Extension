@@ -6,6 +6,7 @@ import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
 import ThemeManager, { applyTheme, Theme } from "../common/ThemeManager.js";
 import LanguageLabel, { ILanguageLabel } from "../common/LanguageLabel.js";
+import Settings, { LookupModifier } from "../common/Settings.js";
 import tokensCss from "../../css/tokens.css";
 import componentsCss from "../../css/components.css";
 import cardCss from "../../css/card.css";
@@ -42,6 +43,8 @@ class ContentScript {
     private messageHandlers: IMessageHandlers;
     private themeManager: ThemeManager;
     private languageLabel: LanguageLabel;
+    private settings: Settings;
+    private lookupModifier: LookupModifier = "alt";
 
     /**
      * What the card should say about itself, cached so a card can be built
@@ -55,11 +58,12 @@ class ContentScript {
     private clickedInsideCard = false;
 
     constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers,
-                themeManager: ThemeManager, languageLabel: LanguageLabel) {
+                themeManager: ThemeManager, languageLabel: LanguageLabel, settings: Settings) {
         this.messageService = MessageService;
         this.messageHandlers = messageHandlers;
         this.themeManager = themeManager;
         this.languageLabel = languageLabel;
+        this.settings = settings;
     }
 
     getSelection(): string {
@@ -257,36 +261,29 @@ class ContentScript {
             }
             self.clickedInsideCard = false;
             const selection = self.getSelection();
-            // On Mac, check both altKey and the Option key using getModifierState
-            const isAltPressed = evt.altKey || (evt.getModifierState && evt.getModifierState("Alt"));
-            if (selection && isAltPressed) {
+            if (selection && self.isLookupModifierPressed(evt)) {
                 self.showTranslation(selection, evt);
             }
         });
 
-        // Handle double click with Alt key (for Mac compatibility)
-        // Note: On Mac, we need to check modifier state differently
-        // Also listen on mousedown to catch Alt key state before double-click
-        let altKeyDown = false;
+        // Keep a keyboard-state fallback because some platforms omit the modifier
+        // flag from the synthesized second click in a double-click gesture.
+        let modifierKeyDown = false;
         document.addEventListener("keydown", function (e: KeyboardEvent) {
-            if (e.key === "Alt" || e.key === "Option" || e.altKey) {
-                altKeyDown = true;
+            if (self.isLookupModifierPressed(e)) {
+                modifierKeyDown = true;
             }
         });
         document.addEventListener("keyup", function (e: KeyboardEvent) {
-            if (e.key === "Alt" || e.key === "Option" || !e.altKey) {
-                altKeyDown = false;
+            if (!self.isLookupModifierPressed(e)) {
+                modifierKeyDown = false;
             }
         });
 
         document.addEventListener("dblclick", function (evt: MouseEvent) {
-            // On Mac, check both altKey and the Option key using getModifierState
-            // Also check our tracked altKeyDown state as fallback
-            const isAltPressed = evt.altKey ||
-                                (evt.getModifierState && evt.getModifierState("Alt")) ||
-                                altKeyDown;
+            const isModifierPressed = self.isLookupModifierPressed(evt) || modifierKeyDown;
 
-            if (isAltPressed) {
+            if (isModifierPressed) {
                 // Prevent default double-click behavior (like text selection)
                 evt.preventDefault();
                 evt.stopPropagation();
@@ -327,6 +324,20 @@ class ContentScript {
         });
     }
 
+    private isLookupModifierPressed(evt: MouseEvent | KeyboardEvent): boolean {
+        if (this.lookupModifier === "control") {
+            return evt.ctrlKey || evt.getModifierState?.("Control") === true;
+        }
+        if (this.lookupModifier === "shift") {
+            return evt.shiftKey || evt.getModifierState?.("Shift") === true;
+        }
+        return evt.altKey || evt.getModifierState?.("Alt") === true;
+    }
+
+    async refreshLookupModifier(): Promise<void> {
+        this.lookupModifier = await this.settings.getLookupModifier();
+    }
+
     /**
      * Escape dismisses the card.
      *
@@ -342,7 +353,8 @@ class ContentScript {
         });
     }
 
-    initialize() {
+    async initialize(): Promise<void> {
+        await this.refreshLookupModifier();
         this.handleGetSelection();
         this.subscribeOnClicks();
         this.subscribeOnKeyboard();

@@ -3,6 +3,7 @@ import MessageHandlers from "../messaging/MessageHandlers.js";
 import ContentScript from "./ContentScript.js";
 import ThemeManager from "../common/ThemeManager.js";
 import LanguageLabel from "../common/LanguageLabel.js";
+import Settings from "../common/Settings.js";
 import DictionaryFactory from "../dictionary/DictionaryFactory.js";
 import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
 
@@ -22,6 +23,15 @@ const contentScript = new ContentScript(
     messageService,
     messageHandlers,
     new ThemeManager(settingsStorage),
-    new LanguageLabel(settingsStorage, languages)
+    new LanguageLabel(settingsStorage, languages),
+    new Settings(settingsStorage)
 );
 contentScript.initialize();
+
+// Options can be open beside an existing page. Apply a newly selected key without
+// requiring that page (and every frame in it) to be reloaded.
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local" && changes.lookupModifier) {
+        contentScript.refreshLookupModifier();
+    }
+});

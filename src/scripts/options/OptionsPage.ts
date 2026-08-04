@@ -4,7 +4,7 @@ import { showToast } from "../util/Toast.js";
 import { fold } from "../util/Combobox.js";
 import LanguageManager from "../common/LanguageManager.js";
 import ThemeManager, { Appearance, applyTheme } from "../common/ThemeManager.js";
-import Settings from "../common/Settings.js";
+import Settings, { LookupModifier } from "../common/Settings.js";
 import { ILanguage } from "../common/Interfaces.js";
 
 class OptionsPage {
@@ -172,6 +172,12 @@ class OptionsPage {
         if (recordInput) {
             recordInput.checked = true;
         }
+
+        const modifier = await this.settings.getLookupModifier();
+        const modifierInput = DomUtils.$(`#lookupModifier input[value='${modifier}']`) as HTMLInputElement;
+        if (modifierInput) {
+            modifierInput.checked = true;
+        }
     }
 
     private subscribeOnEvents(): void {
@@ -196,6 +202,12 @@ class OptionsPage {
         DomUtils.$("#recordHistory")?.addEventListener("change", async (e: Event) => {
             const recording = (e.target as HTMLInputElement).value === "on";
             await this.settings.setRecordHistory(recording);
+            showToast("Options saved");
+        });
+
+        DomUtils.$("#lookupModifier")?.addEventListener("change", async (e: Event) => {
+            const modifier = (e.target as HTMLInputElement).value as LookupModifier;
+            await this.settings.setLookupModifier(modifier);
             showToast("Options saved");
         });
     }
