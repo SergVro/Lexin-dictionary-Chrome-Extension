@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 /**
- * The six surfaces, named as they sit under scripts/. Each is bundled into a
+ * The seven surfaces, named as they sit under scripts/. Each is bundled into a
  * self-contained IIFE at dist/scripts/<name>.js - which is why nothing needs to be
  * listed in web_accessible_resources. See ManifestTests.
  *
@@ -20,7 +20,8 @@ const surfaces = [
   'options/options-main',
   'history/history-main',
   'help-main',
-  'content/content-main'
+  'content/content-main',
+  'offscreen/offscreen-main'
 ];
 
 const compiledEntryPoints = surfaces.map((surface) => `dist/temp/scripts/${surface}.js`);

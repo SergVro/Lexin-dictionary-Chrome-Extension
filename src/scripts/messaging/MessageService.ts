@@ -38,6 +38,15 @@ class MessageService implements IMessageService{
         MessageBus.Instance.createNewTab(url);
     }
 
+    playAudio(url: string): Promise<void> {
+        // Playback lives in the Offscreen Document the worker owns, never in the
+        // calling context: a Translation Card renders inside the page, so an <audio>
+        // element it created would load the clip under the page's Content Security
+        // Policy - and svt.se, to name one, has no media-src for lexin.nada.kth.se.
+        // See docs/adr/0004-offscreen-audio-playback.md.
+        return MessageBus.Instance.sendMessage(MessageType.playAudio, {url: url});
+    }
+
     openActionPopup(): Promise<void> {
         // Only the service worker can open the Action Popup, so this is a message
         // rather than a direct call - the Translation Card's expand button runs in a

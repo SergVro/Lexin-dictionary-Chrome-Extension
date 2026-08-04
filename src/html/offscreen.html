@@ -1,0 +1,22 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lexin audio</title>
+</head>
+
+<!--
+    Never seen by anyone. The document exists so that pronunciation clips load under
+    the extension's Content Security Policy instead of the policy of whichever site
+    the reader is on - the Translation Card renders inside that page, and a strict
+    default-src there blocks the clip. The <audio> element is created by the script;
+    there is nothing to mark up.
+
+    See docs/adr/0004-offscreen-audio-playback.md.
+-->
+
+<body>
+    <script src="../scripts/offscreen-main.js" type="module"></script>
+</body>
+
+</html>

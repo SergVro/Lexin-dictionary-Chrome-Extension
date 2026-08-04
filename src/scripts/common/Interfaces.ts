@@ -58,6 +58,12 @@ export interface IMessageService {
     getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
     openActionPopup(): Promise<void>;
+    playAudio(url: string): Promise<void>;
+}
+
+/** Plays a pronunciation clip. See OffscreenAudioPlayer for the only implementation. */
+export interface IAudioPlayer {
+    play(url: string): Promise<void>;
 }
 
 export interface ITranslationManager {
@@ -119,6 +125,10 @@ export interface OpenActionPopupHandler {
     (): Promise<void>;
 }
 
+export interface PlayAudioHandler {
+    (url: string): Promise<any>;
+}
+
 export interface IMessageHandlers {
     registerGetTranslationHandler(handler: GetTranslationHandler): void ;
     registerLoadHistoryHandler(handler: LoadHistoryHandler): void;
@@ -127,6 +137,8 @@ export interface IMessageHandlers {
     registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void;
     registerGetSelectionHandler(handler: GetSelectionHandler): void;
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void;
+    registerPlayAudioHandler(handler: PlayAudioHandler): void;
+    registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void;
 }
 
 

@@ -14,8 +14,13 @@ import manifest from "../../src/manifest.json";
  */
 describe("manifest permissions", () => {
 
-    it("should request only the storage permission", () => {
-        expect(manifest.permissions).toEqual(["storage"]);
+    it("should request only the storage and offscreen permissions", () => {
+        // offscreen buys the one thing nothing else can: a document that is an
+        // extension page, so a pronunciation clip loads under the extension's CSP
+        // rather than under the CSP of whichever site the reader is on. Neither
+        // permission shows the user a warning at install.
+        // See docs/adr/0004-offscreen-audio-playback.md.
+        expect(manifest.permissions).toEqual(["storage", "offscreen"]);
     });
 
     it("should not request the tabs permission", () => {

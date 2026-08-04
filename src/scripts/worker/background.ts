@@ -10,6 +10,7 @@ import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
 import FetchLoader from "../dictionary/FetchLoader.js";
 import LexinDictionary from "../dictionary/LexinDictionary.js";
 import FolketsDictionary from "../dictionary/FolketsDictionary.js";
+import OffscreenAudioPlayer from "./OffscreenAudioPlayer.js";
 
 // Initialize storage adapters for service worker context
 // Service workers don't have access to localStorage, so we use chrome.storage
@@ -34,7 +35,8 @@ try {
     const historyManager = new HistoryManager(translationParser, storage);
     const translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager, settings);
     const messageHandlers = new MessageHandlers();
-    const backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers);
+    const backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers,
+        new OffscreenAudioPlayer());
     
     backgroundWorker.initialize();
     

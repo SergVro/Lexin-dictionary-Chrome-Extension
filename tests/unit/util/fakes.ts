@@ -15,8 +15,10 @@ import {
     OpenActionPopupHandler,
     LoadHistoryDirectionsHandler,
     RemoveHistoryItemHandler,
+    PlayAudioHandler,
     IAsyncStorage,
-    IAsyncSettingsStorage
+    IAsyncSettingsStorage,
+    IAudioPlayer
 } from "../../../src/scripts/common/Interfaces.js";
 import TranslationDirection from "../../../src/scripts/dictionary/TranslationDirection.js";
 
@@ -79,6 +81,23 @@ export class TestMessageService implements IMessageService {
     openActionPopup(): Promise<void> {
         this.openActionPopupCalls++;
         return Promise.resolve();
+    }
+
+    playedAudioUrls: string[] = [];
+
+    playAudio(url: string): Promise<void> {
+        this.playedAudioUrls.push(url);
+        return Promise.resolve();
+    }
+}
+
+export class FakeAudioPlayer implements IAudioPlayer {
+    playedUrls: string[] = [];
+    reject: any = null;
+
+    play(url: string): Promise<void> {
+        this.playedUrls.push(url);
+        return this.reject ? Promise.reject(this.reject) : Promise.resolve();
     }
 }
 
@@ -203,6 +222,8 @@ export class FakeMessageHandlers implements IMessageHandlers {
     openActionPopupHandler: OpenActionPopupHandler | null = null;
     loadHistoryDirectionsHandler: LoadHistoryDirectionsHandler | null = null;
     removeHistoryItemHandler: RemoveHistoryItemHandler | null = null;
+    playAudioHandler: PlayAudioHandler | null = null;
+    playAudioInOffscreenDocumentHandler: PlayAudioHandler | null = null;
 
     registerGetTranslationHandler(handler: GetTranslationHandler): void {
         this.getTranslationHandler = handler;
@@ -230,5 +251,13 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void {
         this.removeHistoryItemHandler = handler;
+    }
+
+    registerPlayAudioHandler(handler: PlayAudioHandler): void {
+        this.playAudioHandler = handler;
+    }
+
+    registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void {
+        this.playAudioInOffscreenDocumentHandler = handler;
     }
 }

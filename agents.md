@@ -71,11 +71,18 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Returns `{translation: string, error: string}` object
 - Always resolves (never rejects) to ensure UI gets feedback
 
+#### `playAudio(url): Promise<void>`
+- Opens the Offscreen Document on demand and hands it the pronunciation clip
+- In this path because only the worker can open that document — and only that
+  document can load the clip free of the host page's Content Security Policy
+- See [docs/adr/0004-offscreen-audio-playback.md](docs/adr/0004-offscreen-audio-playback.md)
+
 #### `initialize(): void`
 - Registers message handlers:
   - `getTranslation`: Handles translation requests
   - `loadHistory`: Retrieves translation history for a language
   - `clearHistory`: Clears history for a language
+  - `playAudio`: Plays a pronunciation clip in the Offscreen Document
 - Sets up communication bridge between content scripts and translation logic
 
 ---
@@ -580,6 +587,9 @@ Animation utilities:
      - `background-main.ts` → Service worker
      - `content-main.ts` → Content script
      - `popup-main.ts`, `options-main.ts`, `history-main.ts`, `help-main.ts` → UI pages
+     - `offscreen-main.ts` → Offscreen Document, where pronunciation clips are played
+       (a web page's CSP blocks them anywhere else; see
+       [docs/adr/0004-offscreen-audio-playback.md](docs/adr/0004-offscreen-audio-playback.md))
    - Bundles dependencies and polyfills
 
 3. **Asset Copying** (`npm run build:copy`)

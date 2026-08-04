@@ -19,7 +19,8 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "offscreen"
   ],
   "content_scripts": [
     {
