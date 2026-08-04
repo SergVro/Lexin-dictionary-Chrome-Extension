@@ -23,8 +23,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "tests",
-    "src/lib/**/*",
-    "bower_components"
+    "tests"
   ]
 }
