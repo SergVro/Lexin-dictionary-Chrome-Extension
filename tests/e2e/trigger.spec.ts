@@ -231,6 +231,30 @@ test.describe("Lookup trigger", () => {
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
         });
 
+    test("an icon between words should separate them, an empty wrapper should not",
+        async ({ context, extensionId }) => {
+            // An <img> carries no text but takes up room, so `bil<img>hund` is two
+            // words - collecting it as `bilhund` would look up a word that is not on
+            // the page. An empty <span> renders nothing, so the word around it is
+            // still one word, and treating every textless element as a separator
+            // would break it.
+            //
+            // Under Shift, which is the branch that names the word by position.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            const page = await context.newPage();
+            await openTestPage(page, BOUNDARIES_PAGE);
+
+            await ExtensionHelpers.triggerLookup(page, "#icon-before", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+
+            await ExtensionHelpers.triggerLookup(page, "#icon-after", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
+
+            await ExtensionHelpers.triggerLookup(page, "#empty-wrap", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
+        });
+
     test("a trigger click should have the page's default suppressed", async ({ context }) => {
         // The click path used to return before suppressing the default whenever there
         // was no selection yet - which is exactly the first click of a double-click on

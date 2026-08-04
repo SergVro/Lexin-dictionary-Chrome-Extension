@@ -24,6 +24,12 @@
     <!-- The same, with a nested block rather than a line break. -->
     <div id="block-wrap"><span id="block-before">bil</span><div>x</div><span id="block-after">hund</span></div>
 
+    <!-- An icon between two words. It carries no text but takes up room, so the words
+         either side of it are two words. The second pair is the counter-case: an empty
+         wrapper renders nothing at all, and the word around it is still one word. -->
+    <p><span id="icon-before">bil</span><img id="icon" src="data:image/gif;base64,R0lGODlhCgAKAIAAAP///wAAACH5BAEAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==" alt=""><span id="icon-after">hund</span></p>
+    <p>Ett <span id="empty-wrap">h<span></span>und</span> till.</p>
+
     <!-- A linked word. Every trigger does something to a link, and none of it should
          happen when the reader only meant to look the word up. -->
     <p>En <a id="linked-word" href="https://example.com/">bil</a> till.</p>

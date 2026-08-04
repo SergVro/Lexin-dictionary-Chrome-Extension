@@ -128,6 +128,19 @@ A third round found two more:
   so flowing the surrounding text together read `bil<br>hund` as `bilhund` and looked
   *that* up. Line breaks and nested blocks now contribute a newline instead of nothing.
 
+A fourth round found the same class of bug once more, in the elements that carry no
+text but do take up room: an icon between two words left `bil<img>hund` reading as one.
+
+The rule is **"does it take up room"** — `getBoundingClientRect().width > 0` on a
+textless inline element — rather than a list of tag names. That is the question the
+reader's eye is answering, and asking it directly gets `<img>`, `<svg>`, form controls
+and custom elements right without naming any of them, leaves `<wbr>` and zero-width
+wrappers alone, and catches an icon drawn by a `::before` rule whose glyph never
+appears in `textContent` at all. Its test pins both directions, because the obvious
+correction is wrong in the other one: with no rule the icon is elided and the lookup
+reads `bilhund`; with the naive "every textless element separates" rule,
+`h<span></span>und` breaks into `und`.
+
 ## Pre-existing limitations this work uncovered but did not fix
 
 - **`HistoryManager` does read-modify-write with no serialisation**, so two lookups a

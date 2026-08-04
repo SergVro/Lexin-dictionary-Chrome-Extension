@@ -92,6 +92,28 @@ function flowsInline(element: Element): boolean {
     return display === "inline" || display === "contents";
 }
 
+/**
+ * Whether an inline element pushes the text either side of it apart while
+ * contributing no text of its own.
+ *
+ * An `<img>` between two words does: `bil<img>hund` is two words to the reader, and
+ * collecting it as `bilhund` would look up a word that is not on the page. An empty
+ * `<span>` does not - it renders nothing, and `h<span></span>und` is still one word.
+ *
+ * Asked as "does it take up room", rather than against a list of tag names, because
+ * that is the question the reader's eye is answering. It gets `<img>`, `<svg>`,
+ * form controls and custom elements right without naming any of them; it leaves
+ * `<wbr>` and zero-width wrappers alone; and it catches an icon drawn by a
+ * `::before` rule, whose glyph never appears in `textContent` at all.
+ */
+function separatesVisually(element: Element): boolean {
+    if (element.textContent) {
+        // It has text of its own; that text is what separates, or does not.
+        return false;
+    }
+    return element.getBoundingClientRect().width > 0;
+}
+
 /** The nearest ancestor that starts a fresh run of text. */
 function textContainer(node: Node): Element | null {
     let element = node.parentElement;
@@ -151,6 +173,10 @@ function collectFlowedText(element: Element, caret: ICaret,
         // own - both end this one. Neither is descended into: a nested block's text
         // is not part of the text around the caret.
         if (childElement.tagName === "BR" || !flowsInline(childElement)) {
+            collected.text += "\n";
+            continue;
+        }
+        if (separatesVisually(childElement)) {
             collected.text += "\n";
             continue;
         }
