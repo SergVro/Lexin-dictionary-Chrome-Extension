@@ -41,8 +41,16 @@ jobs:
       - name: Run tests in Docker container
         id: test
         run: |
+          # --ipc=host is Playwright's recommendation for Chromium: without it the
+          # browser can run out of memory and crash. --init reaps zombies. CI=true
+          # has to be passed explicitly - the workflow's own environment does not
+          # reach inside the container, so without it playwright.config.ts saw no CI
+          # and ran with 0 retries, no github reporter and forbidOnly off.
           docker run --rm \
             --name lexin-test \
+            --ipc=host \
+            --init \
+            -e CI=true \
             -v ${{ github.workspace }}/playwright-report:/app/playwright-report \
             -v ${{ github.workspace }}/test-results:/app/test-results \
             lexin-extension-test

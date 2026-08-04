@@ -1,56 +1,30 @@
-# Dockerfile for running Playwright E2E tests
-FROM mcr.microsoft.com/playwright:v1.57.0-noble
+# Runs the Playwright E2E suite the way CI does.
+#
+# Headless, so nothing here deals with a display: the suite loads the extension
+# through `channel: "chromium"`, which runs the full browser in Chrome's newer
+# headless mode. See the note in playwright.config.ts. The xvfb, x11vnc and fluxbox
+# this file used to apt-get went with the headed run - and were never needed even
+# then: the base image already carries Xvfb, and nothing ever started the other two
+# or published a port to reach them on.
+#
+# Keep this tag in lockstep with @playwright/test in package.json. The image
+# ships the browser set of its own version; when the two drift, the install
+# below quietly downloads a second set on every build.
+FROM mcr.microsoft.com/playwright:v1.62.0-noble
 
 WORKDIR /app
 
-# Install system dependencies for Chrome extension testing and virtual display
-RUN apt-get update && apt-get install -y \
-    xvfb \
-    x11vnc \
-    fluxbox \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy package files
 COPY package*.json ./
-
-# Install Node.js dependencies
 RUN npm ci
 
-# Install Playwright browsers (if not already installed)
-RUN npx playwright install --with-deps chromium
+# Browsers and their system dependencies are already in the image, at the
+# PLAYWRIGHT_BROWSERS_PATH it sets itself. This stays as the safety net for the
+# build where the tag above has drifted from the lockfile - it is a no-op when
+# they agree, which is why it does not need --with-deps.
+RUN npx playwright install chromium
 
-# Copy source files
 COPY . .
 
-# Build the extension
-RUN npm run build
-
-# Set up display environment for headed mode in CI
-ENV DISPLAY=:99
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-
-# Create a script to start Xvfb and run tests
-RUN echo '#!/bin/bash\n\
-set -e\n\
-# Start Xvfb in the background\n\
-Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > /dev/null 2>&1 &\n\
-XVFB_PID=$!\n\
-# Wait for Xvfb to start\n\
-sleep 2\n\
-# Verify Xvfb is running\n\
-if ! kill -0 $XVFB_PID 2>/dev/null; then\n\
-  echo "Failed to start Xvfb"\n\
-  exit 1\n\
-fi\n\
-# Run the tests\n\
-TEST_EXIT_CODE=0\n\
-npm run test:e2e || TEST_EXIT_CODE=$?\n\
-# Clean up Xvfb\n\
-kill $XVFB_PID 2>/dev/null || true\n\
-wait $XVFB_PID 2>/dev/null || true\n\
-exit $TEST_EXIT_CODE\n\
-' > /app/run-tests.sh && chmod +x /app/run-tests.sh
-
-# Default command runs tests
-CMD ["/app/run-tests.sh"]
-
+# test:e2e builds the extension first; dist/ is in .dockerignore, so what gets
+# tested is always built from the source in this image.
+CMD ["npm", "run", "test:e2e"]

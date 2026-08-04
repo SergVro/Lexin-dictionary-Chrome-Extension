@@ -46,12 +46,15 @@ docker run --rm \
 ## How It Works
 
 The Docker setup:
-1. Uses the official Playwright Docker image as base
-2. Installs Xvfb (X Virtual Framebuffer), which the suite no longer needs - it runs
-   headless - but which is what lets you run it headed inside the container
-3. Builds the extension from source
-4. Runs the tests headless, on the full Chromium build (`channel: "chromium"`)
-5. Exports test results and reports as volumes
+1. Uses the official Playwright image as base, pinned to the same version as
+   `@playwright/test` in `package.json` - the image ships the browser set of its own
+   version, so a drift means downloading a second one on every build
+2. Builds the extension from source
+3. Runs the tests headless, on the full Chromium build (`channel: "chromium"`)
+4. Exports test results and reports as volumes
+
+There is no display involved and no Xvfb: that came with the headed run, and went
+with it.
 
 ## Test Results
 
@@ -69,15 +72,21 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) automatically:
 ## Troubleshooting
 
 ### Tests fail with display errors
-- The suite runs headless, so a display error means something asked for a window -
-  a `--headed` run, or `channel: "chromium"` missing from the Playwright config
-- For a headed run inside the container: Xvfb is started for you, and DISPLAY is `:99`
+- The suite runs headless, so a display error means something asked for a window - a
+  `--headed` run, or `channel: "chromium"` missing from the Playwright config
+- The base image still carries Xvfb, so `xvfb-run npx playwright test --headed` works
+  inside the container - but nothing there can show you the screen. To actually watch
+  a run, use `npm run test:e2e:headed` on the host
 
 ### Extension not loading
 - Verify the extension was built successfully (`dist/` folder exists)
 - Check `channel: "chromium"` is still in `playwright.config.ts`: without it a
   headless run gets the headless shell, which loads no extensions at all
 - Check that the extension path is correct in the test fixtures
+
+### Chromium crashes or runs out of memory
+- Check the run passes `--ipc=host`: Playwright recommends it for Chromium, and
+  `scripts/run-tests-docker.sh`, the compose file and the workflow all set it
 
 ### Network timeouts
 - Tests require internet access to reach Lexin API
