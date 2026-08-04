@@ -58,6 +58,38 @@ Two defects turned up on macOS that the obvious design would have shipped:
   style-isolation tests before this was narrowed. Leaving the default alone for the
   shipped trigger also means Alt behaves exactly as it always has.
 
+## What code review changed
+
+Three defects Codex found on the PR, all of them real:
+
+- **Two documents answered one keystroke.** Every document on the focused chain
+  reports `hasFocus`, and each keeps whatever it had selected last — so a reader who
+  selected a word in the page and then another inside an iframe left both claiming a
+  live selection, and both opened a card and filed a history entry. What names a
+  single frame is being the *deepest* focused one: a document whose own
+  `activeElement` is a frame has handed focus on.
+- **A word split across inline elements came back in pieces.** `h<em>u</em>nd`
+  renders as one word and a reader double-clicks it as one, but it is three text
+  nodes, and `wordAtPoint` scans only the node under the pointer — returning `u`.
+  Fixed by preferring the browser's own selection wherever it was allowed to make
+  one: it spans inline elements, and its word segmentation knows more about language
+  than a regular expression ever will. Position remains the answer where the
+  selection was suppressed, and the fallback where position cannot answer.
+- **A double-click looked its word up twice.** A double-click arrives as click,
+  click, dblclick, and the second click reached the lookup too. This was *pre-existing*
+  — every Alt+double-click had been making two dictionary requests and filing two
+  identical history entries — and was found only because the review prompted a look.
+  Fixed by ignoring clicks carrying `detail > 1`.
+  - Under Shift there is a second half: suppressing the mousedown default keeps an
+    older selection alive, so the *first* click of a double-click would look *that*
+    up. Fixed by deferring the click lookup and cancelling it when a double-click
+    follows. Only the Shift path waits, so the shipped trigger costs nothing.
+
+Each has a regression test, and each test was verified by removing its fix and
+watching it fail. That mattered: two of them passed at first against the broken code,
+because a lookup's card is dismissed by the next one and leaves no trace on the page.
+Both now count history entries instead, which is where the harm actually lands.
+
 ## Consequences worth knowing
 
 - **The two mouse paths now mean different things.** Double-click asks "the word I am

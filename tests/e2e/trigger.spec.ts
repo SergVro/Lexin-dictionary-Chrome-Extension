@@ -177,6 +177,85 @@ test.describe("Lookup trigger", () => {
         await expect(page.locator(CARD_WORD)).toHaveText("hund");
     });
 
+    test("a word split across inline elements should come back whole", async ({ context }) => {
+        // `h<em>u</em>nd` renders as one word and a reader double-clicks it as one,
+        // but it is three text nodes. Naming the word from the node under the pointer
+        // alone returns a fragment - "u" or "nd" - so where the browser was allowed
+        // to make the selection, its own is what the lookup uses.
+        const page = await context.newPage();
+        await openTestPage(page);
+
+        await ExtensionHelpers.triggerLookup(page, "#split-word");
+
+        await expect(page.locator(CARD_WORD)).toHaveText("hund");
+    });
+
+    test("a double-click should look a word up once, not twice",
+        async ({ context, extensionId }) => {
+            // A double-click arrives as click, click, dblclick, and the second click
+            // reached the lookup too - so one gesture made two dictionary requests
+            // and filed two identical history entries.
+            //
+            // Counted in history rather than in cards: each lookup dismisses the card
+            // before opening its own, so a duplicate leaves exactly one card behind
+            // and is invisible from the page.
+            await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
+            await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
+
+            const page = await context.newPage();
+            await openTestPage(page);
+
+            await ExtensionHelpers.triggerLookup(page, "#test-word");
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+            // Long enough for a second lookup to have been written.
+            await page.waitForTimeout(1500);
+
+            const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
+            const entries = JSON.parse(stored || "[]") as { word: string }[];
+
+            expect(entries.filter((entry) => entry.word === "bil")).toHaveLength(1);
+        });
+
+    test("Shift should not look up a selection left over from before the gesture",
+        async ({ context, extensionId }) => {
+            // Suppressing the mousedown default keeps an older selection alive, and
+            // the first click of a double-click would otherwise look *that* up -
+            // a card for a word the reader chose some time ago, and a history entry
+            // with it, on every Shift double-click.
+            // Counted in history, not in cards: the stale lookup's card is dismissed
+            // by the one that follows it, so the page looks right either way and only
+            // the reader's history remembers.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+            await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
+            await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
+
+            const page = await context.newPage();
+            await openTestPage(page);
+
+            // A word selected before the gesture, and not the one about to be
+            // double-clicked.
+            await page.evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.querySelector("#test-word") as Node);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            });
+
+            await ExtensionHelpers.triggerLookup(page, "#second-word", { modifier: "Shift" });
+
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
+            // Past the grace period, so a click lookup that was never cancelled has
+            // had time to fire and be written.
+            await page.waitForTimeout(1500);
+
+            const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
+            const words = (JSON.parse(stored || "[]") as { word: string }[]).map((e) => e.word);
+
+            expect(words).toContain("hund");
+            expect(words).not.toContain("bil");
+        });
+
     test("a plain click should still dismiss the card", async ({ context, extensionId }) => {
         // The click listener does double duty - trigger and dismiss-on-click-out -
         // and only this notices if the trigger check swallows the dismissal.
@@ -221,6 +300,49 @@ test.describe("Lookup trigger", () => {
             }, MessageType.translateSelection);
 
             await expect(page.locator(CARD_WORD)).toHaveText("bil");
+        });
+
+    test("the keyboard command should open one card when a frame is focused",
+        async ({ context }) => {
+            // Both documents keep a selection and both report hasFocus - the top one
+            // because focus is on its chain, via the iframe. Without naming the
+            // deepest focused frame, both answer: two cards, two lookups, two history
+            // entries, from one keystroke.
+            const page = await context.newPage();
+            const worker = await backgroundWorker(context);
+
+            await page.goto("http://localhost:3456/framed-text.html");
+            await page.waitForLoadState("domcontentloaded");
+            await page.waitForTimeout(700);
+
+            // Select a word in the top document first, then one inside the frame -
+            // leaving the top document's selection alive but no longer focused.
+            await page.evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.querySelector("#outer-word") as Node);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            });
+
+            const frame = page.frameLocator("#inner");
+            await frame.locator("#second-word").click();
+            await page.frames()[1].evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.querySelector("#second-word") as Node);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            });
+
+            await worker.evaluate(async (method) => {
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                await chrome.tabs.sendMessage(tabs[0].id!, { method });
+            }, MessageType.translateSelection);
+
+            await expect(frame.locator(CARD_WORD)).toHaveText("hund");
+            // The top document, whose selection is stale, must have stayed quiet.
+            await expect(page.locator(CARD_HOST)).toHaveCount(0);
         });
 
     test("the keyboard command should do nothing with no selection", async ({ context, page }) => {

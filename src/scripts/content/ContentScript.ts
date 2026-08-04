@@ -39,6 +39,16 @@ function getCardStyleSheet(): CSSStyleSheet {
 
 const HOST_CLASS = "lexinExtensionMainContainer";
 
+/**
+ * How long a click waits to find out whether it was the first half of a double-click.
+ *
+ * Above the double-click interval every desktop ships - 500ms on Windows and on
+ * macOS at the slider's slowest - so a reader whose double-click is deliberate still
+ * gets one card rather than two. Only ever waited on the Shift path, so the shipped
+ * trigger costs nothing.
+ */
+const DOUBLE_CLICK_GRACE_MS = 550;
+
 /** Where a card points: the click that opened it, or the selection a command found. */
 type CardAnchor = Pick<PositionOptions, "of" | "fixed">;
 
@@ -70,6 +80,9 @@ class ContentScript {
 
     private zIndex = 10000;
     private clickedInsideCard = false;
+
+    /** A click's lookup, still waiting to see whether a double-click follows it. */
+    private pendingLookup: number | undefined;
 
     constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers,
                 themeManager: ThemeManager, languageLabel: LanguageLabel,
@@ -106,12 +119,19 @@ class ContentScript {
      * reader is in, and exactly one should answer. hasFocus alone would not name it -
      * a top document reports true while focus sits inside one of its iframes - and a
      * selection alone would not either, since a frame keeps its selection after focus
-     * has moved on. Together they leave one frame: of the focused ancestor chain, at
-     * most one holds a live selection.
+     * has moved on.
+     *
+     * Nor are the two together enough. Every document on the focused chain reports
+     * hasFocus, and each keeps whatever it had selected last - so a reader who
+     * selected a word in the page and then another inside an iframe leaves two
+     * documents claiming a live selection, and both would open a card and file a
+     * history entry. What names a single frame is being the *deepest* focused one:
+     * a document whose own activeElement is a frame has handed focus on, and the
+     * frame it handed it to is the one that should answer.
      */
     handleTranslateSelection(): void {
         this.messageHandlers.registerTranslateSelectionHandler(() => {
-            if (!document.hasFocus()) {
+            if (!document.hasFocus() || this.focusIsInAChildFrame()) {
                 return;
             }
             const selection = this.getSelection();
@@ -122,6 +142,17 @@ class ContentScript {
             this.showTranslation(selection, this.selectionAnchor());
             return true;
         });
+    }
+
+    /**
+     * Whether this document has passed focus down to a frame inside it.
+     *
+     * `activeElement` is the frame element itself in that case, which is how a
+     * document tells "I am focused" from "something inside me is".
+     */
+    private focusIsInAChildFrame(): boolean {
+        const active = document.activeElement;
+        return !!active && (active.tagName === "IFRAME" || active.tagName === "FRAME");
     }
 
     /**
@@ -360,7 +391,7 @@ class ContentScript {
         // The cost, for Shift only: a trigger-click no longer focuses what it lands
         // on and cannot start a drag.
         document.addEventListener("mousedown", (evt: MouseEvent) => {
-            if (this.trigger === "shift" && matchesTrigger(evt, this.trigger)) {
+            if (this.selectionIsOurs() && matchesTrigger(evt, this.trigger)) {
                 evt.preventDefault();
             }
         });
@@ -373,9 +404,15 @@ class ContentScript {
             if (!matchesTrigger(evt, this.trigger)) {
                 return;
             }
+            // A double-click arrives as click, click, dblclick. The second click
+            // carries detail 2, and the word it would look up is the dblclick
+            // handler's to name - without this it fires a second, identical lookup,
+            // which is a duplicate request and a duplicate history entry.
+            if (evt.detail > 1) {
+                return;
+            }
             // "Translate what I selected." The selection is the source of truth on
-            // this path, and the mousedown handler above is what kept it intact long
-            // enough to read.
+            // this path.
             const selection = this.getSelection();
             if (!selection) {
                 return;
@@ -384,29 +421,96 @@ class ContentScript {
             // downloads a link and Ctrl+click opens a background tab, on a word the
             // reader only meant to look up.
             evt.preventDefault();
-            this.showTranslation(selection, { of: evt });
+            this.lookUpUnlessDoubleClicked(selection, { of: evt });
         });
 
         document.addEventListener("dblclick", (evt: MouseEvent) => {
             if (!matchesTrigger(evt, this.trigger)) {
                 return;
             }
+            // A double-click supersedes the click that opened it, whose lookup is
+            // still waiting to find out whether this arrived.
+            this.cancelPendingLookup();
+
             evt.preventDefault();
             evt.stopPropagation();
 
-            // "Translate the word I am pointing at." Position is the source of truth
-            // here, not the selection: the mousedown handler means the browser never
-            // selected the word for us, and reading the selection instead would hand
-            // back whatever was left over from the last lookup. getSelection is the
-            // fallback only for the case where a page's own scripting put a live
-            // selection under the pointer.
-            const selection = wordAtPoint(evt.clientX, evt.clientY) || this.getSelection();
+            const selection = this.wordDoubleClicked(evt);
             if (!selection) {
                 return;
             }
             this.dismissOnClickOut();
             this.showTranslation(DomUtils.trim(selection), { of: evt });
         });
+    }
+
+    /**
+     * "Translate the word I am pointing at."
+     *
+     * Which of the two ways of naming that word comes first depends on whether the
+     * browser was allowed to make the selection.
+     *
+     * Where it was, its own is the better answer: it spans inline elements, so
+     * `in<em>ter</em>net` comes back whole where scanning the one text node under the
+     * pointer returns "ter", and its word segmentation knows more about language than
+     * a regular expression ever will. A double-click replaces the selection, so what
+     * it holds belongs to this gesture.
+     *
+     * Where we suppressed it, whatever is selected predates the gesture and would be
+     * a lookup of the wrong thing - so position is all there is, with the selection
+     * not consulted at all.
+     */
+    private wordDoubleClicked(evt: MouseEvent): string {
+        const atPoint = () => wordAtPoint(evt.clientX, evt.clientY);
+        if (this.selectionIsOurs()) {
+            return atPoint();
+        }
+        // caretRangeFromPoint answers for points inside the viewport only, so the
+        // browser's selection is also the fallback when position cannot answer.
+        return this.getSelection() || atPoint();
+    }
+
+    /**
+     * Whether this trigger has the extension, rather than the browser, deciding what
+     * is selected.
+     *
+     * True for Shift alone, whose own meaning is "extend the selection" - the one
+     * modifier whose default has to be suppressed. Read by everything that then has
+     * to treat the selection as untrustworthy, so the two cannot drift apart.
+     */
+    private selectionIsOurs(): boolean {
+        return this.trigger === "shift";
+    }
+
+    /**
+     * Runs a click's lookup unless the click turns out to be half of a double-click.
+     *
+     * Only needed where the mousedown default is suppressed. Everywhere else a
+     * mousedown collapses any old selection, so the first click of a double-click
+     * finds nothing to look up and returns on its own. With the default suppressed
+     * the old selection survives, and without this wait the reader gets a card for a
+     * word they selected some time ago, plus a history entry for it, every time they
+     * double-click.
+     *
+     * The wait costs a beat on the select-then-click path, and only for Shift.
+     */
+    private lookUpUnlessDoubleClicked(selection: string, anchor: CardAnchor): void {
+        if (!this.selectionIsOurs()) {
+            this.showTranslation(selection, anchor);
+            return;
+        }
+        this.cancelPendingLookup();
+        this.pendingLookup = window.setTimeout(() => {
+            this.pendingLookup = undefined;
+            this.showTranslation(selection, anchor);
+        }, DOUBLE_CLICK_GRACE_MS);
+    }
+
+    private cancelPendingLookup(): void {
+        if (this.pendingLookup !== undefined) {
+            window.clearTimeout(this.pendingLookup);
+            this.pendingLookup = undefined;
+        }
     }
 
     /**
