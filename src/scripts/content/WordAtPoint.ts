@@ -116,31 +116,46 @@ function flowedTextAround(caret: ICaret): { text: string; offset: number } | nul
         return null;
     }
 
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
-        acceptNode: (node: Node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                return NodeFilter.FILTER_ACCEPT;
+    const collected = { text: "", offset: -1 };
+    collectFlowedText(container, caret, collected);
+
+    return collected.offset === -1 ? null : collected;
+}
+
+/**
+ * Appends `element`'s text to `collected`, in the order a reader reads it.
+ *
+ * Anything that ends the run of text contributes a newline rather than nothing.
+ * Eliding it would join the words either side: `bil<br>hund` would read as one word
+ * `bilhund`, and a double-click on either half would look that up. A newline is not a
+ * word character, so it separates them exactly as the reader sees them separated.
+ */
+function collectFlowedText(element: Element, caret: ICaret,
+                           collected: { text: string; offset: number }): void {
+    for (let i = 0; i < element.childNodes.length; i++) {
+        const child = element.childNodes[i];
+
+        if (child.nodeType === Node.TEXT_NODE) {
+            if (child === caret.node) {
+                collected.offset = collected.text.length + caret.offset;
             }
-            // Descend into what runs on with its surroundings, and skip the rest
-            // whole - a nested block's text belongs to a different run.
-            return node === container || flowsInline(node as Element)
-                ? NodeFilter.FILTER_SKIP
-                : NodeFilter.FILTER_REJECT;
+            collected.text += child.textContent || "";
+            continue;
         }
-    });
+        if (child.nodeType !== Node.ELEMENT_NODE) {
+            continue;
+        }
 
-    let text = "";
-    let offset = -1;
-    let current = walker.nextNode();
-    while (current) {
-        if (current === caret.node) {
-            offset = text.length + caret.offset;
+        const childElement = child as Element;
+        // A line break carries no text of its own, and a block starts a run of its
+        // own - both end this one. Neither is descended into: a nested block's text
+        // is not part of the text around the caret.
+        if (childElement.tagName === "BR" || !flowsInline(childElement)) {
+            collected.text += "\n";
+            continue;
         }
-        text += current.textContent || "";
-        current = walker.nextNode();
+        collectFlowedText(childElement, caret, collected);
     }
-
-    return offset === -1 ? null : { text, offset };
 }
 
 /** The word under a viewport coordinate, or "" if that is not text. */

@@ -18,6 +18,9 @@ import MessageType from "../../src/scripts/messaging/MessageType";
  */
 
 const TEST_PAGE = "http://localhost:3456/swedish-text.html";
+/** Markup that splits or runs words together, and a linked word. Kept compact and
+ *  separate so every target stays inside the viewport. */
+const BOUNDARIES_PAGE = "http://localhost:3456/word-boundaries.html";
 
 /** Where the card's own text lives. Locators pierce the open shadow root. */
 const CARD = ".lexinTranslationContent";
@@ -52,8 +55,8 @@ async function backgroundWorker(context: BrowserContext): Promise<Worker> {
     return context.serviceWorkers()[0] ?? await context.waitForEvent("serviceworker");
 }
 
-async function openTestPage(page: Page): Promise<void> {
-    await page.goto(TEST_PAGE);
+async function openTestPage(page: Page, url: string = TEST_PAGE): Promise<void> {
+    await page.goto(url);
     await page.waitForLoadState("domcontentloaded");
     // The content script is injected at document_end and warms its cache after that.
     await page.waitForTimeout(500);
@@ -182,7 +185,7 @@ test.describe("Lookup trigger", () => {
         // but it is three text nodes. Naming the word from the node under the pointer
         // alone returns a fragment - "u" or "nd".
         const page = await context.newPage();
-        await openTestPage(page);
+        await openTestPage(page, BOUNDARIES_PAGE);
 
         await ExtensionHelpers.triggerLookup(page, "#split-word");
 
@@ -202,6 +205,57 @@ test.describe("Lookup trigger", () => {
         await ExtensionHelpers.triggerLookup(page, "#split-word", { modifier: "Shift" });
 
         await expect(page.locator(CARD_WORD)).toHaveText("hund");
+    });
+
+    test("markup that runs words together should still name one word",
+        async ({ context, extensionId }) => {
+            // A line break and a nested block both carry no text of their own.
+            // Eliding them while flowing the surrounding text together reads
+            // `bil<br>hund` as `bilhund` and looks that up - a word not on the page.
+            //
+            // Under Shift, deliberately: that is the branch which names the word by
+            // position. Alt would defer to the browser's own selection and never
+            // reach the code under test.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            const page = await context.newPage();
+            await openTestPage(page, BOUNDARIES_PAGE);
+
+            await ExtensionHelpers.triggerLookup(page, "#break-before", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+
+            await ExtensionHelpers.triggerLookup(page, "#break-after", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
+
+            await ExtensionHelpers.triggerLookup(page, "#block-after", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
+        });
+
+    test("a trigger click should have the page's default suppressed", async ({ context }) => {
+        // The click path used to return before suppressing the default whenever there
+        // was no selection yet - which is exactly the first click of a double-click on
+        // a word. Every trigger does something to a link on that click: Ctrl+click
+        // opens a background tab, Alt+click downloads, Shift+click opens a window.
+        //
+        // Asserted on the event rather than on the consequence, because the
+        // consequence differs by modifier and by platform, and two of the three are
+        // not observable here at all. defaultPrevented is the fix itself.
+        const page = await context.newPage();
+        await openTestPage(page, BOUNDARIES_PAGE);
+
+        // Registered after the content script's, so it sees the flag as the browser
+        // will when it decides what to do next.
+        await page.evaluate(() => {
+            (window as any).__prevented = [];
+            document.addEventListener("click", (e) => {
+                (window as any).__prevented.push(e.defaultPrevented);
+            });
+        });
+
+        // A single click with nothing selected: the case that used to slip through.
+        await ExtensionHelpers.triggerLookup(page, "#break-after", { gesture: "click" });
+
+        expect(await page.evaluate(() => (window as any).__prevented)).toEqual([true]);
     });
 
     test("Shift should ignore a selection the reader clicked away from",

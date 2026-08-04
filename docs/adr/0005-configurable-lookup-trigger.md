@@ -117,9 +117,32 @@ broken code on the first attempt**:
   the final card now; the mechanism it was meant to pin is covered by a single-click
   test instead, where a wrong lookup has nothing to hide behind.
 
-That last one is worth stating plainly as a **pre-existing limitation this work
-uncovered but did not fix**: `HistoryManager` does read-modify-write with no
-serialisation, so two lookups a few milliseconds apart can lose an entry.
+A third round found two more:
+
+- **The page's default survived a trigger click that found nothing to look up.** The
+  click path returned on an empty selection *before* suppressing the default — which
+  is exactly the first click of a double-click on a word. Every trigger does something
+  to a link on that click, so the page acted before the lookup had decided what the
+  word was. Suppression now happens as soon as the modifier matches, before any return.
+- **Elided elements ran words together.** `<br>` reports as inline and carries no text,
+  so flowing the surrounding text together read `bil<br>hund` as `bilhund` and looked
+  *that* up. Line breaks and nested blocks now contribute a newline instead of nothing.
+
+## Pre-existing limitations this work uncovered but did not fix
+
+- **`HistoryManager` does read-modify-write with no serialisation**, so two lookups a
+  few milliseconds apart can lose an entry. This is what let one regression test pass
+  against broken code.
+- **A linked word cannot be double-clicked with Alt.** Chrome aborts the gesture after
+  the second `mousedown` on an `<a>` with Alt held — no second `click`, no `dblclick`,
+  with or without the suppression above. Verified by instrumenting the page. Looking a
+  linked word up has therefore never worked on the Alt path, and the fix above does not
+  change it.
+
+That second one is why the suppression is tested on the event (`defaultPrevented`)
+rather than on its consequence. The consequence differs by modifier and platform, and
+two of the three are not observable in the harness at all: Ctrl is not offered on a Mac,
+and Shift's own mousedown suppression masks it.
 
 ## Consequences worth knowing
 

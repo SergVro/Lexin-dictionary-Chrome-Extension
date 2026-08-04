@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Word Boundaries Test Page</title>
+    <style>
+        /* Deliberately compact: every target has to sit inside the viewport, because
+           the caret APIs only answer for points a reader could actually click. */
+        body { font-family: Arial, sans-serif; padding: 12px; font-size: 18px; line-height: 1.4; }
+        p, div { margin: 6px 0; }
+    </style>
+</head>
+<body>
+    <h1>Word boundaries</h1>
+
+    <!-- A word the markup splits across inline elements. It renders as one word and a
+         reader double-clicks it as one, but it is three text nodes. -->
+    <p>Ett <span id="split-word">h<em>u</em>nd</span> är också ett djur.</p>
+
+    <!-- A line break between two words. It carries no text of its own, so eliding it
+         while flowing the surrounding text together would read this as "bilhund". -->
+    <p><span id="break-before">bil</span><br><span id="break-after">hund</span></p>
+
+    <!-- The same, with a nested block rather than a line break. -->
+    <div id="block-wrap"><span id="block-before">bil</span><div>x</div><span id="block-after">hund</span></div>
+
+    <!-- A linked word. Every trigger does something to a link, and none of it should
+         happen when the reader only meant to look the word up. -->
+    <p>En <a id="linked-word" href="https://example.com/">bil</a> till.</p>
+</body>
+</html>

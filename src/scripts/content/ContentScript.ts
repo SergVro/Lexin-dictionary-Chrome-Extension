@@ -391,6 +391,14 @@ class ContentScript {
             if (!matchesTrigger(evt, this.trigger)) {
                 return;
             }
+            // Before anything that might return: once the modifier is held the gesture
+            // is the extension's, and the page does not also get it. Every trigger does
+            // something to a link - Ctrl+click opens a background tab, Alt+click
+            // downloads, Shift+click opens a window - and a reader double-clicking a
+            // linked word to look it up would get that on the first click of the pair,
+            // before the lookup had decided what the word even was.
+            evt.preventDefault();
+
             // A double-click arrives as click, click, dblclick. The second click
             // carries detail 2, and the word it would look up is the dblclick
             // handler's to name - without this it fires a second, identical lookup,
@@ -417,10 +425,6 @@ class ContentScript {
             if (this.selectionIsOurs() && !this.clickLandedInSelection(evt)) {
                 return;
             }
-            // The gesture is ours now, so do not also let the page have it: Alt+click
-            // downloads a link and Ctrl+click opens a background tab, on a word the
-            // reader only meant to look up.
-            evt.preventDefault();
             this.showTranslation(selection, { of: evt });
         });
 
