@@ -2,7 +2,8 @@ import {
     parseTagVersion,
     validateChromeVersion,
     resolveReleaseVersion,
-    compareChromeVersions
+    compareChromeVersions,
+    toPackageVersion
 } from "../../scripts/webstore/version.js";
 
 describe("parseTagVersion", () => {
@@ -88,6 +89,26 @@ describe("resolveReleaseVersion", () => {
 
     it("rejects a well-formed tag whose version violates Chrome's rules", () => {
         expect(() => resolveReleaseVersion("v65536.0.0")).toThrow(/between 0 and 65535/);
+    });
+});
+
+describe("toPackageVersion", () => {
+
+    it("passes a three-component version through", () => {
+        expect(toPackageVersion("3.1.0")).toBe("3.1.0");
+    });
+
+    it("pads a shorter version to three components", () => {
+        expect(toPackageVersion("3")).toBe("3.0.0");
+        expect(toPackageVersion("3.1")).toBe("3.1.0");
+    });
+
+    it("drops Chrome's fourth component, which semver has no room for", () => {
+        expect(toPackageVersion("3.1.0.2")).toBe("3.1.0");
+    });
+
+    it("rejects a version Chrome itself would reject", () => {
+        expect(() => toPackageVersion("3.1.0.2.7")).toThrow(/1 to 4 components/);
     });
 });
 

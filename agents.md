@@ -598,6 +598,15 @@ Animation utilities:
 Releases are packaged and published to the Chrome Web Store by CI on a `vX.Y.Z`
 tag push (`scripts/webstore/package.js`); see [RELEASE.md](RELEASE.md).
 
+`npm run release -- <version>` cuts one end to end: it bumps the version,
+commits, tags and pushes.
+
+The version lives in `src/manifest.json`, `package.json` and
+`package-lock.json`, and that command (or `npm run release:version` for the
+files alone) is the only thing that should write it - never edit one of the
+three by hand. A unit test holds them to each other, and the release workflow
+refuses a tag that disagrees with them.
+
 ---
 
 ## Analytics & Tracking

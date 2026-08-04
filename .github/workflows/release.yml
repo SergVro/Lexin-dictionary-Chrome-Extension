@@ -13,12 +13,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Cheap and first: a tag whose version disagrees with the committed
+  # src/manifest.json and package.json means the release was cut without
+  # `npm run release:version`, and every log line in the jobs below would name
+  # the wrong version. Fail here, in seconds, rather than after the E2E suite.
+  preflight:
+    name: Check the tag matches the committed version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Verify version
+        run: node scripts/webstore/verify-version.js "${GITHUB_REF_NAME}"
+
   verify:
     name: Lint, unit test, build
+    needs: preflight
     uses: ./.github/workflows/ci.yml
 
   e2e:
     name: E2E tests
+    needs: preflight
     uses: ./.github/workflows/test.yml
 
   publish:

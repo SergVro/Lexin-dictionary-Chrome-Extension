@@ -3,6 +3,8 @@
 // and the components must not all be zero.
 export const CHROME_VERSION_MAX_COMPONENTS = 4;
 export const CHROME_VERSION_COMPONENT_MAX = 65535;
+// npm's package.json version is semver: exactly major.minor.patch.
+export const PACKAGE_VERSION_COMPONENTS = 3;
 
 /**
  * Extracts the raw version string from a release tag.
@@ -70,6 +72,27 @@ export function validateChromeVersion(version) {
  */
 export function resolveReleaseVersion(tag) {
   return validateChromeVersion(parseTagVersion(tag));
+}
+
+/**
+ * Converts a Chrome manifest version into the three-component form npm requires
+ * in package.json.
+ *
+ * Chrome allows 1 to 4 components; semver allows exactly 3. Missing components
+ * are padded with zeros, and a fourth - Chrome's rebuild counter, which npm has
+ * no equivalent of - is dropped: "3.1" becomes "3.1.0", "3.1.0.2" becomes
+ * "3.1.0". Two releases that differ only in that fourth component therefore
+ * share a package.json version, which is fine - nothing here is published to
+ * npm, the field exists to label build and test output.
+ */
+export function toPackageVersion(version) {
+  const parts = validateChromeVersion(version).split(".");
+
+  while (parts.length < PACKAGE_VERSION_COMPONENTS) {
+    parts.push("0");
+  }
+
+  return parts.slice(0, PACKAGE_VERSION_COMPONENTS).join(".");
 }
 
 /**

@@ -13,15 +13,58 @@ succeeds, and publishes a GitHub release for the tag.
 ## Cutting a release
 
 ```bash
-git tag v2.0.1
-git push origin v2.0.1
+npm run release -- 2.0.1
 ```
 
-The tag's version becomes the manifest version for that build only - it is
-written to `dist/manifest.json` during packaging and never touches
-`src/manifest.json`. Pick a version higher than both the version currently in
-`src/manifest.json` and whatever is already published to the store; the
-workflow's preflight check rejects non-incrementing versions.
+That is the whole thing. From a clean tree on the branch you are releasing,
+[`scripts/webstore/release.js`](scripts/webstore/release.js) writes the version
+into `src/manifest.json`, `package.json` and `package-lock.json`, commits it as
+`chore: release 2.0.1`, pushes the branch, tags `v2.0.1` and pushes the tag -
+which is what starts everything in `release.yml`. It prints the plan and asks
+before pushing, since the push is the point of no return.
+
+| | |
+|---|---|
+| `--dry-run` | run the checks, print the plan, change nothing |
+| `--no-push` | bump, commit and tag locally; print the pushes to run |
+| `--yes`, `-y` | skip the confirmation (required when stdin is not a terminal) |
+| `--remote=<name>` | push somewhere other than `origin` |
+
+Pick a version higher than both the version currently in `src/manifest.json`
+and whatever is already published to the store; the workflow's Chrome Web Store
+preflight rejects non-incrementing versions.
+
+Before touching anything it refuses to go on if the working tree is dirty (the
+release commit would sweep the changes in), if `HEAD` is detached, if the
+version is older than the committed one, or if the tag already exists locally
+or on the remote. The branch is pushed *before* the tag is created, so a
+rejected push - someone else got there first - leaves no tag to clean up: pull,
+and run the same command again. Re-running after a `--no-push` or a failed push
+is expected to work; it notices the version files are already right, skips the
+commit, and goes on to the tag.
+
+`npm run release:version -- 2.0.1`
+([`scripts/webstore/bump.js`](scripts/webstore/bump.js)) writes those three
+files and stops, for when you want to commit and tag by hand.
+
+The bump lands before the tag either way, so the tag names a commit that
+already agrees with what is being released. The workflow's first job
+([`scripts/webstore/verify-version.js`](scripts/webstore/verify-version.js))
+compares the tag against those committed files and fails the release in seconds
+if they disagree. A unit test checks the same three files against each other on
+every pull request, so a hand-edit of one of them surfaces long before a
+release.
+
+Keeping `package.json` in step is not cosmetic: npm prints it at the head of
+every script it runs, so a stale one has every build and test log announcing a
+version the extension left behind releases ago.
+
+Chrome allows a fourth version component and npm does not, so a `vX.Y.Z.W` tag
+puts `X.Y.Z.W` in the manifest and `X.Y.Z` in the npm files.
+
+Packaging still stamps the tag's version into `dist/manifest.json` itself and
+never reads the committed one, so the ZIP matches its tag no matter what.
+`src/manifest.json` is never touched by the workflow.
 
 The GitHub release page appears as soon as the store accepts the submission,
 which is earlier than the extension going live - Google publishes it
@@ -120,41 +163,45 @@ first release doubles as the test of the OIDC path.
 
 ## What the workflow does
 
-1. Calls `ci.yml` (lint, unit tests, build) and `test.yml` (Docker-based
+1. Checks the tag against the versions committed to the repo
+   (`scripts/webstore/verify-version.js`). It runs on its own, before
+   everything else, so a tag pushed without `npm run release:version` costs
+   seconds rather than a full E2E run.
+2. Calls `ci.yml` (lint, unit tests, build) and `test.yml` (Docker-based
    Playwright E2E suite) as reusable workflow jobs - the exact same gates as
    ordinary CI, defined once and shared rather than duplicated. Only once both
    succeed does the `publish` job rebuild `dist/` (needed locally to package
    it) and continue.
-2. Packages `dist/` into `lexin-extension-<version>.zip` with `manifest.json`
+3. Packages `dist/` into `lexin-extension-<version>.zip` with `manifest.json`
    at the root (`scripts/webstore/package.js`), plus a `.sha256` checksum.
    Two builds from the same commit and tag produce byte-identical ZIPs.
-3. Inspects the ZIP (`scripts/webstore/inspect-zip.js`) to confirm the
+4. Inspects the ZIP (`scripts/webstore/inspect-zip.js`) to confirm the
    expected top-level files are present and the manifest version matches the
    tag.
-4. Uploads the ZIP and checksum as a workflow artifact for audit/debugging.
-5. Authenticates to Google Cloud via `google-github-actions/auth`, requesting
+5. Uploads the ZIP and checksum as a workflow artifact for audit/debugging.
+6. Authenticates to Google Cloud via `google-github-actions/auth`, requesting
    a short-lived `chromewebstore`-scoped access token (`token_format:
    access_token`, `create_credentials_file: false`) - no JSON key ever touches
    the runner.
-6. Runs a preflight (`scripts/webstore/chrome-web-store.js`'s `fetchStatus` /
-   `assertReleasable`) that blocks the release if the item has been taken
-   down, is under an active policy warning, already has a submission awaiting
-   review, or the target version does not increment the published version.
-7. Uploads the package via the v2 `media.upload` endpoint, polling with a
+7. Runs a Chrome Web Store preflight (`scripts/webstore/chrome-web-store.js`'s
+   `fetchStatus` / `assertReleasable`) that blocks the release if the item has
+   been taken down, is under an active policy warning, already has a submission
+   awaiting review, or the target version does not increment the published one.
+8. Uploads the package via the v2 `media.upload` endpoint, polling with a
    bounded number of attempts if the API reports `UPLOAD_IN_PROGRESS`.
-8. Submits the item for publication via the v2 `publish` endpoint
+9. Submits the item for publication via the v2 `publish` endpoint
    (`publishType: DEFAULT_PUBLISH`, `blockOnWarnings: true`). Google publishes
    it automatically once review succeeds - the workflow's job succeeding means
    "accepted and submitted for review", not "live in the store".
-9. Writes a job summary with the version, checksum, extension ID, and
-   returned submission state. Credentials are never printed.
-10. In a separate `github-release` job, downloads that artifact and creates the
+10. Writes a job summary with the version, checksum, extension ID, and
+    returned submission state. Credentials are never printed.
+11. In a separate `github-release` job, downloads that artifact and creates the
     GitHub release for the tag with auto-generated notes and the ZIP and its
     checksum attached, so the exact submitted package outlives the 90-day
     artifact retention.
 
     It is a distinct job on purpose. The store submission is not repeatable -
-    the preflight in step 6 blocks a second upload while the first still awaits
+    the preflight in step 7 blocks a second upload while the first still awaits
     review - so if release creation were a step on the publish job, a transient
     GitHub API failure would be unrecoverable: GitHub re-runs whole jobs, and
     the retry would fail at the store step before ever reaching it. Split out,
