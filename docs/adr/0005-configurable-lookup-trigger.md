@@ -147,10 +147,23 @@ read as a block boundary and cut the visible word in half. Nothing rendered is n
 skipped outright - contributing neither text nor a boundary - which also keeps the
 source of a `<script>` left mid-sentence out of the flowed text.
 
-The pattern across those two rounds is worth naming: **this walk has to agree with
-what the reader sees, and every disagreement shows up as a lookup for a word that is
-not on the page.** Text present but invisible, and space taken but textless, are the
-two ways markup and rendering come apart, and each needed its own rule.
+A sixth round found the third variant: an accessible `<svg><title>ikon</title></svg>`
+icon *has* text, so the textless test let it through and the walk read the page as
+`bilikonhund`. A `<title>` is a name for screen readers, and a `<canvas>`'s fallback
+is the same; both appear in `textContent` and both measure zero.
+
+The pattern across those three rounds is worth naming, because it was the thing I kept
+missing rather than three separate oversights: **this walk has to agree with what the
+reader sees, and every disagreement shows up as a lookup for a word that is not on the
+page.** Markup and rendering come apart in three ways - text present but invisible,
+space taken but textless, and text present but not drawn - and reasoning about the DOM
+finds none of them.
+
+So both halves of the question are asked geometrically: *does it take up room*
+(`getBoundingClientRect().width`) and *is any of its text drawn* (a `Range` around each
+text node, stopping at the first that measures). No list of tag names appears anywhere,
+which is what makes it right for `<svg>`, `<canvas>`, `<video>`, form controls, custom
+elements and `::before` icons alike - none of which are named.
 
 ## Pre-existing limitations this work uncovered but did not fix
 

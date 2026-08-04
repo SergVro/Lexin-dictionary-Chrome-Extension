@@ -253,6 +253,14 @@ test.describe("Lookup trigger", () => {
 
             await ExtensionHelpers.triggerLookup(page, "#empty-wrap", { modifier: "Shift" });
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
+
+            // An accessible SVG icon has text - its <title> - and none of it is on
+            // the page. Reading textContent would flow this as "bilikonhund".
+            await ExtensionHelpers.triggerLookup(page, "#svg-before", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+
+            await ExtensionHelpers.triggerLookup(page, "#svg-after", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
         });
 
     test("a hidden element should separate nothing", async ({ context, extensionId }) => {

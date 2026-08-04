@@ -101,25 +101,54 @@ function flowsInline(element: Element): boolean {
 }
 
 /**
- * Whether an inline element pushes the text either side of it apart while
- * contributing no text of its own.
+ * Whether any of an element's text is actually drawn.
+ *
+ * Not the same question as whether it has text. An `<svg>`'s `<title>` and a
+ * `<canvas>`'s fallback are accessible names, not words on the page: both appear in
+ * `textContent`, and both measure zero. Stopping at the first drawn node keeps the
+ * common case - an `<em>` around a syllable - to a single measurement.
+ */
+function hasRenderedText(element: Element): boolean {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+        if (node.textContent && node.textContent.trim()) {
+            const range = document.createRange();
+            range.selectNode(node);
+            if (range.getBoundingClientRect().width > 0) {
+                return true;
+            }
+        }
+        node = walker.nextNode();
+    }
+    return false;
+}
+
+/**
+ * Whether an inline element pushes the text either side of it apart rather than
+ * joining it.
  *
  * An `<img>` between two words does: `bil<img>hund` is two words to the reader, and
  * collecting it as `bilhund` would look up a word that is not on the page. An empty
  * `<span>` does not - it renders nothing, and `h<span></span>und` is still one word.
+ * An `<svg>` with a `<title>` does, even though it has text: the title is an
+ * accessible name, and treating it as flowing text reads the page as `biliconhund`.
  *
- * Asked as "does it take up room", rather than against a list of tag names, because
- * that is the question the reader's eye is answering. It gets `<img>`, `<svg>`,
- * form controls and custom elements right without naming any of them; it leaves
- * `<wbr>` and zero-width wrappers alone; and it catches an icon drawn by a
- * `::before` rule, whose glyph never appears in `textContent` at all.
+ * Both halves are asked geometrically - does it take up room, and is any of its text
+ * drawn - rather than against a list of tag names, because that is what the reader's
+ * eye is answering. It gets `<img>`, `<svg>`, `<canvas>`, `<video>`, form controls and
+ * custom elements right without naming any of them; it leaves `<wbr>` and zero-width
+ * wrappers alone; and it catches an icon drawn by a `::before` rule, whose glyph never
+ * appears in `textContent` at all.
  */
 function separatesVisually(element: Element): boolean {
-    if (element.textContent) {
-        // It has text of its own; that text is what separates, or does not.
+    if (element.getBoundingClientRect().width === 0) {
+        // It takes up no room, so it holds nothing apart.
         return false;
     }
-    return element.getBoundingClientRect().width > 0;
+    // It takes up room. Whether that room is a gap between two words or the words
+    // themselves depends on whether the text in it is on the page.
+    return !hasRenderedText(element);
 }
 
 /** The nearest ancestor that starts a fresh run of text. */

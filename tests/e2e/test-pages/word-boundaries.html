@@ -35,6 +35,10 @@
     <p>Ett <span id="hidden-attr">h<span hidden>ZZZ</span>und</span> till.</p>
     <p>Ett <span id="hidden-css">h<span style="display:none">ZZZ</span>und</span> till.</p>
 
+    <!-- An accessible SVG icon. Its <title> is a name for screen readers, not a word
+         on the page, so it must neither join the words either side nor be looked up. -->
+    <p><span id="svg-before">bil</span><svg id="svg-icon" width="12" height="12" role="img"><title>ikon</title><rect width="12" height="12" fill="#888"></rect></svg><span id="svg-after">hund</span></p>
+
     <!-- A linked word. Every trigger does something to a link, and none of it should
          happen when the reader only meant to look the word up. -->
     <p>En <a id="linked-word" href="https://example.com/">bil</a> till.</p>
