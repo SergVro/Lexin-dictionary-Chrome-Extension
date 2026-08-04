@@ -2,12 +2,15 @@ import { defineConfig } from "@playwright/test";
 
 /**
  * Playwright configuration for Chrome extension E2E testing.
- * 
+ *
  * Note: Chrome extensions require:
  * - Chromium browser (not Firefox or WebKit)
- * - Headed mode (extensions don't work in headless mode)
  * - Persistent context with the extension loaded
- * 
+ * - `channel: "chromium"`, which is what makes headless work: the default
+ *   chromium build for headless runs is the headless shell, which supports no
+ *   extensions at all. The channel runs the full browser in Chrome's newer
+ *   headless mode, where they load normally.
+ *
  * @see https://playwright.dev/docs/chrome-extensions
  */
 export default defineConfig({
@@ -57,12 +60,14 @@ export default defineConfig({
   },
   
   use: {
-    // Browser settings
+    // Browser settings. The channel is load-bearing - see the note above.
     browserName: "chromium",
-    
-    // Chrome extensions don't work in headless mode
-    headless: false,
-    
+    channel: "chromium",
+
+    // Headless by default so a run does not open a window and take focus.
+    // `npm run test:e2e:headed` (or --headed) still gives you one to watch.
+    headless: true,
+
     // Viewport
     viewport: { width: 1280, height: 720 },
     

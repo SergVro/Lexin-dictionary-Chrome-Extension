@@ -27,9 +27,14 @@ export const test = base.extend<{
   // Override the default context to load the extension
   // Playwright throws unless the first argument is an object destructuring pattern.
   // eslint-disable-next-line no-empty-pattern
-  context: async ({ }, use) => {
+  // headless and channel come from the config's `use` block, so `--headed` still
+  // opens a window for debugging. Both have to be passed through by hand: an
+  // extension needs launchPersistentContext, which takes its own options rather
+  // than reading the ones Playwright would apply to a browser it launched itself.
+  context: async ({ headless, channel }, use) => {
     const context = await chromium.launchPersistentContext("", {
-      headless: false, // Extensions require headed mode
+      channel,
+      headless,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
