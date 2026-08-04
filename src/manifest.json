@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lexin dictionary",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "minimum_chrome_version": "116",
   "description": "Swedish to other languages dictionary. Powered by Lexin and Folkets Lexikon",
   "icons": {
