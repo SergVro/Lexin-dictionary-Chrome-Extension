@@ -180,8 +180,7 @@ test.describe("Lookup trigger", () => {
     test("a word split across inline elements should come back whole", async ({ context }) => {
         // `h<em>u</em>nd` renders as one word and a reader double-clicks it as one,
         // but it is three text nodes. Naming the word from the node under the pointer
-        // alone returns a fragment - "u" or "nd" - so where the browser was allowed
-        // to make the selection, its own is what the lookup uses.
+        // alone returns a fragment - "u" or "nd".
         const page = await context.newPage();
         await openTestPage(page);
 
@@ -189,6 +188,76 @@ test.describe("Lookup trigger", () => {
 
         await expect(page.locator(CARD_WORD)).toHaveText("hund");
     });
+
+    test("a split word should come back whole under Shift too", async ({ context, extensionId }) => {
+        // Shift takes the other branch: its selection is suppressed, so the browser's
+        // is not there to fall back on and wordAtPoint has to name the word by
+        // itself. Pages split words whenever they emphasise or highlight part of one,
+        // which is most words on a page of search results.
+        await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+        const page = await context.newPage();
+        await openTestPage(page);
+
+        await ExtensionHelpers.triggerLookup(page, "#split-word", { modifier: "Shift" });
+
+        await expect(page.locator(CARD_WORD)).toHaveText("hund");
+    });
+
+    test("Shift should ignore a selection the reader clicked away from",
+        async ({ context, extensionId }) => {
+            // The other side of the select-then-click flow, and the precise reason the
+            // click path checks where the click landed. With a selection lying around,
+            // a Shift click elsewhere is the first half of a double-click aimed at
+            // another word - looking the old selection up would open a card for a word
+            // the reader chose some time ago and file a history entry for it.
+            //
+            // A single click rather than a double: it isolates the click path, and
+            // the card it wrongly opens is not dismissed a moment later by the
+            // double-click's own.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            const page = await context.newPage();
+            await openTestPage(page);
+
+            await page.evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.querySelector("#test-word") as Node);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            });
+
+            await ExtensionHelpers.triggerLookup(page, "#second-word",
+                { modifier: "Shift", gesture: "click" });
+
+            await page.waitForTimeout(1000);
+            await expect(page.locator(CARD_HOST)).toHaveCount(0);
+        });
+
+    test("Shift should still look up a selection the reader clicks on",
+        async ({ context, extensionId }) => {
+            // The select-then-click flow, which the help page offers whatever the
+            // trigger. Clicking *on* the selection is what separates it from the
+            // first half of a double-click aimed elsewhere, so it has to keep working.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            const page = await context.newPage();
+            await openTestPage(page);
+
+            await page.evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.querySelector("#test-word") as Node);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            });
+
+            await ExtensionHelpers.triggerLookup(page, "#test-word",
+                { modifier: "Shift", gesture: "click" });
+
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+        });
 
     test("a double-click should look a word up once, not twice",
         async ({ context, extensionId }) => {
@@ -199,6 +268,11 @@ test.describe("Lookup trigger", () => {
             // Counted in history rather than in cards: each lookup dismisses the card
             // before opening its own, so a duplicate leaves exactly one card behind
             // and is invisible from the page.
+            //
+            // History is the only witness, and an imperfect one - two writes this
+            // close together can read the same store and one overwrite the other, so
+            // a duplicate is occasionally undercounted. It never overcounts, so a
+            // failure here is always real.
             await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
             await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
 
@@ -216,24 +290,23 @@ test.describe("Lookup trigger", () => {
             expect(entries.filter((entry) => entry.word === "bil")).toHaveLength(1);
         });
 
-    test("Shift should not look up a selection left over from before the gesture",
+    test("Shift should look up the pointed word with a selection lying around",
         async ({ context, extensionId }) => {
-            // Suppressing the mousedown default keeps an older selection alive, and
-            // the first click of a double-click would otherwise look *that* up -
-            // a card for a word the reader chose some time ago, and a history entry
-            // with it, on every Shift double-click.
-            // Counted in history, not in cards: the stale lookup's card is dismissed
-            // by the one that follows it, so the page looks right either way and only
-            // the reader's history remembers.
+            // End to end for the case the click gate exists to protect: a selection
+            // from earlier, and a double-click somewhere else. The word that wins is
+            // the one under the pointer.
+            //
+            // Only the final card is asserted, deliberately. A spurious lookup here
+            // would be dismissed a moment later by the double-click's own card, and
+            // history cannot see it either - two lookups this close together
+            // read-modify-write the same store and one can overwrite the other. The
+            // gate itself is pinned by the single-click test above, where a wrong
+            // lookup has nothing to hide behind.
             await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
-            await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
-            await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
 
             const page = await context.newPage();
             await openTestPage(page);
 
-            // A word selected before the gesture, and not the one about to be
-            // double-clicked.
             await page.evaluate(() => {
                 const range = document.createRange();
                 range.selectNodeContents(document.querySelector("#test-word") as Node);
@@ -245,15 +318,6 @@ test.describe("Lookup trigger", () => {
             await ExtensionHelpers.triggerLookup(page, "#second-word", { modifier: "Shift" });
 
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
-            // Past the grace period, so a click lookup that was never cancelled has
-            // had time to fire and be written.
-            await page.waitForTimeout(1500);
-
-            const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
-            const words = (JSON.parse(stored || "[]") as { word: string }[]).map((e) => e.word);
-
-            expect(words).toContain("hund");
-            expect(words).not.toContain("bil");
         });
 
     test("a plain click should still dismiss the card", async ({ context, extensionId }) => {

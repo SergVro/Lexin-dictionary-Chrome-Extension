@@ -39,16 +39,6 @@ function getCardStyleSheet(): CSSStyleSheet {
 
 const HOST_CLASS = "lexinExtensionMainContainer";
 
-/**
- * How long a click waits to find out whether it was the first half of a double-click.
- *
- * Above the double-click interval every desktop ships - 500ms on Windows and on
- * macOS at the slider's slowest - so a reader whose double-click is deliberate still
- * gets one card rather than two. Only ever waited on the Shift path, so the shipped
- * trigger costs nothing.
- */
-const DOUBLE_CLICK_GRACE_MS = 550;
-
 /** Where a card points: the click that opened it, or the selection a command found. */
 type CardAnchor = Pick<PositionOptions, "of" | "fixed">;
 
@@ -80,9 +70,6 @@ class ContentScript {
 
     private zIndex = 10000;
     private clickedInsideCard = false;
-
-    /** A click's lookup, still waiting to see whether a double-click follows it. */
-    private pendingLookup: number | undefined;
 
     constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers,
                 themeManager: ThemeManager, languageLabel: LanguageLabel,
@@ -417,21 +404,30 @@ class ContentScript {
             if (!selection) {
                 return;
             }
+            // Under a trigger whose selection we suppress, whatever is selected
+            // predates the gesture, and this click could as easily be the first half
+            // of a double-click aimed somewhere else - which would look up a word the
+            // reader chose some time ago and file a history entry for it.
+            //
+            // Where the click landed is what tells the two apart, and it says so at
+            // once: a reader looking their selection up clicks *on* it, and a reader
+            // starting a double-click elsewhere does not. Waiting to see whether a
+            // double-click follows would mean guessing at an interval the reader
+            // configures and Chrome does not expose.
+            if (this.selectionIsOurs() && !this.clickLandedInSelection(evt)) {
+                return;
+            }
             // The gesture is ours now, so do not also let the page have it: Alt+click
             // downloads a link and Ctrl+click opens a background tab, on a word the
             // reader only meant to look up.
             evt.preventDefault();
-            this.lookUpUnlessDoubleClicked(selection, { of: evt });
+            this.showTranslation(selection, { of: evt });
         });
 
         document.addEventListener("dblclick", (evt: MouseEvent) => {
             if (!matchesTrigger(evt, this.trigger)) {
                 return;
             }
-            // A double-click supersedes the click that opened it, whose lookup is
-            // still waiting to find out whether this arrived.
-            this.cancelPendingLookup();
-
             evt.preventDefault();
             evt.stopPropagation();
 
@@ -483,34 +479,26 @@ class ContentScript {
     }
 
     /**
-     * Runs a click's lookup unless the click turns out to be half of a double-click.
+     * Whether a click landed on the text that is currently selected.
      *
-     * Only needed where the mousedown default is suppressed. Everywhere else a
-     * mousedown collapses any old selection, so the first click of a double-click
-     * finds nothing to look up and returns on its own. With the default suppressed
-     * the old selection survives, and without this wait the reader gets a card for a
-     * word they selected some time ago, plus a history entry for it, every time they
-     * double-click.
-     *
-     * The wait costs a beat on the select-then-click path, and only for Shift.
+     * The selection's own rectangles answer it - one per line it covers - so a
+     * multi-line selection is handled without any of them having to be reasoned
+     * about here.
      */
-    private lookUpUnlessDoubleClicked(selection: string, anchor: CardAnchor): void {
-        if (!this.selectionIsOurs()) {
-            this.showTranslation(selection, anchor);
-            return;
+    private clickLandedInSelection(evt: MouseEvent): boolean {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return false;
         }
-        this.cancelPendingLookup();
-        this.pendingLookup = window.setTimeout(() => {
-            this.pendingLookup = undefined;
-            this.showTranslation(selection, anchor);
-        }, DOUBLE_CLICK_GRACE_MS);
-    }
-
-    private cancelPendingLookup(): void {
-        if (this.pendingLookup !== undefined) {
-            window.clearTimeout(this.pendingLookup);
-            this.pendingLookup = undefined;
+        const rects = selection.getRangeAt(0).getClientRects();
+        for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+            if (evt.clientX >= rect.left && evt.clientX <= rect.right
+                && evt.clientY >= rect.top && evt.clientY <= rect.bottom) {
+                return true;
+            }
         }
+        return false;
     }
 
     /**

@@ -82,13 +82,44 @@ Three defects Codex found on the PR, all of them real:
   Fixed by ignoring clicks carrying `detail > 1`.
   - Under Shift there is a second half: suppressing the mousedown default keeps an
     older selection alive, so the *first* click of a double-click would look *that*
-    up. Fixed by deferring the click lookup and cancelling it when a double-click
-    follows. Only the Shift path waits, so the shipped trigger costs nothing.
+    up. The click path now requires the click to have landed **on** the selection.
 
-Each has a regression test, and each test was verified by removing its fix and
-watching it fail. That mattered: two of them passed at first against the broken code,
-because a lookup's card is dismissed by the next one and leaves no trace on the page.
-Both now count history entries instead, which is where the harm actually lands.
+A second round found three more:
+
+- **Split words were still broken under Shift**, whose selection is suppressed and so
+  had no browser selection to defer to. `wordAtPoint` now reads the whole run of text
+  a word sits in — walking the inline elements inside the nearest block — so
+  `h<em>u</em>nd` is one word to it too. This matters more than it first appears:
+  pages split words whenever they emphasise, link or highlight part of one, which
+  search results do to almost every word they show.
+- **A deferred lookup outlived its dismissal.** The first fix for the stale-selection
+  case waited out a grace period before looking up; Escape or a click elsewhere during
+  that window removed the card but left the timer running, so it reopened.
+- **The grace period was guesswork.** It assumed a 500ms double-click interval, but
+  the interval is configured by the reader and Chrome does not expose it — Windows
+  allows up to 5 seconds.
+
+The last two dissolved rather than being patched. **Where the click landed** answers
+the same question with no interval in it at all: a reader looking their selection up
+clicks *on* it, and a reader starting a double-click elsewhere does not. That is known
+at once, so the timer, the grace constant and the pending-lookup state all went away,
+and the select-then-click flow stopped costing a wait.
+
+Each finding has a regression test, and each test was verified by removing its fix and
+watching it fail. That mattered more than expected — **three tests passed against the
+broken code on the first attempt**:
+
+- two counted cards, but a lookup dismisses the previous card before opening its own,
+  so a duplicate leaves exactly one card behind and is invisible from the page. They
+  count history entries now.
+- one counted history entries for a *double-click*, where two lookups fire close
+  enough together to read the same store and overwrite one another. It asserts only
+  the final card now; the mechanism it was meant to pin is covered by a single-click
+  test instead, where a wrong lookup has nothing to hide behind.
+
+That last one is worth stating plainly as a **pre-existing limitation this work
+uncovered but did not fix**: `HistoryManager` does read-modify-write with no
+serialisation, so two lookups a few milliseconds apart can lose an entry.
 
 ## Consequences worth knowing
 

@@ -80,11 +80,79 @@ function caretFromPoint(x: number, y: number): ICaret | null {
     return null;
 }
 
+/**
+ * Whether an element's text runs on with the text either side of it.
+ *
+ * Only `display: inline` and `display: contents` do. An inline-block is laid out
+ * inline but is atomic - its text does not join a word across its edges - and
+ * anything block-level plainly starts afresh.
+ */
+function flowsInline(element: Element): boolean {
+    const display = window.getComputedStyle(element).display;
+    return display === "inline" || display === "contents";
+}
+
+/** The nearest ancestor that starts a fresh run of text. */
+function textContainer(node: Node): Element | null {
+    let element = node.parentElement;
+    while (element && element.parentElement && flowsInline(element)) {
+        element = element.parentElement;
+    }
+    return element;
+}
+
+/**
+ * A block's text as the reader sees it - one string across the inline elements
+ * inside it - and where `caret` lands in that string.
+ *
+ * This is what makes `h<em>u</em>nd` one word rather than three. A page splits a word
+ * whenever it emphasises, links or highlights part of it, which search results do to
+ * almost every word they show, so scanning only the text node under the pointer
+ * returns a fragment surprisingly often.
+ */
+function flowedTextAround(caret: ICaret): { text: string; offset: number } | null {
+    const container = textContainer(caret.node);
+    if (!container) {
+        return null;
+    }
+
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+        acceptNode: (node: Node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return NodeFilter.FILTER_ACCEPT;
+            }
+            // Descend into what runs on with its surroundings, and skip the rest
+            // whole - a nested block's text belongs to a different run.
+            return node === container || flowsInline(node as Element)
+                ? NodeFilter.FILTER_SKIP
+                : NodeFilter.FILTER_REJECT;
+        }
+    });
+
+    let text = "";
+    let offset = -1;
+    let current = walker.nextNode();
+    while (current) {
+        if (current === caret.node) {
+            offset = text.length + caret.offset;
+        }
+        text += current.textContent || "";
+        current = walker.nextNode();
+    }
+
+    return offset === -1 ? null : { text, offset };
+}
+
 /** The word under a viewport coordinate, or "" if that is not text. */
 export function wordAtPoint(x: number, y: number): string {
     const caret = caretFromPoint(x, y);
     if (!caret || caret.node.nodeType !== Node.TEXT_NODE) {
         return "";
     }
-    return wordAtOffset(caret.node.textContent || "", caret.offset);
+    // The single node is the fallback: a detached node has no container to flow in,
+    // and a caret the walker never reaches cannot be placed in the flowed text.
+    const flowed = flowedTextAround(caret);
+    return flowed
+        ? wordAtOffset(flowed.text, flowed.offset)
+        : wordAtOffset(caret.node.textContent || "", caret.offset);
 }
