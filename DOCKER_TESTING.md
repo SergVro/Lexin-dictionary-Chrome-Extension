@@ -47,9 +47,10 @@ docker run --rm \
 
 The Docker setup:
 1. Uses the official Playwright Docker image as base
-2. Installs Xvfb (X Virtual Framebuffer) for virtual display support
+2. Installs Xvfb (X Virtual Framebuffer), which the suite no longer needs - it runs
+   headless - but which is what lets you run it headed inside the container
 3. Builds the extension from source
-4. Runs tests with a virtual display (required for Chrome extensions)
+4. Runs the tests headless, on the full Chromium build (`channel: "chromium"`)
 5. Exports test results and reports as volumes
 
 ## Test Results
@@ -68,11 +69,14 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) automatically:
 ## Troubleshooting
 
 ### Tests fail with display errors
-- Ensure Xvfb is running (handled automatically in the Docker container)
-- Check that the DISPLAY environment variable is set to `:99`
+- The suite runs headless, so a display error means something asked for a window -
+  a `--headed` run, or `channel: "chromium"` missing from the Playwright config
+- For a headed run inside the container: Xvfb is started for you, and DISPLAY is `:99`
 
 ### Extension not loading
 - Verify the extension was built successfully (`dist/` folder exists)
+- Check `channel: "chromium"` is still in `playwright.config.ts`: without it a
+  headless run gets the headless shell, which loads no extensions at all
 - Check that the extension path is correct in the test fixtures
 
 ### Network timeouts

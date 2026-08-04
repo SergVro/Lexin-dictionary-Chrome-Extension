@@ -744,7 +744,7 @@ npm run lint             # Run ESLint on src/**/*.{ts,js}
 npm run lint:fix         # ESLint with auto-fix
 npm run test             # Run unit tests with Vitest (no browser needed)
 npm run test:watch       # Vitest in watch mode
-npm run test:e2e         # Playwright e2e tests (requires build + headed Chrome)
+npm run test:e2e         # Playwright e2e tests (requires a build; runs headless)
 npm run dev              # Build then watch
 ```
 
@@ -791,7 +791,10 @@ npm run dev              # Build then watch
 ### E2E Tests (`npm run test:e2e`)
 
 - **Requires a full build first**: `npm run build`
-- Chrome extensions only work in **headed Chromium** — do not set `headless: true`
+- Chrome extensions need the **full Chromium build**: `channel: "chromium"` in
+  `playwright.config.ts`. Headless is fine with it, and is the default; without it a
+  headless run gets the headless shell, which loads no extensions at all. Use
+  `npm run test:e2e:headed` when you want to watch a run
 - Test files: `tests/e2e/smoke.spec.ts`; shared fixtures: `tests/e2e/fixtures.ts`
 - A local static server (port 3456) is started automatically by Playwright config
 - Run e2e tests after UI changes, manifest changes, or content script changes
@@ -818,7 +821,7 @@ dist/temp/              # Intermediate tsc output — not the final product
 - **Never edit `dist/`** — it is fully regenerated on every build; edit `src/` instead
 - **Background service worker** has no `localStorage` and no DOM — use `chrome.storage.local` through `ChromeStorageAdapter`
 - **esbuild bundles each entry point independently** — circular imports across entry-point boundaries will silently fail at runtime
-- **E2E tests require headed Chrome** — extensions cannot be loaded in headless mode
+- **E2E tests need `channel: "chromium"`** — the headless shell Playwright uses otherwise cannot load an extension, which is why headless runs were once thought impossible
 - **Adding a new page or script**: register its entry point in `build.js` esbuild config, add HTML to `src/html/`, CSS to `src/css/`
 
 ---
