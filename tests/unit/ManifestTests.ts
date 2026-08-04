@@ -32,7 +32,9 @@ describe("manifest permissions", () => {
         // independent of this field.
         //
         // If lookups ever start failing with a CORS error, check whether the service
-        // dropped that header before re-adding the hosts here.
+        // dropped that header before re-adding the hosts here. The trade-offs, the
+        // risks and the steps to restore are in
+        // docs/adr/0003-no-host-permissions.md.
         expect(manifest).not.toHaveProperty("host_permissions");
     });
 

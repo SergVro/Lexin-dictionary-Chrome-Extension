@@ -5,6 +5,16 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
+  # The suite makes real, unmocked lookups against lexin.nada.kth.se and
+  # folkets-lexikon.csc.kth.se, so it doubles as the only smoke detector for the
+  # dictionaries changing under us: markup the parsing regexes no longer match, a
+  # moved endpoint, or the `Access-Control-Allow-Origin: *` header the extension
+  # relies on now that it ships no host permissions (docs/adr/0003-no-host-permissions.md).
+  # Without a schedule that breakage surfaces as a user complaint, because nothing
+  # else runs between pushes. Weekly and off the hour, to stay cheap and to avoid
+  # the congestion GitHub sees at :00.
+  schedule:
+    - cron: "17 6 * * 1"
   workflow_dispatch:
   workflow_call:
 
