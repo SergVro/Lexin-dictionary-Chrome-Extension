@@ -154,10 +154,10 @@ two ways markup and rendering come apart, and each needed its own rule.
 
 ## Pre-existing limitations this work uncovered but did not fix
 
-- **`HistoryManager` does read-modify-write with no serialisation**, so two lookups a
-  few milliseconds apart can lose an entry. This is what let one regression test pass
-  against broken code.
-- **A linked word cannot be double-clicked with Alt.** Chrome aborts the gesture after
+- **`HistoryManager` does read-modify-write with no serialisation** ([#68]), so two
+  lookups a few milliseconds apart can lose an entry. This is what let one regression
+  test pass against broken code.
+- **A linked word cannot be double-clicked with Alt** ([#69]). Chrome aborts the gesture after
   the second `mousedown` on an `<a>` with Alt held — no second `click`, no `dblclick`,
   with or without the suppression above. Verified by instrumenting the page. Looking a
   linked word up has therefore never worked on the Alt path, and the fix above does not
@@ -225,5 +225,7 @@ the worker's handler directly and say so.
 The interception itself is verified by hand, on the platform.
 
 [#15]: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues/15
+[#68]: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues/68
+[#69]: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues/69
 [#17]: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues/17
 [#21]: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/issues/21
