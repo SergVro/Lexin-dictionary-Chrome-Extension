@@ -3,7 +3,8 @@ import TranslationDirection from "../../src/scripts/dictionary/TranslationDirect
 import {
     FakeHistoryManager,
     FakeTranslationManager,
-    FakeMessageHandlers
+    FakeMessageHandlers,
+    FakeAudioPlayer
 } from "./util/fakes.js";
 
 describe("BackgroundWorker", () => {
@@ -11,12 +12,15 @@ describe("BackgroundWorker", () => {
     let fakeHistoryManager: FakeHistoryManager;
     let fakeTranslationManager: FakeTranslationManager;
     let fakeMessageHandlers: FakeMessageHandlers;
+    let fakeAudioPlayer: FakeAudioPlayer;
 
     beforeEach(() => {
         fakeHistoryManager = new FakeHistoryManager();
         fakeTranslationManager = new FakeTranslationManager();
         fakeMessageHandlers = new FakeMessageHandlers();
-        backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager, fakeMessageHandlers);
+        fakeAudioPlayer = new FakeAudioPlayer();
+        backgroundWorker = new BackgroundWorker(fakeHistoryManager, fakeTranslationManager, fakeMessageHandlers,
+            fakeAudioPlayer);
     });
 
     describe("getTranslation", () => {
@@ -73,6 +77,24 @@ describe("BackgroundWorker", () => {
         });
     });
 
+    describe("playAudio", () => {
+        // The clip cannot be played where it was clicked: a Translation Card lives in
+        // the host page's document, so its CSP decides whether lexin.nada.kth.se may
+        // be loaded at all. See docs/adr/0004-offscreen-audio-playback.md.
+        it("should hand the clip to the audio player", async () => {
+            await backgroundWorker.playAudio("https://lexin.nada.kth.se/sound/v2/390998_2.mp3");
+
+            expect(fakeAudioPlayer.playedUrls).toEqual(["https://lexin.nada.kth.se/sound/v2/390998_2.mp3"]);
+        });
+
+        it("should answer the caller once playback has started", async () => {
+            // The Translation Card does not await this - but the message bus does,
+            // and a promise that never settles leaves a port open on every click.
+            await expect(backgroundWorker.playAudio("https://lexin.nada.kth.se/a.mp3"))
+                .resolves.toBeUndefined();
+        });
+    });
+
     it("initialize should register handlers", () => {
         backgroundWorker.initialize();
 
@@ -82,5 +104,6 @@ describe("BackgroundWorker", () => {
         expect(fakeMessageHandlers.loadHistoryDirectionsHandler).not.toBeNull();
         expect(fakeMessageHandlers.removeHistoryItemHandler).not.toBeNull();
         expect(fakeMessageHandlers.openActionPopupHandler).not.toBeNull();
+        expect(fakeMessageHandlers.playAudioHandler).not.toBeNull();
     });
 });

@@ -1,4 +1,5 @@
-import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers } from "../common/Interfaces.js";
+import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers,
+    IAudioPlayer } from "../common/Interfaces.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 
 class BackgroundWorker {
@@ -6,11 +7,14 @@ class BackgroundWorker {
     private historyManager: IHistoryManager;
     private translationManager: ITranslationManager;
     private messageHandlers: IMessageHandlers;
+    private audioPlayer: IAudioPlayer;
 
-    constructor(historyManager : IHistoryManager, translationManager: ITranslationManager, messageHandlers: IMessageHandlers) {
+    constructor(historyManager : IHistoryManager, translationManager: ITranslationManager,
+                messageHandlers: IMessageHandlers, audioPlayer: IAudioPlayer) {
         this.historyManager = historyManager;
         this.translationManager = translationManager;
         this.messageHandlers = messageHandlers;
+        this.audioPlayer = audioPlayer;
     }
 
     getTranslation(word: string, direction: TranslationDirection): Promise<ITranslation> {
@@ -44,6 +48,18 @@ class BackgroundWorker {
         }
     }
 
+    /**
+     * Plays a pronunciation clip on behalf of whichever surface was clicked.
+     *
+     * The worker is in this path for one reason: only it can open the Offscreen
+     * Document where the clip is allowed to load. A Translation Card that played the
+     * clip itself would do so under the host page's CSP, which on a site like svt.se
+     * blocks it. See docs/adr/0004-offscreen-audio-playback.md.
+     */
+    playAudio(url: string): Promise<void> {
+        return this.audioPlayer.play(url);
+    }
+
     initialize(): void {
         this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
         this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection));
@@ -52,6 +68,7 @@ class BackgroundWorker {
         this.messageHandlers.registerRemoveHistoryItemHandler(
             (langDirection, word, added) => this.historyManager.removeItem(langDirection, word, added));
         this.messageHandlers.registerOpenActionPopupHandler(() => this.openActionPopup());
+        this.messageHandlers.registerPlayAudioHandler((url) => this.playAudio(url));
     }
 }
 

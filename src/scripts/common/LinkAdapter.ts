@@ -1,6 +1,11 @@
+import MessageService from "../messaging/MessageService.js";
+
 class LinkAdapter {
 
     private static readonly FOLKETS_BASE = "https://folkets-lexikon.csc.kth.se/folkets/";
+
+    /** Stateless, and the same in every surface that renders a translation. */
+    private static readonly messageService = new MessageService();
 
     /**
      * Both dictionary services still write http:// into the markup they return - into
@@ -9,7 +14,11 @@ class LinkAdapter {
      * on an https:// page the browser blocks them as mixed content: the LYSSNA button
      * plays nothing and the inflection images never appear, while the same card works
      * in the popup. Both hosts serve the identical content over TLS, so upgrading the
-     * scheme is the whole fix.
+     * scheme is the whole fix for mixed content - but it was not the whole fix for the
+     * clip, which the host page's CSP blocked next, over https and all. That one is
+     * settled elsewhere: see docs/adr/0004-offscreen-audio-playback.md. The images
+     * below still load as the page's own subresources and a strict policy still
+     * blocks them.
      */
     private static toSecureUrl(url: string): string {
         return url.replace(/^http:\/\//i, "https://");
@@ -71,14 +80,16 @@ class LinkAdapter {
                         e.stopPropagation();
                         e.stopImmediatePropagation();
                         
-                        // Play audio directly
-                        const audio = new Audio(audioUrl!);
-                        audio.addEventListener("error", (err) => {
-                            console.error("playAudio: Error playing audio", audioUrl, err);
-                        });
-                        audio.play().catch((error) => {
-                            console.error("playAudio: Failed to play audio", audioUrl, error);
-                        });
+                        // Played in the extension's Offscreen Document rather than
+                        // here. An <audio> element created in this context belongs
+                        // to whatever document the card is rendered in - which, in a
+                        // content script, is the host page, whose CSP then decides
+                        // whether the clip may load at all. It usually may not: the
+                        // sites this extension is most used on send a default-src
+                        // that has never heard of lexin.nada.kth.se, and the button
+                        // came up silent there while working in the Action Popup.
+                        // See docs/adr/0004-offscreen-audio-playback.md.
+                        LinkAdapter.messageService.playAudio(audioUrl!);
                     };
                     
                     // Set onclick property directly (harder to override)

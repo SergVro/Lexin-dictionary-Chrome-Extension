@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strict CSP Test Page</title>
+
+    <!--
+        The policy below is svt.se's, trimmed to the parts that decide the outcome:
+        a default-src that lists the site's own media hosts, and no media-src at all,
+        so media falls back to default-src. lexin.nada.kth.se is not in it - and
+        neither dictionary host would be in any news site's policy.
+
+        A Translation Card renders inside this document, so an <audio> element the
+        card created would be *this page's* subresource and the policy would block
+        the clip. Playback happens in the extension's Offscreen Document instead.
+        See docs/adr/0004-offscreen-audio-playback.md.
+
+        Declared in a meta tag rather than a header because the fixtures are served
+        by `npx serve`, which sends no headers of its own; a meta-declared policy is
+        enforced on subresource loads exactly the same way.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src blob: data: https://*.svt.se https://www.svtstatic.se 'self' 'unsafe-inline'">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            font-size: 18px;
+            line-height: 2;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #test-word {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nyheter</h1>
+
+    <p>
+        En <span id="test-word">bil</span> är ett fordon för transport.
+        Stockholm är Sveriges största stad.
+    </p>
+</body>
+</html>

@@ -22,7 +22,7 @@ const SELECTED_WORD = "bil";
 
 test.describe("Shipped permission surface", () => {
 
-  test("loaded extension requests only the storage permission", async ({ context, extensionId }) => {
+  test("loaded extension requests only the storage and offscreen permissions", async ({ context, extensionId }) => {
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/html/popup.html`);
 
@@ -30,7 +30,10 @@ test.describe("Shipped permission surface", () => {
     // stale or hand-edited build is caught too - ManifestTests covers source.
     const manifest = await page.evaluate(() => chrome.runtime.getManifest());
 
-    expect(manifest.permissions).toEqual(["storage"]);
+    // offscreen is what lets a pronunciation clip load under the extension's CSP
+    // instead of the reader's page. Neither permission warns the user at install.
+    // See docs/adr/0004-offscreen-audio-playback.md.
+    expect(manifest.permissions).toEqual(["storage", "offscreen"]);
     expect(manifest.web_accessible_resources).toBeUndefined();
 
     await page.close();

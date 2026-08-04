@@ -129,9 +129,13 @@ Earlier releases: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/r
   monolingual dictionary, and listing it beside the target languages reads as a bug.
   It gets its own sentence.
 - **The permission warning is addressed head-on.** The manifest requests only
-  `storage`, but the content script's `http://*/*` and `https://*/*` matches still
-  make Chrome say "read and change all your data on websites you visit" at install.
-  Leaving that unexplained costs installs.
+  `storage` and `offscreen` - neither of which Chrome warns about - but the content
+  script's `http://*/*` and `https://*/*` matches still make Chrome say "read and
+  change all your data on websites you visit" at install. Leaving that unexplained
+  costs installs. If the submission form asks what `offscreen` is for: it plays the
+  pronunciation clip, which a web page's Content Security Policy blocks when the
+  in-page card tries to play it itself. See
+  `docs/adr/0004-offscreen-audio-playback.md`.
 - **Check the language list against `LexinDictionary.getSupportedLanguages()` and
   `FolketsDictionary.getSupportedLanguages()`** whenever a dictionary is added.
   Currently 20 via Lexin plus English via Folkets.

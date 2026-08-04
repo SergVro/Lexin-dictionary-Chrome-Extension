@@ -1,6 +1,6 @@
 import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler,
     GetSelectionHandler, OpenActionPopupHandler, LoadHistoryDirectionsHandler,
-    RemoveHistoryItemHandler } from "../common/Interfaces.js";
+    RemoveHistoryItemHandler, PlayAudioHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import MessageBus from "./MessageBus.js";
 
@@ -45,6 +45,18 @@ class MessageHandlers implements IMessageHandlers{
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
         MessageBus.Instance.registerHandler(MessageType.openActionPopup, (_args) => {
             return handler();
+        });
+    }
+
+    registerPlayAudioHandler(handler: PlayAudioHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.playAudio, (args: any) => {
+            return handler(args.url);
+        });
+    }
+
+    registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.playAudioInOffscreenDocument, (args: any) => {
+            return handler(args.url);
         });
     }
 }
