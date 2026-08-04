@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   test:
     build:
@@ -10,8 +8,9 @@ services:
       - ./playwright-report:/app/playwright-report
       - ./test-results:/app/test-results
     environment:
-      - DISPLAY=:99
+      # Matches what the workflow passes: retries, the github reporter and
+      # forbidOnly are all gated on CI in playwright.config.ts.
       - CI=true
-    # Run tests
-    command: /app/run-tests.sh
-
+    # Recommended for Chromium - without it, it can run out of memory and crash.
+    ipc: host
+    init: true

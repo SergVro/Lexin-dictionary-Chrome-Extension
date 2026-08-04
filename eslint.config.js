@@ -7,8 +7,6 @@ export default tseslint.config(
   {
     ignores: [
       "dist/",
-      "bower_components/",
-      "src/lib/**/*",
       "**/*.js"
     ]
   },
