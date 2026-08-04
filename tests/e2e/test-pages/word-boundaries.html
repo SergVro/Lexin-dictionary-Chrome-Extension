@@ -30,6 +30,11 @@
     <p><span id="icon-before">bil</span><img id="icon" src="data:image/gif;base64,R0lGODlhCgAKAIAAAP///wAAACH5BAEAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==" alt=""><span id="icon-after">hund</span></p>
     <p>Ett <span id="empty-wrap">h<span></span>und</span> till.</p>
 
+    <!-- Hidden elements render no box at all, so they separate nothing - not even the
+         one carrying text, whose text is not on the page either. -->
+    <p>Ett <span id="hidden-attr">h<span hidden>ZZZ</span>und</span> till.</p>
+    <p>Ett <span id="hidden-css">h<span style="display:none">ZZZ</span>und</span> till.</p>
+
     <!-- A linked word. Every trigger does something to a link, and none of it should
          happen when the reader only meant to look the word up. -->
     <p>En <a id="linked-word" href="https://example.com/">bil</a> till.</p>

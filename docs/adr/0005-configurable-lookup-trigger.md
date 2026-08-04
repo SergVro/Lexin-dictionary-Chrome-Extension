@@ -141,6 +141,17 @@ correction is wrong in the other one: with no rule the icon is elided and the lo
 reads `bilhund`; with the naive "every textless element separates" rule,
 `h<span></span>und` breaks into `und`.
 
+A fifth round found the mirror of it: a *hidden* element renders no box, and
+`display: none` fails every test for flowing inline, so `h<span hidden></span>und` was
+read as a block boundary and cut the visible word in half. Nothing rendered is now
+skipped outright - contributing neither text nor a boundary - which also keeps the
+source of a `<script>` left mid-sentence out of the flowed text.
+
+The pattern across those two rounds is worth naming: **this walk has to agree with
+what the reader sees, and every disagreement shows up as a lookup for a word that is
+not on the page.** Text present but invisible, and space taken but textless, are the
+two ways markup and rendering come apart, and each needed its own rule.
+
 ## Pre-existing limitations this work uncovered but did not fix
 
 - **`HistoryManager` does read-modify-write with no serialisation**, so two lookups a

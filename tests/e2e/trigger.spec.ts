@@ -255,6 +255,25 @@ test.describe("Lookup trigger", () => {
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
         });
 
+    test("a hidden element should separate nothing", async ({ context, extensionId }) => {
+        // A hidden element renders no box, so it does not split the visible word -
+        // and its text is not on the page either, so it must not join it. Both are
+        // easy to get wrong in opposite directions: `display: none` fails every test
+        // for flowing inline, so it reads as a block unless it is skipped first.
+        //
+        // Under Shift, which is the branch that names the word by position.
+        await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+        const page = await context.newPage();
+        await openTestPage(page, BOUNDARIES_PAGE);
+
+        await ExtensionHelpers.triggerLookup(page, "#hidden-attr", { modifier: "Shift" });
+        await expect(page.locator(CARD_WORD)).toHaveText("hund");
+
+        await ExtensionHelpers.triggerLookup(page, "#hidden-css", { modifier: "Shift" });
+        await expect(page.locator(CARD_WORD)).toHaveText("hund");
+    });
+
     test("a trigger click should have the page's default suppressed", async ({ context }) => {
         // The click path used to return before suppressing the default whenever there
         // was no selection yet - which is exactly the first click of a double-click on

@@ -80,6 +80,11 @@ function caretFromPoint(x: number, y: number): ICaret | null {
     return null;
 }
 
+/** What the element is laid out as. */
+function displayOf(element: Element): string {
+    return window.getComputedStyle(element).display;
+}
+
 /**
  * Whether an element's text runs on with the text either side of it.
  *
@@ -87,9 +92,12 @@ function caretFromPoint(x: number, y: number): ICaret | null {
  * inline but is atomic - its text does not join a word across its edges - and
  * anything block-level plainly starts afresh.
  */
-function flowsInline(element: Element): boolean {
-    const display = window.getComputedStyle(element).display;
+function flowsInlineDisplay(display: string): boolean {
     return display === "inline" || display === "contents";
+}
+
+function flowsInline(element: Element): boolean {
+    return flowsInlineDisplay(displayOf(element));
 }
 
 /**
@@ -169,10 +177,19 @@ function collectFlowedText(element: Element, caret: ICaret,
         }
 
         const childElement = child as Element;
+        const display = displayOf(childElement);
+
+        // Nothing rendered means nothing to separate. `display: none` fails every
+        // test for flowing inline, so without this a hidden element - `hidden`,
+        // `display: none`, or a <script> the page left mid-sentence - would be taken
+        // for a block and would cut the visible word in half.
+        if (display === "none") {
+            continue;
+        }
         // A line break carries no text of its own, and a block starts a run of its
         // own - both end this one. Neither is descended into: a nested block's text
         // is not part of the text around the caret.
-        if (childElement.tagName === "BR" || !flowsInline(childElement)) {
+        if (childElement.tagName === "BR" || !flowsInlineDisplay(display)) {
             collected.text += "\n";
             continue;
         }
