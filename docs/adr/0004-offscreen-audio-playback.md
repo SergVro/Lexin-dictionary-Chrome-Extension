@@ -78,6 +78,32 @@ and `OffscreenAudioPlayer` is built around that:
   response there is no way to tell a document that took the clip from one that was
   no longer there.
 
+## The extension now requires Chrome 116
+
+`chrome.offscreen` is Chrome 109+, but `chrome.runtime.getContexts` - which the
+player asks whether a document is already open - is Chrome 116+. On 109 through 115
+the two disagree: offscreen documents exist, the check throws, and every LYSSNA
+click fails before `createDocument` is reached. That is worse than not fixing the
+bug, because it takes the button down on the CSP-free pages and in the Action Popup
+where it still worked. `minimum_chrome_version: "116"` is what closes that gap, and
+`ManifestTests` pins it.
+
+The alternative was to carry a fallback: skip the check and treat an unanswered
+message as "no document open", which needs no API newer than 109. It was not worth
+it. Chrome 116 shipped in August 2023, and the population it excludes is dominated
+by machines pinned to Chrome 109 for good - Windows 7 and 8.1, macOS 10.13 and
+earlier - which will not reach any floor we could reasonably pick.
+
+What those users see is the gentlest failure available: an install already in place
+keeps working on the last version it can run, and simply stops receiving updates.
+Chrome does this silently, which is the part worth knowing - nothing tells them, and
+nothing here can. New installs get "Not compatible" in the store instead of a button.
+
+Raise the floor only alongside an API that needs it. `chrome.action.openPopup` is
+Chrome 127+ and deliberately does not count: `BackgroundWorker.openActionPopup`
+degrades to a warning when it is missing, which is the pattern to prefer whenever
+the feature can survive without the API.
+
 ## Consequences
 
 - `LinkAdapter` constructs no media element. If a future change reintroduces one in
