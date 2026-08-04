@@ -43,6 +43,21 @@ describe("manifest permissions", () => {
         expect(manifest).not.toHaveProperty("host_permissions");
     });
 
+    it("should require the Chrome that has every API it calls", () => {
+        // 116 is where chrome.runtime.getContexts arrives, and OffscreenAudioPlayer
+        // asks it whether a document is already open. Offscreen documents themselves
+        // go back to 109, so on 109-115 the LYSSNA button would throw on every click
+        // - including on the pages where it used to work. Declaring the floor is what
+        // keeps that from shipping: an older Chrome stays on the last version it can
+        // run, silently, rather than updating into a broken button.
+        //
+        // Raise this only alongside an API that needs it. chrome.action.openPopup is
+        // Chrome 127+ and deliberately not counted: BackgroundWorker degrades when it
+        // is missing, so it does not set a floor. See
+        // docs/adr/0004-offscreen-audio-playback.md.
+        expect(manifest.minimum_chrome_version).toBe("116");
+    });
+
     it("should not expose any resource to web pages", () => {
         // Every entry point is bundled into a self-contained IIFE and loaded
         // either as a content script or from an extension page, so no script
