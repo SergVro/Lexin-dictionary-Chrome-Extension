@@ -119,6 +119,25 @@ NEW IN VERSION 3.0
 Earlier releases: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/releases
 ```
 
+## Permission justification: offscreen
+
+Maximum 1,000 characters. This one is 979. It goes in the *Privacy practices* tab of
+the developer dashboard, not *Store listing* - one field per permission the manifest
+requests, and the review stalls on a permission whose field is empty or vague.
+
+Written to answer the reviewer's real question, which is not "what does offscreen do"
+but "why can this extension not do without it". The reasoning is in
+`docs/adr/0004-offscreen-audio-playback.md`; keep the two in step if the playback path
+changes.
+
+```text
+Lexin's dictionary entries include a LYSSNA ("listen") link that plays the pronunciation of a word as an MP3 hosted by the dictionary service. The extension shows those entries in a card rendered inside the page the user is reading, and an audio element created there belongs to that page's document - so the clip loads under the page's Content Security Policy. Sites that set a strict policy block it and the button stays silent; on svt.se, for example, it fails with a CSP error.
+
+The offscreen permission lets the extension play the clip in a document it owns, where its own policy applies, so pronunciation works on every site. When the user clicks the link, the service worker opens an offscreen document with reason AUDIO_PLAYBACK, passes it the MP3 URL, and Chrome closes the document automatically after 30 seconds of silence.
+
+It is used for nothing else: no recording, no clipboard access, no data collection, and nothing runs there unless the user asks to hear a word.
+```
+
 ## Notes for whoever edits this next
 
 - **Keep the changelog to the current major version.** The listing previously carried
@@ -132,10 +151,9 @@ Earlier releases: https://github.com/SergVro/Lexin-dictionary-Chrome-Extension/r
   `storage` and `offscreen` - neither of which Chrome warns about - but the content
   script's `http://*/*` and `https://*/*` matches still make Chrome say "read and
   change all your data on websites you visit" at install. Leaving that unexplained
-  costs installs. If the submission form asks what `offscreen` is for: it plays the
-  pronunciation clip, which a web page's Content Security Policy blocks when the
-  in-page card tries to play it itself. See
-  `docs/adr/0004-offscreen-audio-playback.md`.
+  costs installs. The dashboard asks separately for a justification per permission;
+  the one for `offscreen` is above, and `storage` gets the plain answer - it holds the
+  chosen language, the appearance setting and the lookup history, all local.
 - **Check the language list against `LexinDictionary.getSupportedLanguages()` and
   `FolketsDictionary.getSupportedLanguages()`** whenever a dictionary is added.
   Currently 20 via Lexin plus English via Folkets.
