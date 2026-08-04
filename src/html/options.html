@@ -66,6 +66,26 @@
                 <span class="lxHint">Off stops new lookups being stored. Words already in your
                     history stay until you clear them there.</span>
             </div>
+            <div class="lxField">
+                <label id="triggerModifierLabel">Translate with</label>
+                <div class="lxSeg" role="radiogroup" aria-labelledby="triggerModifierLabel" id="triggerModifier">
+                    <label class="lxSegOption"><input type="radio" name="triggerModifier" value="alt" /><span>Alt</span></label>
+                    <label class="lxSegOption"><input type="radio" name="triggerModifier" value="ctrl" /><span>Ctrl</span></label>
+                    <label class="lxSegOption"><input type="radio" name="triggerModifier" value="shift" /><span>Shift</span></label>
+                </div>
+                <span class="lxHint">Held while you click or double-click a word. ChromeOS and
+                    some Linux desktops keep Alt for themselves, which is what this is here for.
+                    Shift also extends a selection you already have.</span>
+            </div>
+            <div class="lxField">
+                <label id="shortcutLabel">Keyboard shortcut</label>
+                <button type="button" id="openShortcuts" class="lxButton lxButtonQuiet"
+                        aria-describedby="shortcutHint">Set a keyboard shortcut…</button>
+                <span class="lxHint" id="shortcutHint">Translates whatever is selected, with no
+                    mouse at all. Chrome owns the binding: this opens
+                    chrome://extensions/shortcuts, where <b>Translate the selected word</b> can be
+                    bound to any combination.</span>
+            </div>
         </div>
     </main>
 

@@ -169,6 +169,59 @@ export class ExtensionHelpers {
     await page.close();
   }
 
+  /**
+   * Put the extension on a lookup modifier without walking the Options page.
+   *
+   * Stored as the string Settings writes. Note the Options page never offers "ctrl"
+   * on a Mac, so a test seeding it there is testing the fallback, not the gesture.
+   */
+  static async setTriggerModifier(
+    context: BrowserContext, extensionId: string, value: "alt" | "ctrl" | "shift"
+  ): Promise<void> {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/html/help.html`);
+    await page.waitForLoadState("domcontentloaded");
+    await page.evaluate(async (modifier) => {
+      await chrome.storage.local.set({ triggerModifier: modifier });
+    }, value);
+    await page.close();
+  }
+
+  /**
+   * Perform the on-page lookup gesture, the way a reader performs it.
+   *
+   * Defaults to the shipped Alt + double-click, so the many call sites that are not
+   * *about* the trigger say nothing about it and keep working when the default moves.
+   *
+   * Worth knowing what this cannot do: Playwright drives Chrome over CDP, which
+   * injects input below the layer where ChromeOS and GNOME take Alt+click for
+   * themselves. The bug the configurable trigger exists to fix is not reproducible
+   * here on any platform - only that the configuration works.
+   */
+  static async triggerLookup(
+    page: Page,
+    selector: string,
+    options?: { modifier?: "Alt" | "Control" | "Shift"; gesture?: "click" | "dblclick" }
+  ): Promise<void> {
+    const modifier = options?.modifier ?? "Alt";
+    const gesture = options?.gesture ?? "dblclick";
+
+    const box = await page.locator(selector).boundingBox();
+    if (!box) {
+      throw new Error(`No bounding box for ${selector} - is it visible?`);
+    }
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+
+    await page.keyboard.down(modifier);
+    if (gesture === "dblclick") {
+      await page.mouse.dblclick(x, y);
+    } else {
+      await page.mouse.click(x, y);
+    }
+    await page.keyboard.up(modifier);
+  }
+
   /** Reads one settings key back, for assertions about what a surface persisted. */
   static async getStoredValue(
     context: BrowserContext, extensionId: string, key: string

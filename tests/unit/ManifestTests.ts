@@ -27,6 +27,26 @@ describe("manifest permissions", () => {
         expect(manifest.permissions).not.toContain("tabs");
     });
 
+    it("should declare the translate-selection keyboard shortcut", () => {
+        // A command is a manifest key, not a permission: it adds nothing to the list
+        // above and shows the reader no warning at install. Nobody should "fix" the
+        // permissions to match this.
+        //
+        // The shortcut is the one trigger no desktop can take for itself, which is
+        // why it exists - ChromeOS and GNOME both intercept Alt+click before the page
+        // is sent anything. Chrome owns the binding, at chrome://extensions/shortcuts.
+        expect(Object.keys(manifest.commands)).toEqual(["translate-selection"]);
+
+        const command = manifest.commands["translate-selection"];
+        // Without a description Chrome shows a blank row in its shortcuts UI, and
+        // the reader has no way to tell what they are rebinding.
+        expect(command.description).toBeTruthy();
+        // Not global: the shortcut should only fire while Chrome is focused. A global
+        // one would be competing with the whole desktop for a chord, which is the
+        // class of problem this feature exists to get out of.
+        expect(command).not.toHaveProperty("global");
+    });
+
     it("should not request any host permission", () => {
         // host_permissions buys an extension one thing here: a CORS bypass for the
         // dictionary lookups. Neither service needs it - both answer with

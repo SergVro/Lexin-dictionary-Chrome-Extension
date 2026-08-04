@@ -16,11 +16,15 @@ import {
     LoadHistoryDirectionsHandler,
     RemoveHistoryItemHandler,
     PlayAudioHandler,
+    TranslateSelectionHandler,
+    IMessageBus,
+    MessageHandler,
     IAsyncStorage,
     IAsyncSettingsStorage,
     IAudioPlayer
 } from "../../../src/scripts/common/Interfaces.js";
 import TranslationDirection from "../../../src/scripts/dictionary/TranslationDirection.js";
+import MessageType from "../../../src/scripts/messaging/MessageType.js";
 
 export class FakeLoader implements ILoader {
     data: string[] = [];
@@ -88,6 +92,20 @@ export class TestMessageService implements IMessageService {
     playAudio(url: string): Promise<void> {
         this.playedAudioUrls.push(url);
         return Promise.resolve();
+    }
+
+    translateSelectionCalls = 0;
+
+    translateSelection(): Promise<void> {
+        this.translateSelectionCalls++;
+        return Promise.resolve();
+    }
+
+    /** What chrome://extensions/shortcuts would report. "" means unassigned. */
+    commandShortcut = "";
+
+    getCommandShortcut(_command: string): Promise<string> {
+        return Promise.resolve(this.commandShortcut);
     }
 }
 
@@ -259,5 +277,51 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void {
         this.playAudioInOffscreenDocumentHandler = handler;
+    }
+
+    translateSelectionHandler: TranslateSelectionHandler | null = null;
+
+    registerTranslateSelectionHandler(handler: TranslateSelectionHandler): void {
+        this.translateSelectionHandler = handler;
+    }
+}
+
+/**
+ * A bus that records what was sent and hands back the command handlers it was given,
+ * so a test can fire a keyboard shortcut without Chrome.
+ */
+export class FakeMessageBus implements IMessageBus {
+    sentToActiveTab: MessageType[] = [];
+    commandHandlers: { [command: string]: () => void } = {};
+    shortcuts: { [command: string]: string } = {};
+
+    registerHandler(_method: MessageType, _handler: MessageHandler, _ignoreEmptyResult?: boolean) {
+        // No-op: handler registration is FakeMessageHandlers' business.
+    }
+
+    sendMessage(_method: MessageType, _args?: any): Promise<any> {
+        return Promise.resolve(undefined);
+    }
+
+    sendMessageToActiveTab(method: MessageType, _args?: any): Promise<any> {
+        this.sentToActiveTab.push(method);
+        return Promise.resolve(undefined);
+    }
+
+    createNewTab(_url: string): void {
+        // No-op
+    }
+
+    registerCommandHandler(command: string, handler: () => void): void {
+        this.commandHandlers[command] = handler;
+    }
+
+    getCommandShortcut(command: string): Promise<string> {
+        return Promise.resolve(this.shortcuts[command] || "");
+    }
+
+    /** Fires a command as Chrome would, so a test need not touch chrome.commands. */
+    pressCommand(command: string): void {
+        this.commandHandlers[command]?.();
     }
 }

@@ -5,10 +5,16 @@ import { fold } from "../util/Combobox.js";
 import LanguageManager from "../common/LanguageManager.js";
 import ThemeManager, { Appearance, applyTheme } from "../common/ThemeManager.js";
 import Settings from "../common/Settings.js";
-import { ILanguage } from "../common/Interfaces.js";
+import { availableModifiers, modifierLabel, TRANSLATE_SELECTION_COMMAND,
+    TriggerModifier } from "../common/LookupTrigger.js";
+import { ILanguage, IMessageService } from "../common/Interfaces.js";
+
+/** Chrome's own shortcuts UI. Not linkable from an extension page - see below. */
+const SHORTCUTS_URL = "chrome://extensions/shortcuts";
 
 class OptionsPage {
 
+    private messageService: IMessageService;
     private languageManager: LanguageManager;
     private themeManager: ThemeManager;
     private settings: Settings;
@@ -18,7 +24,9 @@ class OptionsPage {
     private defaultLanguage: string = "";
     private query = "";
 
-    constructor(languageManager: LanguageManager, themeManager: ThemeManager, settings: Settings) {
+    constructor(messageService: IMessageService, languageManager: LanguageManager,
+                themeManager: ThemeManager, settings: Settings) {
+        this.messageService = messageService;
         this.languageManager = languageManager;
         this.themeManager = themeManager;
         this.settings = settings;
@@ -172,6 +180,51 @@ class OptionsPage {
         if (recordInput) {
             recordInput.checked = true;
         }
+
+        this.renderModifierOptions();
+        const trigger = await this.settings.getTriggerModifier();
+        const triggerInput = DomUtils.$(`#triggerModifier input[value='${trigger}']`) as HTMLInputElement;
+        if (triggerInput) {
+            triggerInput.checked = true;
+        }
+
+        await this.renderShortcut();
+    }
+
+    /**
+     * Drops the modifiers this platform cannot deliver, and names the rest as the
+     * keyboard in front of the reader has them engraved.
+     *
+     * The markup ships all three so the page still reads correctly with no script;
+     * this is what makes it honest on a Mac, where Ctrl+click is the secondary click
+     * and the gesture could never fire.
+     */
+    private renderModifierOptions(): void {
+        const usable = availableModifiers();
+        const mac = usable.indexOf("ctrl") === -1;
+
+        DomUtils.each(DomUtils.$$("#triggerModifier .lxSegOption"), (_index, option) => {
+            const input = option.querySelector("input") as HTMLInputElement;
+            const modifier = input?.value as TriggerModifier;
+            if (!modifier || usable.indexOf(modifier) === -1) {
+                DomUtils.remove(option);
+                return;
+            }
+            DomUtils.setText(option.querySelector("span"), modifierLabel(modifier, mac));
+        });
+    }
+
+    /**
+     * Shows what the shortcut is actually bound to.
+     *
+     * Chrome silently leaves the suggested combination unassigned when another
+     * extension already holds it, and nothing else in the UI would ever say so - a
+     * reader would just press it and get nothing.
+     */
+    private async renderShortcut(): Promise<void> {
+        const shortcut = await this.messageService.getCommandShortcut(TRANSLATE_SELECTION_COMMAND);
+        const button = DomUtils.$("#openShortcuts");
+        DomUtils.setText(button, shortcut ? `Keyboard shortcut: ${shortcut}` : "Set a keyboard shortcut…");
     }
 
     private subscribeOnEvents(): void {
@@ -197,6 +250,23 @@ class OptionsPage {
             const recording = (e.target as HTMLInputElement).value === "on";
             await this.settings.setRecordHistory(recording);
             showToast("Options saved");
+        });
+
+        DomUtils.$("#triggerModifier")?.addEventListener("change", async (e: Event) => {
+            const modifier = (e.target as HTMLInputElement).value as TriggerModifier;
+            await this.settings.setTriggerModifier(modifier);
+            // Pages already open pick this up without a reload - see the storage
+            // subscription in content.ts, and why the trigger is the one setting that
+            // gets one.
+            showToast("Options saved");
+        });
+
+        DomUtils.$("#openShortcuts")?.addEventListener("click", () => {
+            // A button rather than a link because Chrome blocks a navigation to a
+            // chrome:// URL from an extension page. tabs.create is the way there, and
+            // it needs no permission. The hint spells the URL out so a reader can
+            // reach it by hand if this ever stops working.
+            this.messageService.createNewTab(SHORTCUTS_URL);
         });
     }
 }

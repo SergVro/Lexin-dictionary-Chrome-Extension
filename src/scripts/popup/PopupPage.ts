@@ -7,6 +7,8 @@ import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
 import Combobox from "../util/Combobox.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
+import Settings from "../common/Settings.js";
+import { DEFAULT_TRIGGER, gestureLabel, TriggerModifier } from "../common/LookupTrigger.js";
 
 /** How many past lookups the Recent row offers. */
 const RECENT_COUNT = 5;
@@ -30,11 +32,17 @@ class PopupPage {
     private languageManager: LanguageManager;
     private languageLabel: LanguageLabel;
     private languagePicker: Combobox;
+    private settings: Settings;
 
-    constructor(MessageService: IMessageService, languageManager: LanguageManager, languageLabel: LanguageLabel) {
+    /** Cached so the empty state, which renders synchronously, can name the gesture. */
+    private trigger: TriggerModifier = DEFAULT_TRIGGER;
+
+    constructor(MessageService: IMessageService, languageManager: LanguageManager,
+                languageLabel: LanguageLabel, settings: Settings) {
         this.messageService = MessageService;
         this.languageManager = languageManager;
         this.languageLabel = languageLabel;
+        this.settings = settings;
 
         this.initialize();
     }
@@ -51,6 +59,9 @@ class PopupPage {
         this.currentDirection = await this.getSavedDirection();
         await this.useSupportedDirection();
         this.renderDirectionBadge();
+
+        // Read before translateSelectedWord, which renders the empty state naming it.
+        this.trigger = await this.settings.getTriggerModifier();
 
         this.translateSelectedWord();
         this.refreshRecent();
@@ -208,7 +219,7 @@ class PopupPage {
             } else {
                 States.render(DomUtils.$("#translation") as HTMLElement, States.emptyState(
                     "No word selected",
-                    "Alt + double-click a word on the page, or type above."));
+                    `${gestureLabel(this.trigger, "double-click")} a word on the page, or type above.`));
             }
         });
     }

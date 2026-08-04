@@ -7,6 +7,7 @@ import * as HistoryExport from "./HistoryExport.js";
 import { confirmDialog } from "../util/Dialog.js";
 import { showToast } from "../util/Toast.js";
 import { fold } from "../util/Combobox.js";
+import { DEFAULT_TRIGGER, gestureLabel, TriggerModifier } from "../common/LookupTrigger.js";
 
 /** Identifies a row across a re-render, so selection survives searching. */
 function rowKey(row: IHistoryRow): string {
@@ -41,6 +42,9 @@ class HistoryPage {
     private query = "";
     private recording = true;
 
+    /** Cached so renderTable, which is synchronous, can name the gesture. */
+    private trigger: TriggerModifier = DEFAULT_TRIGGER;
+
     constructor(model: HistoryModel, languageLabel: LanguageLabel) {
         this.model = model;
         this.languageLabel = languageLabel;
@@ -52,6 +56,7 @@ class HistoryPage {
 
         this.readerLanguage = await this.model.getLanguage();
         this.recording = await this.model.getRecordHistory();
+        this.trigger = await this.model.getTriggerModifier();
         this.directions = this.sortDirections(await this.model.loadDirections());
 
         // Open on the reader's own language when it has history; otherwise All, which
@@ -187,7 +192,8 @@ class HistoryPage {
             DomUtils.append(container, this.recording
                 ? States.emptyState(
                     "No translations yet",
-                    "Alt + double-click a word on any Swedish page to start building your list.")
+                    `${gestureLabel(this.trigger, "double-click")} a word on any Swedish page ` +
+                    "to start building your list.")
                 : States.emptyState(
                     "Recording is off",
                     "Lookups are not being saved, so this list stays empty.",

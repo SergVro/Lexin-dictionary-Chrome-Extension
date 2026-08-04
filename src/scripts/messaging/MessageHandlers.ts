@@ -1,6 +1,7 @@
 import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler,
     GetSelectionHandler, OpenActionPopupHandler, LoadHistoryDirectionsHandler,
-    RemoveHistoryItemHandler, PlayAudioHandler } from "../common/Interfaces.js";
+    RemoveHistoryItemHandler, PlayAudioHandler,
+    TranslateSelectionHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import MessageBus from "./MessageBus.js";
 
@@ -58,6 +59,15 @@ class MessageHandlers implements IMessageHandlers{
         MessageBus.Instance.registerHandler(MessageType.playAudioInOffscreenDocument, (args: any) => {
             return handler(args.url);
         });
+    }
+
+    registerTranslateSelectionHandler(handler: TranslateSelectionHandler): void {
+        // ignoreEmptyResult, for the same reason getSelection sets it: every frame on
+        // the page is asked and only the one holding the selection answers, so a
+        // silent frame must not send an empty response back.
+        MessageBus.Instance.registerHandler(MessageType.translateSelection, (_args) => {
+            return handler();
+        }, true);
     }
 }
 

@@ -41,8 +41,13 @@ HOW TO LOOK A WORD UP
 
 • Alt + double-click a word on the page
 • Or select the text, then Alt + click it
+• Or press the keyboard shortcut on a word you've selected — no mouse needed
 • Or click the toolbar icon and type the word — you can also swap the direction and
   translate from your language into Swedish
+
+Prefer a different key? Alt, Ctrl and Shift are all offered in Options. That matters
+on ChromeOS and some Linux desktops, which keep Alt for themselves and never pass it
+on to the page.
 
 Translations include Lexin's pronunciation audio where the dictionary provides it,
 and the card works inside iframes, so Gmail and similar apps are covered too.
@@ -86,7 +91,7 @@ PRIVACY
 • The only thing that leaves your browser is the word you look up, sent over HTTPS
   to the dictionary.
 • Chrome warns that this extension can "read and change your data on websites you
-  visit". That is what lets it see the word you Alt+click on the page in front of
+  visit". That is what lets it see the word you look up on the page in front of
   you. It reads nothing else, and keeps no record of the pages you visit.
 
 

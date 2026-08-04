@@ -4,6 +4,7 @@ import LanguageManager from "../common/LanguageManager.js";
 import LanguageLabel from "../common/LanguageLabel.js";
 import ThemeManager, { applyTheme } from "../common/ThemeManager.js";
 import PopupPage from "./PopupPage.js";
+import Settings from "../common/Settings.js";
 import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -19,5 +20,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dictionaryFactory = new DictionaryFactory();
     const languageManager = new LanguageManager(settingsStorage, dictionaryFactory);
     const languageLabel = new LanguageLabel(settingsStorage, dictionaryFactory.getAllSupportedLanguages());
-    new PopupPage(messageService, languageManager, languageLabel);
+    new PopupPage(messageService, languageManager, languageLabel, new Settings(settingsStorage));
 });

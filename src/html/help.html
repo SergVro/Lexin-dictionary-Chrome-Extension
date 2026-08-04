@@ -23,13 +23,16 @@
             <li class="lxStep">
                 <span class="lxStepNumber">01</span>
                 <span class="lxStepIcon" data-icon="keyboard"></span>
-                <span class="lxStepTitle">Alt + double-click a word</span>
+                <!-- The gesture is the reader's to choose in Options, so these two
+                     titles are rewritten on load. They ship naming Alt, which is the
+                     default and what most readers will see. -->
+                <span class="lxStepTitle" id="stepDoubleClick">Alt + double-click a word</span>
                 <span class="lxStepDetail">On any Swedish page.</span>
             </li>
             <li class="lxStep">
                 <span class="lxStepNumber">02</span>
                 <span class="lxStepIcon" data-icon="pointer"></span>
-                <span class="lxStepTitle">Select, then Alt + click</span>
+                <span class="lxStepTitle" id="stepClick">Select, then Alt + click</span>
                 <span class="lxStepDetail">If you'd rather select first.</span>
             </li>
             <li class="lxStep">
@@ -57,7 +60,14 @@
         <p class="lxProse">
             <a class="lxLink" href="options.html">Options</a> is where you choose which languages appear
             in the picker, which one a lookup uses by default, whether the extension follows your
-            system's light or dark appearance, and whether lookups are recorded at all.
+            system's light or dark appearance, whether lookups are recorded at all, and which key you
+            hold to look a word up.
+        </p>
+        <p class="lxProse">
+            That last one matters on ChromeOS and some Linux desktops, which keep Alt for themselves
+            and never pass it on to the page. Switch to another key there — or set a keyboard shortcut,
+            also from Options, which translates the selected word and is the one trigger no desktop
+            can intercept.
         </p>
 
         <hr class="lxHr" />

@@ -1,6 +1,8 @@
 import * as DomUtils from "./util/DomUtils.js";
 import * as Icons from "./util/Icons.js";
 import ThemeManager, { applyTheme } from "./common/ThemeManager.js";
+import Settings from "./common/Settings.js";
+import { gestureLabel } from "./common/LookupTrigger.js";
 import { createChromeStorage } from "./common/ChromeStorageAdapter.js";
 
 /**
@@ -23,6 +25,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     // a dark desktop.
     const themeManager = new ThemeManager(settingsStorage);
     applyTheme(document.documentElement, await themeManager.getTheme());
+
+    // Steps 1 and 2 name a key the reader chose, so instructions that told them to
+    // hold Alt would be wrong for exactly the readers who had to change it.
+    const modifier = await new Settings(settingsStorage).getTriggerModifier();
+    DomUtils.setText(DomUtils.$("#stepDoubleClick"),
+        `${gestureLabel(modifier, "double-click")} a word`);
+    DomUtils.setText(DomUtils.$("#stepClick"),
+        `Select, then ${gestureLabel(modifier, "click")}`);
 
     DomUtils.each(DomUtils.$$(".lxStepIcon"), (_index, element) => {
         const icon = STEP_ICONS[DomUtils.getAttr(element, "data-icon")];

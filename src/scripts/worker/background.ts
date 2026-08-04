@@ -6,6 +6,7 @@ import LanguageManager from "../common/LanguageManager.js";
 import Settings from "../common/Settings.js";
 import BackgroundWorker from "./BackgroundWorker.js";
 import MessageHandlers from "../messaging/MessageHandlers.js";
+import MessageBus from "../messaging/MessageBus.js";
 import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
 import FetchLoader from "../dictionary/FetchLoader.js";
 import LexinDictionary from "../dictionary/LexinDictionary.js";
@@ -36,7 +37,7 @@ try {
     const translationManager = new TranslationManager(historyManager, dictionaryFactory, languageManager, settings);
     const messageHandlers = new MessageHandlers();
     const backgroundWorker = new BackgroundWorker(historyManager, translationManager, messageHandlers,
-        new OffscreenAudioPlayer());
+        new OffscreenAudioPlayer(), MessageBus.Instance);
     
     backgroundWorker.initialize();
     

@@ -1,6 +1,8 @@
 import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers,
-    IAudioPlayer } from "../common/Interfaces.js";
+    IAudioPlayer, IMessageBus } from "../common/Interfaces.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
+import MessageType from "../messaging/MessageType.js";
+import { TRANSLATE_SELECTION_COMMAND } from "../common/LookupTrigger.js";
 
 class BackgroundWorker {
 
@@ -8,13 +10,16 @@ class BackgroundWorker {
     private translationManager: ITranslationManager;
     private messageHandlers: IMessageHandlers;
     private audioPlayer: IAudioPlayer;
+    private messageBus: IMessageBus;
 
     constructor(historyManager : IHistoryManager, translationManager: ITranslationManager,
-                messageHandlers: IMessageHandlers, audioPlayer: IAudioPlayer) {
+                messageHandlers: IMessageHandlers, audioPlayer: IAudioPlayer,
+                messageBus: IMessageBus) {
         this.historyManager = historyManager;
         this.translationManager = translationManager;
         this.messageHandlers = messageHandlers;
         this.audioPlayer = audioPlayer;
+        this.messageBus = messageBus;
     }
 
     getTranslation(word: string, direction: TranslationDirection): Promise<ITranslation> {
@@ -60,7 +65,26 @@ class BackgroundWorker {
         return this.audioPlayer.play(url);
     }
 
+    /**
+     * Asks the active tab to look up its selection, on the reader's keyboard shortcut.
+     *
+     * A shortcut is the one trigger no desktop can intercept, which is the whole
+     * reason it exists: ChromeOS and GNOME both take Alt+click for themselves before
+     * the page is sent anything. Where nothing is selected no frame answers and this
+     * quietly does nothing - the same outcome as on a page the content script cannot
+     * run on, and better than a panel opening at a keystroke that found no word.
+     */
+    translateSelection(): Promise<void> {
+        return this.messageBus.sendMessageToActiveTab(MessageType.translateSelection)
+            .then(() => undefined);
+    }
+
     initialize(): void {
+        // Registered synchronously, while the worker is starting: it sleeps between
+        // events, and a listener attached later is not there when Chrome wakes it for
+        // the keystroke.
+        this.messageBus.registerCommandHandler(TRANSLATE_SELECTION_COMMAND,
+            () => this.translateSelection());
         this.messageHandlers.registerGetTranslationHandler((word, direction) => this.getTranslation(word, direction));
         this.messageHandlers.registerLoadHistoryHandler((langDirection) => this.historyManager.getHistory(langDirection));
         this.messageHandlers.registerClearHistoryHandler((langDirection) => this.historyManager.clearHistory(langDirection));

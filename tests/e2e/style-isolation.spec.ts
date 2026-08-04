@@ -31,13 +31,8 @@ const EXPECTED_TRANSLATION = "ett fordon för ett litet antal personer";
  * the host page's CSS was reaching.
  */
 async function summonCard(page: import("@playwright/test").Page) {
-    const testWord = page.locator("#test-word");
-    await expect(testWord).toBeVisible();
-    const box = await testWord.boundingBox();
-
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(box!.x + box!.width / 2, box!.y + box!.height / 2);
-    await page.keyboard.up("Alt");
+    await expect(page.locator("#test-word")).toBeVisible();
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
 
     // Locators pierce the open shadow root, so this finds the card's content area.
     const content = page.locator(".lexinTranslationContent");

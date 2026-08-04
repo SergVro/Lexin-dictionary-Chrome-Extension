@@ -47,6 +47,21 @@ class MessageService implements IMessageService{
         return MessageBus.Instance.sendMessage(MessageType.playAudio, {url: url});
     }
 
+    /**
+     * Sent to every frame of the active tab, because the worker cannot know which one
+     * the reader is in. Frames with no selection stay silent, so the bus resolves
+     * undefined where nothing was selected anywhere - an ordinary outcome, and the
+     * reason nothing here treats it as an error.
+     */
+    translateSelection(): Promise<void> {
+        return MessageBus.Instance.sendMessageToActiveTab(MessageType.translateSelection)
+            .then(() => undefined);
+    }
+
+    getCommandShortcut(command: string): Promise<string> {
+        return MessageBus.Instance.getCommandShortcut(command);
+    }
+
     openActionPopup(): Promise<void> {
         // Only the service worker can open the Action Popup, so this is a message
         // rather than a direct call - the Translation Card's expand button runs in a

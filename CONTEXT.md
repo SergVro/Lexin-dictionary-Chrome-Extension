@@ -9,9 +9,18 @@ inline on the page being read, or in the extension's own pages.
 ### Surfaces
 
 **Translation Card**:
-The floating card shown over a web page when the reader Alt+Clicks a word. Rendered
-by the content script into a shadow root so the host page cannot style it.
+The floating card shown over a web page when the reader performs the Lookup Trigger
+on a word. Rendered by the content script into a shadow root so the host page cannot
+style it.
 _Avoid_: popup, tooltip, overlay, bubble
+
+**Lookup Trigger**:
+The modifier a reader holds while clicking or double-clicking a word to open a
+Translation Card. Alt by default, and theirs to change - ChromeOS and some Linux
+desktops consume Alt+click before the page is sent anything. Stored as
+`triggerModifier`. Distinct from the *keyboard shortcut*, which Chrome owns and binds
+at chrome://extensions/shortcuts.
+_Avoid_: hotkey, hot key, shortcut (for the modifier), accelerator
 
 **Action Popup**:
 The panel that opens from the extension's toolbar icon, where a word can be typed
