@@ -175,6 +175,7 @@ tests/e2e/**/*.js
 test-results/
 playwright-report/
 playwright/.cache/
+.playwright-cli/
 
 # Browser profile the dev loop keeps its settings and open tabs in (npm run dev)
 .chrome-dev-profile/
