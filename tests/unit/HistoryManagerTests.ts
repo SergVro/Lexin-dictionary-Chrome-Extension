@@ -15,6 +15,35 @@ class FailOnceAsyncStorage extends FakeAsyncStorage {
     }
 }
 
+class BlockingAsyncStorage extends FakeAsyncStorage {
+    private blocked = false;
+    private releaseRead: () => void = () => {};
+    private reportBlockedRead: () => void = () => {};
+    private readGate = new Promise<void>((resolve) => {
+        this.releaseRead = resolve;
+    });
+    readonly blockedRead = new Promise<void>((resolve) => {
+        this.reportBlockedRead = resolve;
+    });
+
+    constructor(private blockedKey: string) {
+        super();
+    }
+
+    async getItem(key: string): Promise<string | null> {
+        if (key === this.blockedKey && !this.blocked) {
+            this.blocked = true;
+            this.reportBlockedRead();
+            await this.readGate;
+        }
+        return super.getItem(key);
+    }
+
+    release(): void {
+        this.releaseRead();
+    }
+}
+
 describe("HistoryManager", () => {
     let historyManager: HistoryManager;
     let fakeStorage: FakeAsyncStorage;
@@ -286,10 +315,39 @@ describe("HistoryManager", () => {
             const failed = {word: "failed", translation: "one", added: 1};
             const retained = {word: "retained", translation: "two", added: 2};
 
-            await expect(manager.addToHistory("swe_foo", [failed])).rejects.toThrow("setItem failed");
-            await manager.addToHistory("swe_foo", [retained]);
+            const failing = manager.addToHistory("swe_foo", [failed]);
+            const following = manager.addToHistory("swe_foo", [retained]);
+
+            await expect(failing).rejects.toThrow("setItem failed");
+            await following;
 
             expect(await manager.getHistory("swe_foo")).toEqual([retained]);
+        });
+
+        it("should let another language direction proceed independently", async () => {
+            const blockingStorage = new BlockingAsyncStorage("historyswe_foo");
+            const manager = new HistoryManager(new TranslationParser(), blockingStorage);
+            const blocked = manager.addToHistory("swe_foo", [
+                {word: "blocked", translation: "one", added: 1}
+            ]);
+            await blockingStorage.blockedRead;
+
+            let independentCompleted = false;
+            const independent = manager.addToHistory("swe_bar", [
+                {word: "independent", translation: "two", added: 2}
+            ]).then(() => {
+                independentCompleted = true;
+            });
+
+            // A timer runs only after the promise queue has drained. Capture the
+            // result before releasing swe_foo, then release it even if the assertion
+            // is going to fail so the test leaves no pending operation behind.
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+            const completedBeforeRelease = independentCompleted;
+            blockingStorage.release();
+            await Promise.all([blocked, independent]);
+
+            expect(completedBeforeRelease).toBe(true);
         });
     });
 

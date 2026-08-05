@@ -432,8 +432,9 @@ test.describe("Lookup trigger", () => {
             // from earlier, and a double-click somewhere else. The word that wins is
             // the one under the pointer.
             //
-            // The final card proves which lookup won visually; serialized history
-            // also proves a spurious lookup of the existing selection never happened.
+            // The final card proves which lookup won visually. Once both possible
+            // requests have had time to settle, serialized history also reveals
+            // whether a spurious lookup of the existing selection happened.
             await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
             await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
             await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
@@ -456,6 +457,10 @@ test.describe("Lookup trigger", () => {
             // its body to leave the loading state; the response follows the awaited
             // history write, so storage is settled once this does.
             await expect(page.locator(CARD)).not.toContainText("Searching", { timeout: 15000 });
+            // A spurious lookup of "bil" would be a separate request and could finish
+            // after the visible "hund" card. Give it the same settle window as the
+            // duplicate-lookup regression above before asserting its absence.
+            await page.waitForTimeout(1500);
 
             const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
             const entries = JSON.parse(stored || "[]") as { word: string }[];

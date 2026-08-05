@@ -20,11 +20,9 @@ class HistoryManager implements IHistoryManager {
         this.maxHistory = 1000;
     }
 
+    /** Returns decoded, deduplicated and date-sorted history for one direction. */
     getHistory(langDirection: string): Promise<IHistoryItem[]> {
         return this.runSerialized(langDirection, async () => {
-            //  Summary
-            //      Returns translation history for the specified language direction.
-
             const history = await this.loadHistory(langDirection);
             // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
             this.compress(history);
@@ -33,17 +31,86 @@ class HistoryManager implements IHistoryManager {
         });
     }
 
+    /** Clears translation history for one direction. */
+    clearHistory(langDirection: string): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            await this.storage.removeItem(this.getStorageKey(langDirection));
+        });
+    }
+
+    /**
+     * Which Language Directions have anything stored.
+     *
+     * Read off the keys rather than kept as an index: an index would be one more thing
+     * to keep in step with addToHistory and clearHistory, and it would go stale for
+     * anyone upgrading from a build that never wrote it.
+     *
+     * The key existing is not enough - an empty array gets written whenever a direction
+     * is merely *looked at* (opening the Action Popup refreshes its Recent row through
+     * getHistory) and when its last row is deleted. Reading each one keeps the History
+     * page from growing a tab per language the reader once had selected.
+     *
+     * This read deliberately stays outside the per-direction operation queues because
+     * it spans every direction. It can produce a momentarily stale tab list while a
+     * first addition or clear is in flight; the next refresh corrects that harmless
+     * UI state, and getDirections never writes its snapshot back.
+     */
+    async getDirections(): Promise<string[]> {
+        const keys = await this.storage.keys();
+        const candidates = keys
+            .filter((key) => key.indexOf(this.storageKey) === 0 && key.length > this.storageKey.length);
+        const stored = await Promise.all(candidates.map((key) => this.storage.getItem(key)));
+        return candidates
+            .filter((key, index) => this.hasEntries(stored[index]))
+            .map((key) => key.substring(this.storageKey.length));
+    }
+
+    /**
+     * Removes one entry, for the History page's per-row delete.
+     *
+     * Matched on word *and* timestamp: _removeDuplicates merges same-word entries
+     * across lookups, so a word on its own does not identify a row.
+     */
+    removeItem(langDirection: string, word: string, added: number): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            const history = await this.loadHistory(langDirection);
+            const remaining = history.filter((item) => !(item.word === word && item.added === added));
+            if (remaining.length !== history.length) {
+                await this.saveHistory(langDirection, remaining);
+            }
+        });
+    }
+
+    /** Adds parsed translations to one direction's history. */
+    addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            let history = await this.loadHistory(langDirection);
+            if (!history) {
+                history = [];
+            }
+            history = history.concat(translations);
+            if (this.needToCompress(history)) {
+                this.compress(history);
+            }
+            const serializedHistory = JSON.stringify(history);
+            await this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
+        });
+    }
+
     /**
      * Runs each direction's read-modify-write operations one at a time.
      *
      * chrome.storage.local has no atomic update operation, so every operation must
-     * finish before the next one reads that direction. The queue tail absorbs a
-     * failure to keep later work moving, while the operation's own promise still
-     * rejects for its caller.
+     * finish before the next one reads that direction. The non-rejecting queue tail
+     * keeps later work moving after a failure, while the operation's own promise
+     * still rejects for its caller.
+     *
+     * Never call another serialized method for the same direction from inside
+     * `operation`: the inner call would wait for the outer call's own tail.
      */
     private runSerialized<T>(langDirection: string, operation: () => Promise<T>): Promise<T> {
         const previous = this.operations.get(langDirection) || Promise.resolve();
-        const result = previous.catch(() => undefined).then(operation);
+        const result = previous.then(operation);
         const tail = result.then(() => undefined, () => undefined);
         this.operations.set(langDirection, tail);
 
@@ -83,36 +150,6 @@ class HistoryManager implements IHistoryManager {
         return this.storageKey + langDirection;
     }
 
-    clearHistory(langDirection: string): Promise<void> {
-        return this.runSerialized(langDirection, async () => {
-            //  Summary
-            //      Clears translation history for the specified language direction
-            await this.storage.removeItem(this.getStorageKey(langDirection));
-        });
-    }
-
-    /**
-     * Which Language Directions have anything stored.
-     *
-     * Read off the keys rather than kept as an index: an index would be one more thing
-     * to keep in step with addToHistory and clearHistory, and it would go stale for
-     * anyone upgrading from a build that never wrote it.
-     *
-     * The key existing is not enough - an empty array gets written whenever a direction
-     * is merely *looked at* (opening the Action Popup refreshes its Recent row through
-     * getHistory) and when its last row is deleted. Reading each one keeps the History
-     * page from growing a tab per language the reader once had selected.
-     */
-    async getDirections(): Promise<string[]> {
-        const keys = await this.storage.keys();
-        const candidates = keys
-            .filter((key) => key.indexOf(this.storageKey) === 0 && key.length > this.storageKey.length);
-        const stored = await Promise.all(candidates.map((key) => this.storage.getItem(key)));
-        return candidates
-            .filter((key, index) => this.hasEntries(stored[index]))
-            .map((key) => key.substring(this.storageKey.length));
-    }
-
     /** A store counts as a direction only once something has actually been looked up in it. */
     private hasEntries(storedHistory: string | null): boolean {
         if (!storedHistory) {
@@ -125,40 +162,6 @@ class HistoryManager implements IHistoryManager {
             // A key we cannot read is a key the History page cannot show either.
             return false;
         }
-    }
-
-    /**
-     * Removes one entry, for the History page's per-row delete.
-     *
-     * Matched on word *and* timestamp: _removeDuplicates merges same-word entries
-     * across lookups, so a word on its own does not identify a row.
-     */
-    removeItem(langDirection: string, word: string, added: number): Promise<void> {
-        return this.runSerialized(langDirection, async () => {
-            const history = await this.loadHistory(langDirection);
-            const remaining = history.filter((item) => !(item.word === word && item.added === added));
-            if (remaining.length !== history.length) {
-                await this.saveHistory(langDirection, remaining);
-            }
-        });
-    }
-
-    addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
-        return this.runSerialized(langDirection, async () => {
-            //  Summary
-            //      Adds a new word and translation to the translation history
-
-            let history = await this.loadHistory(langDirection);
-            if (!history) {
-                history = [];
-            }
-            history = history.concat(translations);
-            if (this.needToCompress(history)) {
-                this.compress(history);
-            }
-            const serializedHistory = JSON.stringify(history);
-            await this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
-        });
     }
 
     private _removeDuplicates(history: IHistoryItem[]): void {
