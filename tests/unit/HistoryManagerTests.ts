@@ -3,6 +3,47 @@ import HistoryManager from "../../src/scripts/history/HistoryManager.js";
 import TranslationParser from "../../src/scripts/dictionary/TranslationParser.js";
 import { FakeAsyncStorage } from "./util/fakes.js";
 
+class FailOnceAsyncStorage extends FakeAsyncStorage {
+    private shouldFailSet = true;
+
+    async setItem(key: string, value: string): Promise<void> {
+        if (this.shouldFailSet) {
+            this.shouldFailSet = false;
+            throw new Error("setItem failed");
+        }
+        await super.setItem(key, value);
+    }
+}
+
+class BlockingAsyncStorage extends FakeAsyncStorage {
+    private blocked = false;
+    private releaseRead: () => void = () => {};
+    private reportBlockedRead: () => void = () => {};
+    private readGate = new Promise<void>((resolve) => {
+        this.releaseRead = resolve;
+    });
+    readonly blockedRead = new Promise<void>((resolve) => {
+        this.reportBlockedRead = resolve;
+    });
+
+    constructor(private blockedKey: string) {
+        super();
+    }
+
+    async getItem(key: string): Promise<string | null> {
+        if (key === this.blockedKey && !this.blocked) {
+            this.blocked = true;
+            this.reportBlockedRead();
+            await this.readGate;
+        }
+        return super.getItem(key);
+    }
+
+    release(): void {
+        this.releaseRead();
+    }
+}
+
 describe("HistoryManager", () => {
     let historyManager: HistoryManager;
     let fakeStorage: FakeAsyncStorage;
@@ -214,6 +255,99 @@ describe("HistoryManager", () => {
 
             expect(history_swe_foo.length).toBe(0);
             expect(history_swe_bar.length).toBe(1);
+        });
+    });
+
+    describe("concurrent operations", () => {
+        it("should preserve two additions to the same language direction", async () => {
+            const first = {word: "first", translation: "one", added: 1};
+            const second = {word: "second", translation: "two", added: 2};
+
+            await Promise.all([
+                historyManager.addToHistory("swe_foo", [first]),
+                historyManager.addToHistory("swe_foo", [second])
+            ]);
+
+            const history = await historyManager.getHistory("swe_foo");
+            expect(history.map((item) => item.word).sort()).toEqual(["first", "second"]);
+        });
+
+        it("should let a history read observe an addition started before it", async () => {
+            const item = {word: "test_word", translation: "test_translation", added: 1};
+
+            const [, history] = await Promise.all([
+                historyManager.addToHistory("swe_foo", [item]),
+                historyManager.getHistory("swe_foo")
+            ]);
+
+            expect(history).toEqual([item]);
+        });
+
+        it("should not lose an addition when a later removal overlaps it", async () => {
+            const removed = {word: "removed", translation: "old", added: 1};
+            const retained = {word: "retained", translation: "new", added: 2};
+            await historyManager.addToHistory("swe_foo", [removed]);
+
+            await Promise.all([
+                historyManager.addToHistory("swe_foo", [retained]),
+                historyManager.removeItem("swe_foo", removed.word, removed.added)
+            ]);
+
+            expect(await historyManager.getHistory("swe_foo")).toEqual([retained]);
+        });
+
+        it("should not let an earlier addition restore cleared history", async () => {
+            const original = {word: "original", translation: "old", added: 1};
+            const added = {word: "added", translation: "new", added: 2};
+            await historyManager.addToHistory("swe_foo", [original]);
+
+            await Promise.all([
+                historyManager.addToHistory("swe_foo", [added]),
+                historyManager.clearHistory("swe_foo")
+            ]);
+
+            expect(await historyManager.getHistory("swe_foo")).toEqual([]);
+        });
+
+        it("should continue processing after a storage operation fails", async () => {
+            const failingStorage = new FailOnceAsyncStorage();
+            const manager = new HistoryManager(new TranslationParser(), failingStorage);
+            const failed = {word: "failed", translation: "one", added: 1};
+            const retained = {word: "retained", translation: "two", added: 2};
+
+            const failing = manager.addToHistory("swe_foo", [failed]);
+            const following = manager.addToHistory("swe_foo", [retained]);
+
+            await expect(failing).rejects.toThrow("setItem failed");
+            await following;
+
+            expect(await manager.getHistory("swe_foo")).toEqual([retained]);
+        });
+
+        it("should let another language direction proceed independently", async () => {
+            const blockingStorage = new BlockingAsyncStorage("historyswe_foo");
+            const manager = new HistoryManager(new TranslationParser(), blockingStorage);
+            const blocked = manager.addToHistory("swe_foo", [
+                {word: "blocked", translation: "one", added: 1}
+            ]);
+            await blockingStorage.blockedRead;
+
+            let independentCompleted = false;
+            const independent = manager.addToHistory("swe_bar", [
+                {word: "independent", translation: "two", added: 2}
+            ]).then(() => {
+                independentCompleted = true;
+            });
+
+            // A timer runs only after the promise queue has drained. Capture the
+            // result before releasing swe_foo, then release it even if the assertion
+            // is going to fail so the test leaves no pending operation behind.
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+            const completedBeforeRelease = independentCompleted;
+            blockingStorage.release();
+            await Promise.all([blocked, independent]);
+
+            expect(completedBeforeRelease).toBe(true);
         });
     });
 

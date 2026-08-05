@@ -30,5 +30,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # The build only compiles src. This is what covers tests/, which vitest and
+      # Playwright otherwise just strip types from without checking them.
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm run test

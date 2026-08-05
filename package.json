@@ -11,7 +11,7 @@
     "build:copy": "cp -r src/css dist/ && cp -r src/html dist/ && cp -r src/icons dist/ && npm run build:manifest",
     "build": "npm run build:ts && npm run build:bundle && npm run build:copy",
     "watch": "node build.js --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json && tsc -p tests/e2e/tsconfig.json",
     "lint": "eslint 'src/**/*.{ts,js}'",
     "lint:fix": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "vitest run",
