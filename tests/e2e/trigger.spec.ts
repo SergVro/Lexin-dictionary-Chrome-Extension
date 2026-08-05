@@ -452,6 +452,10 @@ test.describe("Lookup trigger", () => {
             await ExtensionHelpers.triggerLookup(page, "#second-word", { modifier: "Shift" });
 
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
+            // The header is rendered before the dictionary request starts. Wait for
+            // its body to leave the loading state; the response follows the awaited
+            // history write, so storage is settled once this does.
+            await expect(page.locator(CARD)).not.toContainText("Searching", { timeout: 15000 });
 
             const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
             const entries = JSON.parse(stored || "[]") as { word: string }[];
