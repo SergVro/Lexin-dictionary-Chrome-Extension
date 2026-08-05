@@ -406,10 +406,9 @@ test.describe("Lookup trigger", () => {
             // before opening its own, so a duplicate leaves exactly one card behind
             // and is invisible from the page.
             //
-            // History is the only witness, and an imperfect one - two writes this
-            // close together can read the same store and one overwrite the other, so
-            // a duplicate is occasionally undercounted. It never overcounts, so a
-            // failure here is always real.
+            // History is the only witness. Its writes are serialized, so every
+            // completed lookup is represented and a duplicate cannot hide behind a
+            // later write.
             await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
             await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
 
@@ -433,13 +432,11 @@ test.describe("Lookup trigger", () => {
             // from earlier, and a double-click somewhere else. The word that wins is
             // the one under the pointer.
             //
-            // Only the final card is asserted, deliberately. A spurious lookup here
-            // would be dismissed a moment later by the double-click's own card, and
-            // history cannot see it either - two lookups this close together
-            // read-modify-write the same store and one can overwrite the other. The
-            // gate itself is pinned by the single-click test above, where a wrong
-            // lookup has nothing to hide behind.
+            // The final card proves which lookup won visually; serialized history
+            // also proves a spurious lookup of the existing selection never happened.
             await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+            await ExtensionHelpers.setLanguage(context, extensionId, "swe_swe");
+            await ExtensionHelpers.seedHistory(context, extensionId, { swe_swe: [] });
 
             const page = await context.newPage();
             await openTestPage(page);
@@ -455,6 +452,11 @@ test.describe("Lookup trigger", () => {
             await ExtensionHelpers.triggerLookup(page, "#second-word", { modifier: "Shift" });
 
             await expect(page.locator(CARD_WORD)).toHaveText("hund");
+
+            const stored = await ExtensionHelpers.getStoredValue(context, extensionId, "historyswe_swe");
+            const entries = JSON.parse(stored || "[]") as { word: string }[];
+            expect(entries.some((entry) => entry.word === "hund")).toBe(true);
+            expect(entries.some((entry) => entry.word === "bil")).toBe(false);
         });
 
     test("a plain click should still dismiss the card", async ({ context, extensionId }) => {

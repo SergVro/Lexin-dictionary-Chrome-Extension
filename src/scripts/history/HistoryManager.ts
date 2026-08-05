@@ -7,6 +7,7 @@ class HistoryManager implements IHistoryManager {
     private storage: IAsyncStorage;
     private maxHistoryBuffer: number;
     private maxHistoryLength: number;
+    private operations = new Map<string, Promise<void>>();
 
     set maxHistory(value: number) {
         this.maxHistoryLength = value;
@@ -19,15 +20,40 @@ class HistoryManager implements IHistoryManager {
         this.maxHistory = 1000;
     }
 
-    async getHistory(langDirection: string): Promise<IHistoryItem[]> {
-        //  Summary
-        //      Returns translation history for the specified language direction.
+    getHistory(langDirection: string): Promise<IHistoryItem[]> {
+        return this.runSerialized(langDirection, async () => {
+            //  Summary
+            //      Returns translation history for the specified language direction.
 
-        const history = await this.loadHistory(langDirection);
-        // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
-        this.compress(history);
-        await this.saveHistory(langDirection,  history);
-        return history;
+            const history = await this.loadHistory(langDirection);
+            // remove duplicates. We do it only on history request since we don"t want to do it on every translation operation
+            this.compress(history);
+            await this.saveHistory(langDirection,  history);
+            return history;
+        });
+    }
+
+    /**
+     * Runs each direction's read-modify-write operations one at a time.
+     *
+     * chrome.storage.local has no atomic update operation, so every operation must
+     * finish before the next one reads that direction. The queue tail absorbs a
+     * failure to keep later work moving, while the operation's own promise still
+     * rejects for its caller.
+     */
+    private runSerialized<T>(langDirection: string, operation: () => Promise<T>): Promise<T> {
+        const previous = this.operations.get(langDirection) || Promise.resolve();
+        const result = previous.catch(() => undefined).then(operation);
+        const tail = result.then(() => undefined, () => undefined);
+        this.operations.set(langDirection, tail);
+
+        void tail.then(() => {
+            if (this.operations.get(langDirection) === tail) {
+                this.operations.delete(langDirection);
+            }
+        });
+
+        return result;
     }
 
     private async loadHistory(langDirection: string): Promise<IHistoryItem[]> {
@@ -57,10 +83,12 @@ class HistoryManager implements IHistoryManager {
         return this.storageKey + langDirection;
     }
 
-    async clearHistory(langDirection: string): Promise<void> {
-        //  Summary
-        //      Clears translation history for the specified language direction
-        await this.storage.removeItem(this.getStorageKey(langDirection));
+    clearHistory(langDirection: string): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            //  Summary
+            //      Clears translation history for the specified language direction
+            await this.storage.removeItem(this.getStorageKey(langDirection));
+        });
     }
 
     /**
@@ -105,28 +133,32 @@ class HistoryManager implements IHistoryManager {
      * Matched on word *and* timestamp: _removeDuplicates merges same-word entries
      * across lookups, so a word on its own does not identify a row.
      */
-    async removeItem(langDirection: string, word: string, added: number): Promise<void> {
-        const history = await this.loadHistory(langDirection);
-        const remaining = history.filter((item) => !(item.word === word && item.added === added));
-        if (remaining.length !== history.length) {
-            await this.saveHistory(langDirection, remaining);
-        }
+    removeItem(langDirection: string, word: string, added: number): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            const history = await this.loadHistory(langDirection);
+            const remaining = history.filter((item) => !(item.word === word && item.added === added));
+            if (remaining.length !== history.length) {
+                await this.saveHistory(langDirection, remaining);
+            }
+        });
     }
 
-    async addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
-        //  Summary
-        //      Adds a new word and translation to the translation history
+    addToHistory(langDirection: string, translations: IHistoryItem[]): Promise<void> {
+        return this.runSerialized(langDirection, async () => {
+            //  Summary
+            //      Adds a new word and translation to the translation history
 
-        let history = await this.loadHistory(langDirection);
-        if (!history) {
-            history = [];
-        }
-        history = history.concat(translations);
-        if (this.needToCompress(history)) {
-            this.compress(history);
-        }
-        const serializedHistory = JSON.stringify(history);
-        await this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
+            let history = await this.loadHistory(langDirection);
+            if (!history) {
+                history = [];
+            }
+            history = history.concat(translations);
+            if (this.needToCompress(history)) {
+                this.compress(history);
+            }
+            const serializedHistory = JSON.stringify(history);
+            await this.storage.setItem(this.getStorageKey(langDirection), serializedHistory);
+        });
     }
 
     private _removeDuplicates(history: IHistoryItem[]): void {
