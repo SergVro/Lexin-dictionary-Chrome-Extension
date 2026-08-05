@@ -114,11 +114,16 @@ class HistoryManager implements IHistoryManager {
         const tail = result.then(() => undefined, () => undefined);
         this.operations.set(langDirection, tail);
 
-        void tail.then(() => {
+        // Settled either way, so the entry is dropped on both paths. A
+        // fulfilment-only handler would work today, but it would leave a rejected
+        // tail in the map forever if the tail ever propagated one - and every later
+        // operation on that direction would chain onto it and silently never run.
+        const forget = () => {
             if (this.operations.get(langDirection) === tail) {
                 this.operations.delete(langDirection);
             }
-        });
+        };
+        void tail.then(forget, forget);
 
         return result;
     }
