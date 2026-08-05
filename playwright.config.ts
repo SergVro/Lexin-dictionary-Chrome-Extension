@@ -77,8 +77,8 @@ export default defineConfig({
     // Video recording on failure
     video: "retain-on-failure",
     
-    // Trace on first retry
-    trace: "on-first-retry",
+    // Keep traces for failed test runs so CI uploads include a trace.zip for debugging.
+    trace: "retain-on-failure",
   },
   
   // Projects configuration
