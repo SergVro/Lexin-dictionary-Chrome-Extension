@@ -1,4 +1,13 @@
 import { test, expect, ExtensionHelpers } from "./fixtures";
+import { gestureLabel } from "../../src/scripts/common/LookupTrigger";
+
+/**
+ * The shipped gesture, spelled as the reader's own keyboard has it engraved - a Mac
+ * says Option where everything else says Alt. Computed with the product's own
+ * formatter rather than hardcoded, so this suite reads the same on a developer's
+ * laptop as it does on the Linux box in CI.
+ */
+const DEFAULT_GESTURE = gestureLabel("alt", "double-click", process.platform === "darwin");
 
 /**
  * Smoke tests for the Lexin Dictionary Chrome Extension.
@@ -287,14 +296,14 @@ test.describe("Extension Smoke Tests", () => {
 
     const page = await historyPage();
 
-    // Not "Alt + double-click to start building your list" - that advice builds
+    // Not "<gesture> to start building your list" - that advice builds
     // nothing while recording is off.
     await expect(page.locator("#history")).toContainText("Recording is off");
-    await expect(page.locator("#history")).not.toContainText("Alt + double-click");
+    await expect(page.locator("#history")).not.toContainText(DEFAULT_GESTURE);
     await page.locator("#history .lxButton").click();
 
     await expect(page.locator("#history")).toContainText("No translations yet");
-    await expect(page.locator("#history")).toContainText("Alt + double-click");
+    await expect(page.locator("#history")).toContainText(DEFAULT_GESTURE);
 
     await page.close();
   });
@@ -322,7 +331,7 @@ test.describe("Extension Smoke Tests", () => {
     const page = await historyPage();
 
     await expect(page.locator("#history")).toContainText("No translations yet");
-    await expect(page.locator("#history")).toContainText("Alt + double-click");
+    await expect(page.locator("#history")).toContainText(DEFAULT_GESTURE);
     // Nothing to export or clear, so neither offers itself.
     await expect(page.locator("#exportButton")).toBeDisabled();
     await expect(page.locator("#clearHistory")).toBeDisabled();
@@ -560,7 +569,7 @@ test.describe("Extension Smoke Tests", () => {
     // The Alt+double-click hint used to live in a dismissible blue banner that was
     // shown whether or not it was any use. It now rides on the empty state, which is
     // exactly when a reader has not discovered the gesture.
-    await expect(page.locator("#translation")).toContainText("Alt + double-click");
+    await expect(page.locator("#translation")).toContainText(DEFAULT_GESTURE);
     await expect(page.locator("#quickTip")).toHaveCount(0);
 
     await page.close();
@@ -596,7 +605,7 @@ test.describe("Extension Smoke Tests", () => {
     // Three gestures, each drawn rather than described in a numbered paragraph.
     const steps = page.locator(".lxStep");
     await expect(steps).toHaveCount(3);
-    await expect(steps.first()).toContainText("Alt + double-click a word");
+    await expect(steps.first()).toContainText(`${DEFAULT_GESTURE} a word`);
     await expect(page.locator(".lxStepIcon svg")).toHaveCount(3);
 
     // The eight-step manual Quizlet walkthrough is replaced by pointing at the
@@ -988,14 +997,7 @@ test.describe("Extension Smoke Tests", () => {
     // Find and click on the test word "bil"
     const testWord = page.locator("#test-word");
     await expect(testWord).toBeVisible();
-    const boundingBox = await testWord.boundingBox();
-    const clickX = boundingBox!.x + boundingBox!.width / 2;
-    const clickY = boundingBox!.y + boundingBox!.height / 2;
-    
-    // Alt + Double click
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(clickX, clickY);
-    await page.keyboard.up("Alt");
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
     
     // Verify translation popup appears with Swedish definition
     const translationContent = page.locator(".lexinTranslationContent");
@@ -1018,14 +1020,7 @@ test.describe("Extension Smoke Tests", () => {
     // Find and click on the test word "bil"
     const testWord = page.locator("#test-word");
     await expect(testWord).toBeVisible();
-    const boundingBox = await testWord.boundingBox();
-    const clickX = boundingBox!.x + boundingBox!.width / 2;
-    const clickY = boundingBox!.y + boundingBox!.height / 2;
-    
-    // Alt + Double click
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(clickX, clickY);
-    await page.keyboard.up("Alt");
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
     
     // Verify translation popup appears with English translation
     const translationContent = page.locator(".lexinTranslationContent");
@@ -1049,13 +1044,7 @@ test.describe("Extension Smoke Tests", () => {
 
     const testWord = page.locator("#test-word");
     await expect(testWord).toBeVisible();
-    const boundingBox = await testWord.boundingBox();
-    const clickX = boundingBox!.x + boundingBox!.width / 2;
-    const clickY = boundingBox!.y + boundingBox!.height / 2;
-
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(clickX, clickY);
-    await page.keyboard.up("Alt");
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
 
     // Locators pierce the open shadow root.
     const header = page.locator(".lexinCardHeader");
@@ -1082,11 +1071,7 @@ test.describe("Extension Smoke Tests", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(500);
 
-    const testWord = page.locator("#test-word");
-    const boundingBox = await testWord.boundingBox();
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(boundingBox!.x + boundingBox!.width / 2, boundingBox!.y + boundingBox!.height / 2);
-    await page.keyboard.up("Alt");
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
 
     const content = page.locator(".lexinTranslationContent");
     await expect(content).toContainText("ett fordon för ett litet antal personer", { timeout: 15000 });
@@ -1112,14 +1097,7 @@ test.describe("Extension Smoke Tests", () => {
     // Find and click on the test word "bil"
     const testWord = page.locator("#test-word");
     await expect(testWord).toBeVisible();
-    const boundingBox = await testWord.boundingBox();
-    const clickX = boundingBox!.x + boundingBox!.width / 2;
-    const clickY = boundingBox!.y + boundingBox!.height / 2;
-    
-    // Alt + Double click
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(clickX, clickY);
-    await page.keyboard.up("Alt");
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
     
     // Verify translation popup appears with Russian translation
     const translationContent = page.locator(".lexinTranslationContent");

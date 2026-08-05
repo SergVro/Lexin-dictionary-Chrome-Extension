@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow DOM Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 12px; font-size: 18px; line-height: 1.4; }
+        div { margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <h1>Text inside shadow roots</h1>
+
+    <!-- Text a reader sees and can select, but which lives in a shadow tree rather
+         than in the document. Sites built out of web components put most of their
+         text here, so the lookup gesture has to work on it. -->
+    <p>Light DOM, for comparison: En <span id="light-word">bil</span> är ett fordon.</p>
+
+    <div id="open-host"></div>
+    <div id="closed-host"></div>
+
+    <script>
+        const open = document.getElementById("open-host").attachShadow({ mode: "open" });
+        open.innerHTML = '<p style="font-family:Arial;font-size:18px">'
+            + 'Open shadow root: En <span id="shadow-word">bil</span> är ett fordon.</p>';
+
+        const closed = document.getElementById("closed-host").attachShadow({ mode: "closed" });
+        closed.innerHTML = '<p style="font-family:Arial;font-size:18px">'
+            + 'Closed shadow root: En <span id="closed-word">hund</span> är ett djur.</p>';
+    </script>
+</body>
+</html>

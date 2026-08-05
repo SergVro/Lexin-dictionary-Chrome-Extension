@@ -17,7 +17,13 @@ enum MessageType {
      * Action Popup would arrive at the worker *and* at an already-open Offscreen
      * Document, and the worker's forward would play it a second time.
      */
-    playAudioInOffscreenDocument
+    playAudioInOffscreenDocument,
+    /**
+     * The service worker -> every frame of the active tab: open a card on whatever is
+     * selected. Sent when the reader presses the extension's keyboard shortcut, which
+     * Chrome delivers to the worker and nowhere else.
+     */
+    translateSelection
 }
 
 export default MessageType;

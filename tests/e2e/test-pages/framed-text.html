@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Framed Swedish Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; font-size: 18px; }
+        iframe { width: 90%; height: 220px; border: 2px solid #999; }
+    </style>
+</head>
+<body>
+    <!--
+        A page with a word of its own and an iframe holding another.
+
+        The content script runs in every frame, so the keyboard shortcut is delivered
+        to both. Each document keeps whatever it had selected last and each reports
+        hasFocus while focus sits anywhere on its chain - so with a word selected here
+        and another selected inside the frame, both would answer and both would open a
+        card. Only the deepest focused frame should.
+    -->
+    <p>En <span id="outer-word">bil</span> är ett fordon för transport.</p>
+
+    <iframe id="inner" src="http://localhost:3456/swedish-text.html"></iframe>
+</body>
+</html>

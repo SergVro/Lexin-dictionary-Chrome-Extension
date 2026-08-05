@@ -1,6 +1,7 @@
 import { IMessageService, IHistoryItem } from "../common/Interfaces.js";
 import LanguageManager from "../common/LanguageManager.js";
 import Settings from "../common/Settings.js";
+import { TriggerModifier } from "../common/LookupTrigger.js";
 
 /** A history entry plus which Language Direction it came from. */
 export interface IHistoryRow extends IHistoryItem {
@@ -40,6 +41,14 @@ class HistoryModel {
 
     setRecordHistory(value: boolean): Promise<void> {
         return this.settings.setRecordHistory(value);
+    }
+
+    /**
+     * The gesture that opens a Translation Card, so the empty state can tell a reader
+     * how to fill the list using the key they actually chose.
+     */
+    getTriggerModifier(): Promise<TriggerModifier> {
+        return this.settings.getTriggerModifier();
     }
 
     /**

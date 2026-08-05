@@ -7,6 +7,15 @@ export interface PositionOptions {
     my?: string; // e.g., "center+10 bottom-20"
     at?: string; // e.g., "center top"
     collision?: string; // "flip", "fit", "flipfit", "none"
+    /**
+     * Whether `of`'s coordinates are viewport-relative, and so whether the element is
+     * placed with `fixed` rather than `absolute`.
+     *
+     * Inferred from `of` being a MouseEvent when omitted, which is how every caller
+     * used to get fixed positioning. A caller holding a Range's getBoundingClientRect
+     * - viewport coordinates, but not a MouseEvent - says so explicitly.
+     */
+    fixed?: boolean;
 }
 
 interface ParsedAlignment {
@@ -257,7 +266,7 @@ export function position(element: HTMLElement, options: PositionOptions): void {
 
     // For mouse events, use fixed positioning (viewport-relative) for better UX
     // For elements, we can use either, but fixed is simpler
-    const useFixed = options.of instanceof MouseEvent;
+    const useFixed = options.fixed !== undefined ? options.fixed : options.of instanceof MouseEvent;
     
     const targetPos = getTargetPosition(options.of, useFixed);
     let elementRect = element.getBoundingClientRect();

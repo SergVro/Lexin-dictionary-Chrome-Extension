@@ -55,6 +55,34 @@ class ChromeMessageBus implements IMessageBus {
     createNewTab(url: string): void {
         chrome.tabs.create({"url": url}, function () {});
     }
+
+    /**
+     * Chrome delivers a keyboard shortcut to the service worker and nowhere else, so
+     * this is the only way into the extension for one.
+     *
+     * Must be registered synchronously while the worker starts up: the worker sleeps
+     * between events, and a listener attached later - inside a promise, say - is not
+     * there when Chrome wakes it for the keystroke, which is then simply lost.
+     */
+    registerCommandHandler(command: string, handler: () => void): void {
+        chrome.commands.onCommand.addListener(function (name: string) {
+            if (name === command) {
+                handler();
+            }
+        });
+    }
+
+    getCommandShortcut(command: string): Promise<string> {
+        return new Promise((resolve) => {
+            chrome.commands.getAll(function (commands) {
+                const match = commands.filter((c) => c.name === command)[0];
+                // An unassigned command still appears, with an empty shortcut - which
+                // is what Chrome does when another extension already holds the
+                // suggested combination.
+                resolve(match?.shortcut || "");
+            });
+        });
+    }
 }
 
 export default ChromeMessageBus;

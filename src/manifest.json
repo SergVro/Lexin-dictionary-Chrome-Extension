@@ -23,6 +23,15 @@
     "storage",
     "offscreen"
   ],
+  "commands": {
+    "translate-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Translate the selected word"
+    }
+  },
   "content_scripts": [
     {
       "run_at": "document_end",

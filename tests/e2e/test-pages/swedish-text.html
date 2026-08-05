@@ -44,6 +44,21 @@
         En <span id="test-word">bil</span> är ett fordon för transport. Många svenskar äger en bil.
         Stockholm är Sveriges största stad.
     </p>
+
+    <!-- A second word, several lines below the first. The gap is the point: a
+         Shift+click that extended the selection rather than naming one word would
+         swallow every word in between, and the trigger tests assert it does not. -->
+    <p>
+        En <span id="second-word">hund</span> är ett djur som många familjer har hemma.
+    </p>
+
+    <!-- A word the page has split across inline elements. It renders as one word and
+         a reader double-clicks it as one, but it is three text nodes - so naming the
+         word by the text node under the pointer alone would return a fragment. -->
+    <p>
+        Ett <span id="split-word">h<em>u</em>nd</span> är också ett djur.
+    </p>
+
 </body>
 </html>
 

@@ -106,14 +106,14 @@ export function search(size: number = 14): SVGElement {
  * their second or third language - which is most of them.
  */
 
-/** Lucide "keyboard" - the Alt + double-click gesture. */
+/** Lucide "keyboard" - the modifier + double-click gesture. */
 export function keyboard(size: number = 28): SVGElement {
     const svg = withPath(createSvg(size), "M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z");
     withPath(svg, "M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10");
     return svg;
 }
 
-/** Lucide "mouse-pointer-click" - select first, then Alt + click. */
+/** Lucide "mouse-pointer-click" - select first, then modifier + click. */
 export function pointer(size: number = 28): SVGElement {
     const svg = withPath(createSvg(size), "M9 9l5 12 1.774-5.226L21 14 9 9z");
     withPath(svg, "M16.071 16.071l4.243 4.243M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122M5.136 16.035l-2.898.777");

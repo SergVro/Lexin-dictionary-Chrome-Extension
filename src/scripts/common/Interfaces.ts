@@ -59,6 +59,10 @@ export interface IMessageService {
     createNewTab(url: string): void;
     openActionPopup(): Promise<void>;
     playAudio(url: string): Promise<void>;
+    /** Asks the active tab to look up whatever it has selected. */
+    translateSelection(): Promise<void>;
+    /** What Chrome has the named command bound to, or "" when it is unassigned. */
+    getCommandShortcut(command: string): Promise<string>;
 }
 
 /** Plays a pronunciation clip. See OffscreenAudioPlayer for the only implementation. */
@@ -95,6 +99,9 @@ export interface IMessageBus {
     sendMessage(method: MessageType, args?: any): Promise<any>;
     sendMessageToActiveTab(method: MessageType, args?: any): Promise<any>;
     createNewTab(url: string): void;
+    /** Runs `handler` when Chrome reports the named keyboard shortcut was pressed. */
+    registerCommandHandler(command: string, handler: () => void): void;
+    getCommandShortcut(command: string): Promise<string>;
 }
 
 export interface GetTranslationHandler {
@@ -129,6 +136,17 @@ export interface PlayAudioHandler {
     (url: string): Promise<any>;
 }
 
+/**
+ * Answers the keyboard shortcut in one frame of the tab.
+ *
+ * Returns true where it acted and nothing at all where it did not - every frame is
+ * asked, and only the one holding the reader's selection should reply. See
+ * registerGetSelectionHandler, which stays silent for the same reason.
+ */
+export interface TranslateSelectionHandler {
+    (): boolean | void;
+}
+
 export interface IMessageHandlers {
     registerGetTranslationHandler(handler: GetTranslationHandler): void ;
     registerLoadHistoryHandler(handler: LoadHistoryHandler): void;
@@ -139,6 +157,7 @@ export interface IMessageHandlers {
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void;
     registerPlayAudioHandler(handler: PlayAudioHandler): void;
     registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void;
+    registerTranslateSelectionHandler(handler: TranslateSelectionHandler): void;
 }
 
 

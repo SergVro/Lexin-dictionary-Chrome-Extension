@@ -6,7 +6,9 @@ Swedish to other languages dictionary extension for Chrome. Powered by Lexin and
 
 - Translate Swedish words to multiple languages
 - Support for Albanian, Amharic, Arabic, Azerbaijani, Bosnian, Croatian, English, Finnish, Greek, Kurdish, Pashto, Persian, Russian, Serbian, Somali, Spanish, Swedish, Turkish, and Ukrainian
-- Quick translation via Alt + Double Click or Alt + Click
+- Quick translation via Alt + Double Click or Alt + Click, with Ctrl and Shift
+  offered as alternatives for desktops that keep Alt for themselves
+- A rebindable keyboard shortcut that translates the selected word
 - Translation history with export capabilities
 - Customizable language preferences
 
@@ -154,7 +156,12 @@ The extension includes unit tests (currently disabled during migration). To re-e
 ### Quick Translation
 1. Alt + Double Click on any word on a webpage
 2. Or select a word and Alt + Click
-3. Or select a word and click the extension icon
+3. Or select a word and press the keyboard shortcut
+4. Or select a word and click the extension icon
+
+The modifier is configurable in Options — ChromeOS and some Linux desktops intercept
+Alt+click before the page ever sees it. The keyboard shortcut is bound in Chrome, at
+chrome://extensions/shortcuts.
 
 ### Translation History
 - Access via the popup window or options page
@@ -165,6 +172,8 @@ The extension includes unit tests (currently disabled during migration). To re-e
 - Set default language
 - Enable/disable specific languages
 - Customize which languages appear in dropdowns
+- Choose the modifier held to look a word up (Alt, Ctrl or Shift)
+- Open Chrome's shortcuts page to bind the keyboard shortcut
 
 ## Releasing
 

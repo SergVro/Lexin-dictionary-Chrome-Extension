@@ -3,6 +3,7 @@ import OptionsPage from "./OptionsPage.js";
 import LanguageManager from "../common/LanguageManager.js";
 import ThemeManager, { applyTheme } from "../common/ThemeManager.js";
 import Settings from "../common/Settings.js";
+import MessageService from "../messaging/MessageService.js";
 import { createChromeStorage } from "../common/ChromeStorageAdapter.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -16,5 +17,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const dictionaryFactory = new DictionaryFactory();
     const languageManager = new LanguageManager(settingsStorage, dictionaryFactory);
-    new OptionsPage(languageManager, themeManager, new Settings(settingsStorage));
+    new OptionsPage(new MessageService(), languageManager, themeManager, new Settings(settingsStorage));
 });

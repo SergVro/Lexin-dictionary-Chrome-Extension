@@ -1,11 +1,14 @@
 import { IMessageService, IMessageHandlers } from "../common/Interfaces.js";
 import * as DomUtils from "../util/DomUtils.js";
-import { position } from "../util/PositionUtils.js";
+import { position, PositionOptions } from "../util/PositionUtils.js";
 import { processTranslationHtml } from "../util/TranslationUtils.js";
 import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
 import ThemeManager, { applyTheme, Theme } from "../common/ThemeManager.js";
 import LanguageLabel, { ILanguageLabel } from "../common/LanguageLabel.js";
+import Settings from "../common/Settings.js";
+import { DEFAULT_TRIGGER, matchesTrigger, TriggerModifier } from "../common/LookupTrigger.js";
+import { wordAtPoint } from "./WordAtPoint.js";
 import tokensCss from "../../css/tokens.css";
 import componentsCss from "../../css/components.css";
 import cardCss from "../../css/card.css";
@@ -36,12 +39,16 @@ function getCardStyleSheet(): CSSStyleSheet {
 
 const HOST_CLASS = "lexinExtensionMainContainer";
 
+/** Where a card points: the click that opened it, or the selection a command found. */
+type CardAnchor = Pick<PositionOptions, "of" | "fixed">;
+
 class ContentScript {
 
     messageService: IMessageService;
     private messageHandlers: IMessageHandlers;
     private themeManager: ThemeManager;
     private languageLabel: LanguageLabel;
+    private settings: Settings;
 
     /**
      * What the card should say about itself, cached so a card can be built
@@ -51,15 +58,27 @@ class ContentScript {
     private theme: Theme = "light";
     private label: ILanguageLabel = { code: "sv", name: "Swedish" };
 
+    /**
+     * The modifier that opens a card, cached for the same reason as the two above:
+     * the click handler has to decide synchronously, and awaiting storage inside it
+     * would mean deciding after the click had already gone by.
+     *
+     * Alt until the first read lands, which is what a reader who never opened the
+     * Options page has anyway.
+     */
+    private trigger: TriggerModifier = DEFAULT_TRIGGER;
+
     private zIndex = 10000;
     private clickedInsideCard = false;
 
     constructor(MessageService: IMessageService, messageHandlers: IMessageHandlers,
-                themeManager: ThemeManager, languageLabel: LanguageLabel) {
+                themeManager: ThemeManager, languageLabel: LanguageLabel,
+                settings: Settings) {
         this.messageService = MessageService;
         this.messageHandlers = messageHandlers;
         this.themeManager = themeManager;
         this.languageLabel = languageLabel;
+        this.settings = settings;
     }
 
     getSelection(): string {
@@ -80,6 +99,73 @@ class ContentScript {
         });
     }
 
+    /**
+     * Opens a card on the selection when the reader presses the keyboard shortcut.
+     *
+     * Every frame in the tab is asked, because the worker cannot know which one the
+     * reader is in, and exactly one should answer. hasFocus alone would not name it -
+     * a top document reports true while focus sits inside one of its iframes - and a
+     * selection alone would not either, since a frame keeps its selection after focus
+     * has moved on.
+     *
+     * Nor are the two together enough. Every document on the focused chain reports
+     * hasFocus, and each keeps whatever it had selected last - so a reader who
+     * selected a word in the page and then another inside an iframe leaves two
+     * documents claiming a live selection, and both would open a card and file a
+     * history entry. What names a single frame is being the *deepest* focused one:
+     * a document whose own activeElement is a frame has handed focus on, and the
+     * frame it handed it to is the one that should answer.
+     */
+    handleTranslateSelection(): void {
+        this.messageHandlers.registerTranslateSelectionHandler(() => {
+            if (!document.hasFocus() || this.focusIsInAChildFrame()) {
+                return;
+            }
+            const selection = this.getSelection();
+            if (!selection) {
+                return;
+            }
+            this.removeCard();
+            this.showTranslation(selection, this.selectionAnchor());
+            return true;
+        });
+    }
+
+    /**
+     * Whether this document has passed focus down to a frame inside it.
+     *
+     * `activeElement` is the frame element itself in that case, which is how a
+     * document tells "I am focused" from "something inside me is".
+     */
+    private focusIsInAChildFrame(): boolean {
+        const active = document.activeElement;
+        return !!active && (active.tagName === "IFRAME" || active.tagName === "FRAME");
+    }
+
+    /**
+     * Where a keyboard-summoned card points: the selection itself.
+     *
+     * A Range's rect is in viewport coordinates, so `fixed` is set explicitly - the
+     * mouse paths get that for free by passing a MouseEvent, and this one would
+     * otherwise be read as document coordinates and land wrong on a scrolled page.
+     * Reducing the rect to its top centre puts the card exactly where a click in the
+     * middle of the word would have put it, so the alignment strings mean the same
+     * thing on both paths.
+     */
+    private selectionAnchor(): CardAnchor {
+        const selection = window.getSelection();
+        const rect = selection && selection.rangeCount > 0
+            ? selection.getRangeAt(0).getBoundingClientRect()
+            : undefined;
+
+        if (!rect || (rect.width === 0 && rect.height === 0)) {
+            // A selection with no geometry, inside a collapsed or hidden node. The
+            // card still has to land somewhere the reader will look.
+            return { of: { left: window.innerWidth / 2, top: window.innerHeight / 3 }, fixed: true };
+        }
+        return { of: { left: rect.left + rect.width / 2, top: rect.top }, fixed: true };
+    }
+
     /** Dismisses the open card, whether by the close button, Escape, or a click out. */
     private removeCard(): void {
         const host = document.querySelector("." + HOST_CLASS) as HTMLElement;
@@ -92,6 +178,16 @@ class ContentScript {
     private async refreshCardContext(): Promise<void> {
         this.theme = await this.themeManager.getTheme();
         this.label = await this.languageLabel.getCurrent();
+        await this.refreshTrigger();
+    }
+
+    /**
+     * Re-reads the trigger. Public because content.ts calls it from a storage
+     * subscription: this is the one setting a page cannot afford to pick up lazily,
+     * since the reader changes it precisely when no card can be opened to refresh it.
+     */
+    async refreshTrigger(): Promise<void> {
+        this.trigger = await this.settings.getTriggerModifier();
     }
 
     /**
@@ -162,7 +258,7 @@ class ContentScript {
         DomUtils.setAttr(pair, "aria-label", this.label.name);
     }
 
-    private showTranslation(selection: string, evt: MouseEvent): void {
+    private showTranslation(selection: string, anchor: CardAnchor): void {
         const self = this;
         const absoluteContainer = DomUtils.createElement("div");
         DomUtils.addClass(absoluteContainer, HOST_CLASS);
@@ -213,7 +309,7 @@ class ContentScript {
         // Function to position the container
         const positionContainer = () => {
             position(container, {
-                of: evt,
+                ...anchor,
                 my: "center+10 bottom-20",
                 at: "center top",
                 collision: "flipfit"
@@ -247,84 +343,166 @@ class ContentScript {
         });
     }
 
+    /**
+     * Closes the open card unless the click landed inside it.
+     *
+     * The card lives in an open shadow root, so its own clicks still bubble out to
+     * document - the flag set on the card container in showTranslation is how the two
+     * are told apart. Nothing here knows or cares what the trigger is, which is the
+     * point: the click listener does double duty, and dismissal has to keep working
+     * whatever modifier the reader picked.
+     */
+    private dismissOnClickOut(): void {
+        if (!this.clickedInsideCard) {
+            this.removeCard();
+        }
+        this.clickedInsideCard = false;
+    }
+
     subscribeOnClicks() {
-        const self = this;
-
-        // Handle single click with Alt key
-        document.addEventListener("click", function (evt: MouseEvent) {
-            if (!self.clickedInsideCard) {
-                self.removeCard();
-            }
-            self.clickedInsideCard = false;
-            const selection = self.getSelection();
-            // On Mac, check both altKey and the Option key using getModifierState
-            const isAltPressed = evt.altKey || (evt.getModifierState && evt.getModifierState("Alt"));
-            if (selection && isAltPressed) {
-                self.showTranslation(selection, evt);
-            }
-        });
-
-        // Handle double click with Alt key (for Mac compatibility)
-        // Note: On Mac, we need to check modifier state differently
-        // Also listen on mousedown to catch Alt key state before double-click
-        let altKeyDown = false;
-        document.addEventListener("keydown", function (e: KeyboardEvent) {
-            if (e.key === "Alt" || e.key === "Option" || e.altKey) {
-                altKeyDown = true;
-            }
-        });
-        document.addEventListener("keyup", function (e: KeyboardEvent) {
-            if (e.key === "Alt" || e.key === "Option" || !e.altKey) {
-                altKeyDown = false;
-            }
-        });
-
-        document.addEventListener("dblclick", function (evt: MouseEvent) {
-            // On Mac, check both altKey and the Option key using getModifierState
-            // Also check our tracked altKeyDown state as fallback
-            const isAltPressed = evt.altKey ||
-                                (evt.getModifierState && evt.getModifierState("Alt")) ||
-                                altKeyDown;
-
-            if (isAltPressed) {
-                // Prevent default double-click behavior (like text selection)
+        // Stop Shift dragging the selection along behind it.
+        //
+        // Selection changes happen on mousedown, and Shift+click's whole meaning is
+        // "extend the selection from the existing anchor" - so after one lookup the
+        // anchor sits on the first word, and the next Shift+click selects everything
+        // in between, highlighted across the page. Preventing the default stops that
+        // at the source.
+        //
+        // Only for Shift, deliberately. Alt and Ctrl replace the selection rather than
+        // extending it, so they have nothing to fix - and suppressing the default for
+        // them would throw away the browser's own double-click word selection, which
+        // the dblclick handler below still wants as a fallback for when
+        // caretRangeFromPoint cannot answer. Leaving the default alone for the
+        // shipped trigger also means Alt behaves exactly as it always has.
+        //
+        // The cost, for Shift only: a trigger-click no longer focuses what it lands
+        // on and cannot start a drag.
+        document.addEventListener("mousedown", (evt: MouseEvent) => {
+            if (this.selectionIsOurs() && matchesTrigger(evt, this.trigger)) {
                 evt.preventDefault();
-                evt.stopPropagation();
-
-                // Get the word at the double-click position
-                // First try to get selection (browser may have selected the word)
-                let selection = self.getSelection();
-
-                // If no selection, try to get word from the click position
-                if (!selection || selection.trim() === "") {
-                    const range = document.caretRangeFromPoint?.(evt.clientX, evt.clientY) ||
-                                  (document as any).caretPositionFromPoint?.(evt.clientX, evt.clientY);
-                    if (range) {
-                        const textNode = range.startContainer;
-                        if (textNode.nodeType === Node.TEXT_NODE) {
-                            const text = textNode.textContent || "";
-                            const offset = range.startOffset;
-                            // Extract word at cursor position - look for word boundaries
-                            const beforeText = text.substring(Math.max(0, offset - 100), offset);
-                            const afterText = text.substring(offset, Math.min(text.length, offset + 100));
-                            const beforeMatch = beforeText.match(/(\w+)$/);
-                            const afterMatch = afterText.match(/^(\w+)/);
-                            if (beforeMatch || afterMatch) {
-                                selection = (beforeMatch ? beforeMatch[1] : "") + (afterMatch ? afterMatch[1] : "");
-                            }
-                        }
-                    }
-                }
-
-                if (selection && selection.trim() !== "") {
-                    if (!self.clickedInsideCard) {
-                        self.removeCard();
-                    }
-                    self.clickedInsideCard = false;
-                    self.showTranslation(selection.trim(), evt);
-                }
             }
         });
+
+        document.addEventListener("click", (evt: MouseEvent) => {
+            // Unconditionally, and before anything else: every click outside an open
+            // card closes it, trigger or not.
+            this.dismissOnClickOut();
+
+            if (!matchesTrigger(evt, this.trigger)) {
+                return;
+            }
+            // Before anything that might return: once the modifier is held the gesture
+            // is the extension's, and the page does not also get it. Every trigger does
+            // something to a link - Ctrl+click opens a background tab, Alt+click
+            // downloads, Shift+click opens a window - and a reader double-clicking a
+            // linked word to look it up would get that on the first click of the pair,
+            // before the lookup had decided what the word even was.
+            evt.preventDefault();
+
+            // A double-click arrives as click, click, dblclick. The second click
+            // carries detail 2, and the word it would look up is the dblclick
+            // handler's to name - without this it fires a second, identical lookup,
+            // which is a duplicate request and a duplicate history entry.
+            if (evt.detail > 1) {
+                return;
+            }
+            // "Translate what I selected." The selection is the source of truth on
+            // this path.
+            const selection = this.getSelection();
+            if (!selection) {
+                return;
+            }
+            // Under a trigger whose selection we suppress, whatever is selected
+            // predates the gesture, and this click could as easily be the first half
+            // of a double-click aimed somewhere else - which would look up a word the
+            // reader chose some time ago and file a history entry for it.
+            //
+            // Where the click landed is what tells the two apart, and it says so at
+            // once: a reader looking their selection up clicks *on* it, and a reader
+            // starting a double-click elsewhere does not. Waiting to see whether a
+            // double-click follows would mean guessing at an interval the reader
+            // configures and Chrome does not expose.
+            if (this.selectionIsOurs() && !this.clickLandedInSelection(evt)) {
+                return;
+            }
+            this.showTranslation(selection, { of: evt });
+        });
+
+        document.addEventListener("dblclick", (evt: MouseEvent) => {
+            if (!matchesTrigger(evt, this.trigger)) {
+                return;
+            }
+            evt.preventDefault();
+            evt.stopPropagation();
+
+            const selection = this.wordDoubleClicked(evt);
+            if (!selection) {
+                return;
+            }
+            this.dismissOnClickOut();
+            this.showTranslation(DomUtils.trim(selection), { of: evt });
+        });
+    }
+
+    /**
+     * "Translate the word I am pointing at."
+     *
+     * Which of the two ways of naming that word comes first depends on whether the
+     * browser was allowed to make the selection.
+     *
+     * Where it was, its own is the better answer: it spans inline elements, so
+     * `in<em>ter</em>net` comes back whole where scanning the one text node under the
+     * pointer returns "ter", and its word segmentation knows more about language than
+     * a regular expression ever will. A double-click replaces the selection, so what
+     * it holds belongs to this gesture.
+     *
+     * Where we suppressed it, whatever is selected predates the gesture and would be
+     * a lookup of the wrong thing - so position is all there is, with the selection
+     * not consulted at all.
+     */
+    private wordDoubleClicked(evt: MouseEvent): string {
+        const atPoint = () => wordAtPoint(evt.clientX, evt.clientY);
+        if (this.selectionIsOurs()) {
+            return atPoint();
+        }
+        // caretRangeFromPoint answers for points inside the viewport only, so the
+        // browser's selection is also the fallback when position cannot answer.
+        return this.getSelection() || atPoint();
+    }
+
+    /**
+     * Whether this trigger has the extension, rather than the browser, deciding what
+     * is selected.
+     *
+     * True for Shift alone, whose own meaning is "extend the selection" - the one
+     * modifier whose default has to be suppressed. Read by everything that then has
+     * to treat the selection as untrustworthy, so the two cannot drift apart.
+     */
+    private selectionIsOurs(): boolean {
+        return this.trigger === "shift";
+    }
+
+    /**
+     * Whether a click landed on the text that is currently selected.
+     *
+     * The selection's own rectangles answer it - one per line it covers - so a
+     * multi-line selection is handled without any of them having to be reasoned
+     * about here.
+     */
+    private clickLandedInSelection(evt: MouseEvent): boolean {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return false;
+        }
+        const rects = selection.getRangeAt(0).getClientRects();
+        for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+            if (evt.clientX >= rect.left && evt.clientX <= rect.right
+                && evt.clientY >= rect.top && evt.clientY <= rect.bottom) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -344,6 +522,7 @@ class ContentScript {
 
     initialize() {
         this.handleGetSelection();
+        this.handleTranslateSelection();
         this.subscribeOnClicks();
         this.subscribeOnKeyboard();
         // Warm the cache so the first card of the session is themed and labelled

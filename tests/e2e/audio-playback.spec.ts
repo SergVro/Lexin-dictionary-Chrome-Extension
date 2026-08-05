@@ -24,13 +24,8 @@ const EXPECTED_TRANSLATION = "ett fordon för ett litet antal personer";
 
 /** Alt+Double click the fixture's test word and wait for the card to fill in. */
 async function summonCard(page: Page) {
-    const testWord = page.locator("#test-word");
-    await expect(testWord).toBeVisible();
-    const box = await testWord.boundingBox();
-
-    await page.keyboard.down("Alt");
-    await page.mouse.dblclick(box!.x + box!.width / 2, box!.y + box!.height / 2);
-    await page.keyboard.up("Alt");
+    await expect(page.locator("#test-word")).toBeVisible();
+    await ExtensionHelpers.triggerLookup(page, "#test-word");
 
     // Locators pierce the open shadow root the card renders in.
     const content = page.locator(".lexinTranslationContent");
