@@ -52,20 +52,69 @@ interface ICaretPosition {
 }
 
 type CaretDocument = Document & {
-    caretPositionFromPoint?(x: number, y: number): ICaretPosition | null;
+    caretPositionFromPoint?(x: number, y: number,
+                            options?: { shadowRoots: ShadowRoot[] }): ICaretPosition | null;
 };
+
+/** How far down a stack of nested components to follow a point. */
+const MAX_SHADOW_DEPTH = 20;
+
+/**
+ * The open shadow roots stacked under a point, outermost first.
+ *
+ * Neither caret API descends into a shadow tree on its own, and a site built out of
+ * web components keeps most of its text in one - so without this, naming a word by
+ * position fails on the pages it most needs to work on. `elementFromPoint` is what
+ * walks down: each root answers with the element under the point inside it, which may
+ * itself be another host.
+ */
+function shadowRootsAt(x: number, y: number): ShadowRoot[] {
+    const roots: ShadowRoot[] = [];
+    let element = document.elementFromPoint(x, y);
+
+    while (element?.shadowRoot && roots.length < MAX_SHADOW_DEPTH) {
+        const root = element.shadowRoot;
+        roots.push(root);
+        const inner = root.elementFromPoint(x, y);
+        if (!inner || inner === element) {
+            break;
+        }
+        element = inner;
+    }
+    return roots;
+}
 
 /**
  * The caret nearest a viewport coordinate.
  *
- * Two APIs do this and they do not share a shape: caretRangeFromPoint returns a Range
- * (startContainer/startOffset), caretPositionFromPoint the standard CaretPosition
- * (offsetNode/offset). Chrome answers the first today, so reading the second one's
- * result as a Range - as this code used to - was quietly dead rather than wrong. It
- * would have become wrong the day Chrome dropped the non-standard one.
+ * Three routes, tried in the order that answers most often:
+ *
+ * 1. `caretPositionFromPoint` told which shadow roots to look inside. The only route
+ *    that reaches text in a web component, and the option is newer than the Chrome
+ *    this extension supports - older versions ignore the dictionary member and answer
+ *    with the host instead, which is why the result is checked rather than trusted.
+ * 2. `caretRangeFromPoint`, which Chrome has always had. Returns a Range
+ *    (startContainer/startOffset).
+ * 3. `caretPositionFromPoint` on its own, the standard shape (offsetNode/offset).
+ *    Chrome answers route 2 today, so this is the one that keeps working the day it
+ *    stops.
+ *
+ * A *closed* root is out of reach for all three: nothing can enumerate one from
+ * outside. Naming a word by position cannot work there, and only the reader's own
+ * selection can - see how the double-click path falls back.
  */
 function caretFromPoint(x: number, y: number): ICaret | null {
     const doc = document as CaretDocument;
+
+    const shadowRoots = shadowRootsAt(x, y);
+    if (shadowRoots.length > 0 && doc.caretPositionFromPoint) {
+        const inShadow = doc.caretPositionFromPoint(x, y, { shadowRoots });
+        // Only worth having if it actually reached text. An older Chrome hands back
+        // the host element here, which names no word.
+        if (inShadow?.offsetNode?.nodeType === Node.TEXT_NODE) {
+            return { node: inShadow.offsetNode, offset: inShadow.offset };
+        }
+    }
 
     const range = doc.caretRangeFromPoint?.(x, y);
     if (range && range.startContainer) {

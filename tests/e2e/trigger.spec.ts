@@ -21,6 +21,8 @@ const TEST_PAGE = "http://localhost:3456/swedish-text.html";
 /** Markup that splits or runs words together, and a linked word. Kept compact and
  *  separate so every target stays inside the viewport. */
 const BOUNDARIES_PAGE = "http://localhost:3456/word-boundaries.html";
+/** Text inside shadow roots, as a page built out of web components keeps it. */
+const SHADOW_PAGE = "http://localhost:3456/shadow-text.html";
 
 /** Where the card's own text lives. Locators pierce the open shadow root. */
 const CARD = ".lexinTranslationContent";
@@ -281,6 +283,36 @@ test.describe("Lookup trigger", () => {
         await ExtensionHelpers.triggerLookup(page, "#hidden-css", { modifier: "Shift" });
         await expect(page.locator(CARD_WORD)).toHaveText("hund");
     });
+
+    test("a word inside a web component should be found by position",
+        async ({ context, extensionId }) => {
+            // Neither caret API descends into a shadow tree unasked, so naming a word
+            // by position used to fail outright on any page built out of web
+            // components - which is most text on a lot of sites.
+            //
+            // Under Shift, the branch with no browser selection to fall back on and
+            // therefore the one that has to reach in.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            const page = await context.newPage();
+            await openTestPage(page, SHADOW_PAGE);
+
+            await ExtensionHelpers.triggerLookup(page, "#shadow-word", { modifier: "Shift" });
+
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+        });
+
+    test("a word inside a web component should still work on the default trigger",
+        async ({ context }) => {
+            // Alt reads the browser's own selection first, which has always pierced
+            // shadow roots. Here to keep it that way.
+            const page = await context.newPage();
+            await openTestPage(page, SHADOW_PAGE);
+
+            await ExtensionHelpers.triggerLookup(page, "#shadow-word");
+
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+        });
 
     test("a trigger click should have the page's default suppressed", async ({ context }) => {
         // The click path used to return before suppressing the default whenever there

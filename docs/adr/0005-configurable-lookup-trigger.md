@@ -68,6 +68,7 @@ ways, and reasoning about the DOM finds none of them:
 | `bil<br>hund`, `bil<img>hund` | two words | `bilhund` — the gap carries no text |
 | `h<span hidden>ZZZ</span>und` | one word | `h`/`und` — `display:none` is not inline |
 | `bil<svg><title>ikon</title></svg>hund` | two words | `bilikonhund` — a name, not text |
+| text inside a shadow root | one word | nothing — the caret API stops at the host |
 
 So `wordAtPoint` reads the whole run of text a word sits in — walking the inline
 elements inside the nearest block — and decides what ends that run **geometrically**,
@@ -86,6 +87,22 @@ are wrong in opposite directions: with no rule at all an icon is elided and
 `h<span></span>und` breaks into `und`. Geometry also gets `<svg>`, `<canvas>`,
 `<video>`, form controls, custom elements and `::before` icons right without naming any
 of them, and leaves `<wbr>` alone.
+
+### Reaching text inside a web component
+
+Neither caret API descends into a shadow tree unasked: `caretRangeFromPoint` answers
+with `BODY` for a point over one. A site built out of web components keeps most of its
+text there, so naming a word by position has to reach in — `elementFromPoint` walks
+down the host chain to collect the open roots, and `caretPositionFromPoint` is told
+which ones to look inside.
+
+That option is newer than the Chrome floor (116), so its result is checked rather than
+trusted: an older Chrome ignores the dictionary member and answers with the host, which
+names no word and falls through to the existing routes.
+
+A **closed** root stays out of reach — nothing can enumerate one from outside. The
+reader's own selection pierces even those, which is what the double-click path falls
+back on where a selection exists.
 
 Moving `wordAtPoint` from fallback to primary put two latent bugs on the hot path and
 so got them fixed: `\w` is ASCII-only and turned `björn` into `bjrn` in a *Swedish*
