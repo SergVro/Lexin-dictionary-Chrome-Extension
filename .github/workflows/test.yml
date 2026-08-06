@@ -18,6 +18,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Playwright Tests
@@ -72,4 +75,3 @@ jobs:
           path: test-results/
           retention-days: 30
           if-no-files-found: ignore
-

@@ -15,7 +15,7 @@ class TranslationParser implements ITranslationParser{
             // script arrives as numeric character references. The history store holds
             // text, so the markup is flattened and the references decoded here rather
             // than left for whoever renders them to deal with.
-            const wordHistory = this.toText(match[1]).replace("|", ""); // removing vertical bars from the word
+            const wordHistory = this.toText(match[1]).replace(/\|/g, ""); // removing vertical bars from the word
             const translationHistory = this.toText(match[2]);
             if (wordHistory && translationHistory) {
                 const d = new Date();
