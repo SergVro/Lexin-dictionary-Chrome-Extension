@@ -1,5 +1,5 @@
 /*
- * Regenerates every Chrome Web Store asset from the built extension: the four
+ * Regenerates every Chrome Web Store asset from the built extension: the five
  * screenshots, and the two promotional tiles.
  *
  *     npm run store-assets
@@ -13,7 +13,8 @@
  *
  * The two things it does stage are the reader's own data, because a fresh profile has
  * none: the stored settings and the history rows are written straight into
- * chrome.storage, the same way the E2E fixtures do it.
+ * chrome.storage, the same way the E2E fixtures do it. The third is the platform, for
+ * one capture only - see captureTrigger.
  *
  * Output: docs/store-assets/{screenshots,promo}/*.png, all 24-bit and free of alpha.
  */
@@ -131,6 +132,18 @@ const COPY = {
         headline: "21 dictionaries. Show only the ones you use.",
         subhead: "Choose which languages appear in the picker, which one is the default, "
             + "and whether the extension follows light, dark or your system appearance."
+    },
+    // Framed as the fix for a reader who cannot look a word up at all, because that is
+    // who this setting exists for. A headline naming the setting would be read by the
+    // people who already have a working Alt key and skipped by the ones who do not.
+    trigger: {
+        eyebrow: "Options",
+        headline: "Alt taken? Look words up with Ctrl or Shift.",
+        // The picture carries the reason - the hint under the control names ChromeOS
+        // and Linux - so the subhead says what a reader can do instead of repeating it
+        // two inches above itself.
+        subhead: "The key is yours to set. Or bind a keyboard shortcut and look a word up "
+            + "with no mouse at all: no desktop can take that one for itself."
     },
     // The promo tiles are often drawn small, so their copy is shorter than the tiles
     // above and says one thing each.
@@ -329,6 +342,92 @@ async function stageSettings(page) {
 }
 
 /**
+ * The Settings block, down as far as the modifier control, as a Windows or Linux
+ * reader sees it.
+ *
+ * This is the one capture that stages the platform, and it has to. The Options page
+ * asks the browser which modifiers this desktop can deliver at all, and on a Mac the
+ * answer is Option and Shift: macOS defines Ctrl+click as the secondary click, so the
+ * gesture could never fire there, and the page is honest about it rather than offering
+ * a key that does nothing (docs/adr/0005-configurable-lookup-trigger.md). Photographed
+ * from a Mac, the picture would print Mac key names for a store audience that is
+ * mostly not on one, and would hide Ctrl from precisely the ChromeOS readers the
+ * setting was built for. Overriding the platform makes the page take the branch those
+ * readers get; it is still the built extension deciding, from an answer it was given.
+ *
+ * The keyboard shortcut field is left below the crop deliberately. Chrome reports the
+ * binding it really holds, which on this machine is the Mac one, and a Command key
+ * under a row reading Alt/Ctrl/Shift would be a picture of a browser that exists
+ * nowhere.
+ */
+async function captureTrigger(context, extensionId) {
+    const page = await context.newPage();
+    // Narrower than the other Options capture, and that is what puts the Settings grid
+    // into a single column: it is auto-fit at minmax(280px, 1fr), so two columns need
+    // 584px of content and this window has 572. One column is what stacks the modifier
+    // control under the two settings above it, and what leaves the keyboard shortcut
+    // field below the crop rather than sliced down its middle beside it.
+    await page.setViewportSize({ width: 620, height: 800 });
+    await page.addInitScript(() => {
+        // Both, because onMac() prefers userAgentData and falls back to platform.
+        Object.defineProperty(navigator, "platform", { get: () => "Win32" });
+        Object.defineProperty(navigator, "userAgentData", { get: () => ({ platform: "Windows" }) });
+    });
+    await page.goto(`chrome-extension://${extensionId}/html/options.html`);
+    await page.waitForLoadState("domcontentloaded");
+
+    const options = page.locator("#triggerModifier .lxSegOption");
+    await options.first().waitFor();
+    // textContent, not innerText: the control is uppercased in CSS, and innerText
+    // reports what is rendered, so this would be comparing against ALT/CTRL/SHIFT.
+    const labels = (await options.allTextContents()).map((label) => label.trim());
+    if (labels.join() !== "Alt,Ctrl,Shift") {
+        throw new Error(`The modifier control rendered ${labels.join("/") || "nothing"}, not `
+            + "Alt/Ctrl/Shift - either the platform override no longer reaches onMac(), or "
+            + "availableModifiers() offers a different set");
+    }
+
+    await page.locator(".lxSettings").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+
+    // Heading down to the foot of the modifier field: the picture reads as the Settings
+    // block rather than as a control floating on its own, and shows that the key is
+    // chosen in the same place as everything else about the extension.
+    const heading = await page.locator(".lxSectionTitle").boundingBox();
+    const settings = await page.locator(".lxSettings").boundingBox();
+    const field = await page.locator(".lxField:has(#triggerModifier)").boundingBox();
+    const shortcut = await page.locator(".lxField:has(#openShortcuts)").boundingBox();
+
+    const foot = field.y + field.height;
+    if (shortcut.y < foot) {
+        throw new Error("The keyboard shortcut field sits beside the modifier field rather than "
+            + "below it, so this crop would slice it down the middle - the Settings grid is no "
+            + "longer in one column at this width");
+    }
+
+    // Both edges land in whitespace, halfway between the block and whatever it is next
+    // to: the rule above the heading, and the keyboard shortcut field below. A fixed
+    // padding instead would be larger than the 24px gaps either side, and would print a
+    // sliver of the rule along the top of the frame and slice into the field below.
+    const rule = await page.locator(".lxHr").last().boundingBox();
+    const top = (rule.y + rule.height + heading.y) / 2;
+    const bottom = foot + (shortcut.y - foot) / 2;
+    if (top < 0) {
+        throw new Error("The Settings block no longer fits in this window above the modifier "
+            + "field - give captureTrigger a taller viewport");
+    }
+
+    // Sideways the page's own gutters frame it: the settings block is inset 24px in a
+    // 620px window, so the full width is already an even margin either side.
+    const x = Math.max(0, settings.x - 26);
+    const shot = await page.screenshot({
+        clip: { x, y: top, width: Math.min(620 - x, settings.width + 52), height: bottom - top }
+    });
+    await page.close();
+    return shot;
+}
+
+/**
  * Looks the promo word up in each of the marquee's languages, and reads back what the
  * dictionaries said.
  *
@@ -468,7 +567,8 @@ async function main() {
             popup: await capturePopup(context, extensionId),
             history: await page("history.html", { width: 980, height: 620 }, stageHistory),
             options: await page("options.html", { width: 980, height: 660 }),
-            settings: await page("options.html", { width: 980, height: 660 }, stageSettings)
+            settings: await page("options.html", { width: 980, height: 660 }, stageSettings),
+            trigger: await captureTrigger(context, extensionId)
         };
 
         console.log("Looking the promo word up in each marquee language...");
@@ -488,6 +588,17 @@ async function main() {
                 layout: "stacked", ...COPY.options, shot: shots.options,
                 placement: { width: 980, top: 300 },
                 inset: { shot: shots.settings, width: insetWidth(shots.settings, 1.3), top: 505, right: 96 }
+            });
+        // The one tile whose capture does not bleed off the bottom edge. This crop is a
+        // cut-out rather than a whole surface, and there is nowhere to cut it: a draw
+        // large enough to run off the canvas would take the hint under the modifier
+        // control with it, and that sentence is the reason the frame exists. So it is
+        // sized to sit clear of the edge - 1.15x of a 620x400 crop, which leaves a
+        // margin of about 30px underneath.
+        await writeTile(browser, "5-lookup-trigger",
+            {
+                layout: "stacked", ...COPY.trigger, shot: shots.trigger,
+                placement: { width: insetWidth(shots.trigger, 1.15), top: 296 }
             });
 
         const icon = await dataUri(ICON_PATH);
