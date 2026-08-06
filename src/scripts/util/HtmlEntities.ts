@@ -62,10 +62,15 @@ export function stripHtmlTags(value: string): string {
     // angle bracket, so stripping one tag cannot reveal another one.
     let text = "";
     let insideTag = false;
+    let attributeQuote = "";
     for (const character of value) {
-        if (character === "<") {
+        if (!insideTag && character === "<") {
             insideTag = true;
-        } else if (character === ">" && insideTag) {
+        } else if (insideTag && attributeQuote && character === attributeQuote) {
+            attributeQuote = "";
+        } else if (insideTag && !attributeQuote && (character === "\"" || character === "'")) {
+            attributeQuote = character;
+        } else if (insideTag && !attributeQuote && character === ">") {
             insideTag = false;
         } else if (!insideTag) {
             text += character;

@@ -7,6 +7,13 @@ describe("stripHtmlTags", () => {
             .toBe("sport subst.");
     });
 
+    it("should ignore tag terminators inside quoted attributes", () => {
+        expect(stripHtmlTags("<span title=\"1 > 0\">sport</span>"))
+            .toBe("sport");
+        expect(stripHtmlTags("<span title='1 > 0'>sport</span>"))
+            .toBe("sport");
+    });
+
     it("should not reconstruct markup from nested opening brackets", () => {
         expect(stripHtmlTags("<scr<script>ipt>alert(1)</script>"))
             .toBe("ipt>alert(1)");
