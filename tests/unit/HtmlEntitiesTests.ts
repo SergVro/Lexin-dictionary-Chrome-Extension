@@ -1,4 +1,22 @@
-import { decodeHtmlEntities } from "../../src/scripts/util/HtmlEntities.js";
+import { decodeHtmlEntities, stripHtmlTags } from "../../src/scripts/util/HtmlEntities.js";
+
+describe("stripHtmlTags", () => {
+
+    it("should flatten the markup in a dictionary entry", () => {
+        expect(stripHtmlTags("<b><span lang=sv_SE>sport</span></b> subst."))
+            .toBe("sport subst.");
+    });
+
+    it("should not reconstruct markup from nested opening brackets", () => {
+        expect(stripHtmlTags("<scr<script>ipt>alert(1)</script>"))
+            .toBe("ipt>alert(1)");
+    });
+
+    it("should discard an unterminated tag instead of returning an opening bracket", () => {
+        expect(stripHtmlTags("sport<script"))
+            .toBe("sport");
+    });
+});
 
 describe("decodeHtmlEntities", () => {
 

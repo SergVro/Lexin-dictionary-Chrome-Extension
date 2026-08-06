@@ -55,7 +55,23 @@ export function stripHtmlTags(value: string): string {
     if (!value || value.indexOf("<") < 0) {
         return value;
     }
-    return value.replace(/<[^>]*>/g, "");
+
+    // Walk the fragment once instead of deleting whole tag-shaped substrings with a
+    // regular expression. A replacement sanitizer can join text on either side of a
+    // deleted substring into fresh markup; this state machine never copies an opening
+    // angle bracket, so stripping one tag cannot reveal another one.
+    let text = "";
+    let insideTag = false;
+    for (const character of value) {
+        if (character === "<") {
+            insideTag = true;
+        } else if (character === ">" && insideTag) {
+            insideTag = false;
+        } else if (!insideTag) {
+            text += character;
+        }
+    }
+    return text;
 }
 
 export function decodeHtmlEntities(value: string): string {
