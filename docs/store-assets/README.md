@@ -24,10 +24,14 @@ extension in headless mode.
 | `screenshots/2-action-popup.png` | 1280x800 | Screenshots |
 | `screenshots/3-history-page.png` | 1280x800 | Screenshots |
 | `screenshots/4-options-page.png` | 1280x800 | Screenshots |
+| `screenshots/5-lookup-trigger.png` | 1280x800 | Screenshots |
 | `promo/small-promo-tile.png` | 440x280 | Small promo tile |
 | `promo/marquee-promo-tile.png` | 1400x560 | Marquee promo tile |
 
-Upload the screenshots in filename order. All six are 24-bit PNG without alpha, which
+Five screenshots is the store's maximum, so a sixth surface displaces one rather than
+joining them.
+
+Upload the screenshots in filename order. All seven are 24-bit PNG without alpha, which
 is what the dashboard asks for; `capture.mjs` checks both the size and the absence of
 alpha before writing each file, and fails rather than producing an asset that would be
 rejected. Chrome always screenshots to RGBA, so `png.mjs` re-encodes.
@@ -39,7 +43,7 @@ used if the extension is ever featured, but is worth having ready.
 
 Every pixel of interface in the screenshots is the built extension, driven the way a
 reader drives it - the card is summoned with a real Alt+double-click, and the
-dictionary entries are the live ones. Three things are arranged, because a fresh
+dictionary entries are the live ones. Four things are arranged, because a fresh
 profile has none of them:
 
 - **The reader's stored state** - default language, direction, appearance - written
@@ -49,6 +53,14 @@ profile has none of them:
 - **The page the card floats over**, `pages/article.html`. Deliberately anonymous: no
   masthead, no logo, no byline, because borrowing a real publication's look as the
   setting for our own listing would be passing off their brand as ours.
+- **The platform, in `5-lookup-trigger.png` alone.** `navigator.platform` is overridden
+  to Windows for that one capture. The Options page asks which modifiers the desktop
+  can deliver and offers a Mac only Option and Shift, so a picture taken from the
+  machine these assets are generated on would print Mac key names for an audience that
+  is mostly not on a Mac, and would hide Ctrl from the ChromeOS readers the setting
+  exists for. The page still decides for itself; it is only being told where it is
+  running. See `captureTrigger` for why the keyboard shortcut field is left out of
+  that crop.
 
 The promo tiles show no interface at all - the store's advice for these is a brand
 image rather than a screenshot, and the small tile is often drawn at a fraction of
@@ -79,4 +91,5 @@ comments on `CARD_WORD` and `POPUP_WORD` in `capture.mjs`, and on `PROMO_WORD` a
 
 Whenever a surface changes shape - and in the same pull request, alongside the
 `store-listing.md` copy. The captions make claims ("21 dictionaries", "Export ... TSV,
-Anki .txt, CSV"), and those claims are checked by nothing but a reader's eye.
+Anki .txt, CSV", "Ctrl or Shift"), and those claims are checked by nothing but a
+reader's eye.

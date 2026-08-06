@@ -13,8 +13,8 @@ under *Store listing*.
 
 The screenshots and promo tiles that go on the same page live in `store-assets/`, and
 are generated from the built extension by `npm run store-assets`. Their captions
-repeat claims made below - the language count, the export formats - so the two are
-edited together.
+repeat claims made below - the language count, the export formats, the keys a lookup
+can be bound to - so the two are edited together.
 
 ## Short description
 
@@ -41,16 +41,23 @@ HOW TO LOOK A WORD UP
 
 • Alt + double-click a word on the page
 • Or select the text, then Alt + click it
-• Or press the keyboard shortcut on a word you've selected — no mouse needed
+• Or set a keyboard shortcut and press it with a word selected — no mouse at all
 • Or click the toolbar icon and type the word — you can also swap the direction and
   translate from your language into Swedish
 
+A double-click looks up the word you are pointing at rather than whatever happened to
+be selected, so it still finds the word on pages that fight with text selection, and
+inside the components modern sites are built out of.
+
 Prefer a different key? Alt, Ctrl and Shift are all offered in Options. That matters
 on ChromeOS and some Linux desktops, which keep Alt for themselves and never pass it
-on to the page.
+on to the page. The keyboard shortcut is the other way round the problem — no desktop
+can take it, and Chrome lets you bind it to any combination you like.
 
-Translations include Lexin's pronunciation audio where the dictionary provides it,
-and the card works inside iframes, so Gmail and similar apps are covered too.
+Translations include Lexin's pronunciation audio where the dictionary provides it, and
+it now plays on every site, including the ones whose security rules used to leave the
+button silent. The card works inside iframes, so Gmail and similar apps are covered
+too.
 
 
 LANGUAGES
@@ -80,8 +87,9 @@ Or turn recording off entirely in Options if you'd rather nothing were saved.
 
 SETTINGS
 
-Choose which languages appear in the picker, which one is the default, and whether
-the extension follows light, dark, or your system appearance.
+Choose which languages appear in the picker, which one is the default, whether the
+extension follows light, dark, or your system appearance, which key you hold to look
+a word up, and whether lookups are recorded at all.
 
 
 PRIVACY
@@ -106,18 +114,31 @@ Open source, and issues are welcome:
 https://github.com/SergVro/Lexin-dictionary-Chrome-Extension
 
 
-NEW IN VERSION 3.0
+NEW IN VERSIONS 3.1 AND 3.2
+
+• Choose the key you hold to look a word up — Alt, Ctrl or Shift. Alt + click is the
+  right-click on ChromeOS and moves windows on some Linux desktops, and neither ever
+  reaches the page, so readers there could not look a word up at all.
+• A keyboard shortcut that translates the selected word with no mouse at all, bound
+  to whatever combination you choose in Chrome
+• A double-click now looks up the word under the pointer, which finds words on pages
+  that suppress text selection and inside the components modern sites are built from
+• Pronunciation plays on every site. Some pages' security rules used to block the
+  clip and leave the button silent.
+• Words no longer go missing from history when several lookups finish at once
+
+EARLIER IN VERSION 3
 
 • Rebuilt interface across the in-page card, popup, History and Options, with light,
   dark and system appearance
 • Export your history as Quizlet-ready TSV, Anki .txt, CSV, or to the clipboard
-• History recording can now be turned off, and turned back on from the History page
+• History recording can be turned off, and turned back on from the History page
 • One search box in the popup with a button to swap the translation direction, plus
   back and forward through the words you looked up this session
 • Search and bulk enable/disable on the Options page; search and per-language tabs
   on the History page
-• The in-page card now renders in a shadow root, so no website's styling can break it
-• All dictionary lookups now go over HTTPS, and the extension no longer requests
+• The in-page card renders in a shadow root, so no website's styling can break it
+• All dictionary lookups go over HTTPS, and the extension no longer requests
   permission to access websites directly
 • Ukrainian added
 
@@ -149,6 +170,27 @@ It is used for nothing else: no recording, no clipboard access, no data collecti
   every release back to 1.1. The store shows roughly two lines before "Read more", so
   a long version log buries the value proposition and fills the indexed text with
   version numbers. Older releases live on GitHub Releases; link there instead.
+- **Two blocks, and only two.** The first is what is new since the listing was last
+  published; everything still worth saying from the rest of the major version folds
+  into "EARLIER IN VERSION x". On the next release, retitle the first block and move
+  its bullets into the second, dropping any that have stopped being news. The pair
+  should not run past a dozen bullets between them.
+- **Title the first block for the versions it covers, not the manifest.** It reads
+  "3.1 AND 3.2" because 3.1 shipped without the listing being touched, and pretending
+  the offscreen audio fix arrived in 3.2 would be the same drift in miniature. Keep
+  the store page and the manifest in step and it will usually be one version.
+- **Say what the reader could not do before, not what was built.** "Alt + click is the
+  right-click on ChromeOS" is why the trigger setting exists; "configurable trigger
+  modifier" is what the commit says and tells a reader nothing.
+- **The short description still leads with Alt** even though the key is now the
+  reader's to choose. Alt is the default, it is what an installer will try first, and
+  "Alt+double-click" is a concrete instruction where "hold a modifier" is not. The
+  choice is made two paragraphs into the detailed description, which is where someone
+  whose desktop eats Alt will be looking.
+- **Keep the modifier sentence in step with `availableModifiers()`.** The listing
+  offers Alt, Ctrl and Shift; a Mac is shown only Option and Shift, because macOS
+  defines Ctrl+click as the secondary click and the gesture can never fire there. The
+  reasoning is in `docs/adr/0005-configurable-lookup-trigger.md`.
 - **Swedish is not in the "Swedish into:" list on purpose.** `swe_swe` is Lexin's
   monolingual dictionary, and listing it beside the target languages reads as a bug.
   It gets its own sentence.
