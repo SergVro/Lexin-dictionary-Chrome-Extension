@@ -214,7 +214,7 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Returns `{value: "swe_eng", text: "English"}[]`
 
 **Supported Dictionaries:**
-1. **LexinDictionary:** Primary dictionary supporting 20 languages
+1. **LexinDictionary:** Primary dictionary supporting 21 languages
 2. **FolketsDictionary:** Alternative/fallback dictionary
 
 **Loader:**
@@ -240,12 +240,12 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 - Decodes HTML entities before checking
 
 #### `supportedLanguages: ILanguage[]`
-Returns 20 supported languages:
+Returns 21 supported languages:
 - Albanian, Amharic, Arabic, Azerbaijani
 - Bosnian, Croatian, Finnish, Greek
 - Northern Kurdish, South Kurdish, Pashto, Persian
 - Russian, Serbian (Latin & Cyrillic)
-- Somali, Spanish, Swedish, Turkish, Ukrainian
+- Somali, Spanish, Swedish, Tigrinya, Turkish, Ukrainian
 
 #### `parsingRegExp: RegExp`
 - Regex pattern to extract word-translation pairs from HTML response

@@ -17,7 +17,7 @@ describe("LanguageManager", () => {
 
     it("should return all languages", () => {
         const languages = languageManager.getLanguages();
-        expect(languages.length).toBe(21);
+        expect(languages.length).toBe(22);
     });
 
     describe("enabled languages", () => {
@@ -123,7 +123,7 @@ describe("LanguageManager", () => {
 
             const known = (await storage.getItem("knownLanguages")).split(",");
             expect(known).toEqual(expect.arrayContaining(["swe_ukr", "swe_swe", "swe_eng"]));
-            expect(known.length).toBe(21);
+            expect(known.length).toBe(22);
         });
 
         it("should not duplicate entries when initialized repeatedly", async () => {
@@ -133,7 +133,11 @@ describe("LanguageManager", () => {
             const manager = await createUpgradedManager();
 
             expect(await storage.getItem("enabledLanguages")).toBe(afterFirst);
-            expect((await manager.getEnabledLanguages()).length).toBe(3);
+            // No entry twice. Asserted rather than counted: how many languages the
+            // migration adds depends on how many have shipped since the legacy list,
+            // which grows, and duplication is what this test is actually about.
+            const enabled = (await manager.getEnabledLanguages()).map((lang) => lang.value);
+            expect(enabled).toEqual(Array.from(new Set(enabled)));
         });
 
         it("should keep a language disabled after the migration has run", async () => {
@@ -151,7 +155,7 @@ describe("LanguageManager", () => {
             await manager.waitForInitialization();
 
             expect(await manager.getEnabledLanguages()).toEqual(manager.getLanguages());
-            expect((await freshStorage.getItem("knownLanguages")).split(",").length).toBe(21);
+            expect((await freshStorage.getItem("knownLanguages")).split(",").length).toBe(22);
         });
     });
 
