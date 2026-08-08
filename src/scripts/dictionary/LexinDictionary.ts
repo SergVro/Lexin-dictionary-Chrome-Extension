@@ -26,6 +26,7 @@ class LexinDictionary extends DictionaryBase {
             {value: "swe_sdh", text: "South Kurdish"},
             {value: "swe_spa", text: "Spanish"},
             {value: "swe_swe", text: "Swedish"},
+            {value: "swe_tir", text: "Tigrinya"},
             {value: "swe_tur", text: "Turkish"},
             {value: "swe_ukr", text: "Ukrainian"}
         ];

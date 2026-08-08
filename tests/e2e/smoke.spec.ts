@@ -122,12 +122,12 @@ test.describe("Extension Smoke Tests", () => {
     await expect(page.locator(".lxNavBrand")).toContainText("Options");
 
     const rows = await languageRows(page);
-    expect(await rows.count()).toBe(21);
+    expect(await rows.count()).toBe(22);
 
     // One default, N visible: a row carries one checkbox and either the chip or the
     // button - never the radio-plus-checkbox pair that made the old page a puzzle.
     await expect(page.locator('#languageRows input[type="radio"]')).toHaveCount(0);
-    await expect(page.locator('#languageRows input[type="checkbox"]')).toHaveCount(21);
+    await expect(page.locator('#languageRows input[type="checkbox"]')).toHaveCount(22);
     await expect(page.locator("#languageRows .lxChip", { hasText: "Default" })).toHaveCount(1);
 
     // The old sidebar and its bulk checkbox are gone.
@@ -150,7 +150,7 @@ test.describe("Extension Smoke Tests", () => {
 
     // Folded, so an unaccented query still finds the accented name.
     await page.locator("#languageSearch").fill("");
-    await expect(page.locator("#languageRows tr")).toHaveCount(21);
+    await expect(page.locator("#languageRows tr")).toHaveCount(22);
 
     await page.close();
   });
@@ -209,7 +209,7 @@ test.describe("Extension Smoke Tests", () => {
       .locator('input[type="checkbox"]')).toBeChecked();
 
     await page.locator("#enableAll").click();
-    await expect(page.locator('#languageRows input[type="checkbox"]:checked')).toHaveCount(21);
+    await expect(page.locator('#languageRows input[type="checkbox"]:checked')).toHaveCount(22);
 
     await page.close();
   });
@@ -844,8 +844,8 @@ test.describe("Extension Smoke Tests", () => {
 
   test("languages added since the last version should be enabled on upgrade", async ({ popupPage }) => {
     // Rewind storage to what a user of an older build would have: a hand-picked enabled list and
-    // no knownLanguages key. The next popup must pick up Ukrainian without resurrecting the
-    // languages this user turned off.
+    // no knownLanguages key. The next popup must pick up everything shipped since that build -
+    // Ukrainian and Tigrinya - without resurrecting the languages this user turned off.
     const seedPage = await popupPage();
     await ExtensionHelpers.waitForLanguagesLoaded(seedPage);
     await seedPage.evaluate(async () => {
@@ -865,12 +865,13 @@ test.describe("Extension Smoke Tests", () => {
     const offered = await page.locator('[role="option"]').allInnerTexts();
 
     expect(offered).toContain("Ukrainian");
+    expect(offered).toContain("Tigrinya");
     expect(offered).toContain("Russian");
     expect(offered).toContain("English");
     // Languages this user had disabled must stay disabled
     expect(offered).not.toContain("Swedish");
     expect(offered).not.toContain("Turkish");
-    expect(offered.length).toBe(3);
+    expect(offered.length).toBe(4);
 
     await page.close();
   });

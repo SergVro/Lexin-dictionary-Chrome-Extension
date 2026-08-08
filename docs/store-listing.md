@@ -21,7 +21,7 @@ can be bound to - so the two are edited together.
 Maximum 132 characters. This one is 128.
 
 ```text
-Alt+double-click any Swedish word to see it in your language. 21 dictionaries from Lexin and Folkets Lexikon, right on the page.
+Alt+double-click any Swedish word to see it in your language. 22 dictionaries from Lexin and Folkets Lexikon, right on the page.
 ```
 
 ## Detailed description
@@ -64,7 +64,7 @@ LANGUAGES
 
 Swedish into: Albanian, Amharic, Arabic, Azerbaijani, Bosnian, Croatian, English,
 Finnish, Greek, Northern Kurdish, Pashto, Persian, Russian, Serbian (Latin),
-Serbian (Cyrillic), Somali, South Kurdish, Spanish, Turkish, Ukrainian.
+Serbian (Cyrillic), Somali, South Kurdish, Spanish, Tigrinya, Turkish, Ukrainian.
 
 Plus Lexin's Swedish-to-Swedish dictionary, which explains a word in simple Swedish —
 useful once you'd rather stay in the language than step out of it.
@@ -203,7 +203,7 @@ It is used for nothing else: no recording, no clipboard access, no data collecti
   chosen language, the appearance setting and the lookup history, all local.
 - **Check the language list against `LexinDictionary.getSupportedLanguages()` and
   `FolketsDictionary.getSupportedLanguages()`** whenever a dictionary is added.
-  Currently 20 via Lexin plus English via Folkets.
+  Currently 21 via Lexin plus English via Folkets.
 - **The dictionary hostnames are load-bearing.** They are `lexin.nada.kth.se` and
   `folkets-lexikon.csc.kth.se`, both over HTTPS. The listing carried a dead
   `lexin2.nada.kth.se` for years.

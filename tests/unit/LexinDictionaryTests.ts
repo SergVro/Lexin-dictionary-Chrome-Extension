@@ -18,7 +18,7 @@ describe("LexinDictionary", () => {
 
     it("should return supported languages", () => {
         const languages = dictionary.getSupportedLanguages();
-        expect(languages.length).toBe(20);
+        expect(languages.length).toBe(21);
     });
 
     it("should check if language is supported", () => {
@@ -134,6 +134,26 @@ describe("LexinDictionary", () => {
         expect(history[1].translation).toBe("መዝገበ ቃላት");
         expect(history[4].word).toBe("succé");
         expect(history[4].translation).toBe("ስኬት");
+    });
+
+    // Tigrinya arrived after the others and rides the same template as Amharic - Lexin
+    // tags its Ge'ez as dir=rtl even though the script runs left to right. Kept as a
+    // regression test because the pattern needed no change to read it, and a later
+    // tightening of the dir=rtl branch would break it silently.
+    it("should parse Tigrinya translation", () => {
+        const tigrinya = "<p><div><b><span lang=sv_SE>hund</span></b> [hun:d] subst.&nbsp;&nbsp;</div>" +
+            "<div><b><span dir=rtl lang=ti_ER>&#4776;&#4621;&#4706;</span></b>&nbsp;&nbsp; </div></p>\n" +
+            "<p><div><b><span lang=sv_SE>ordbok</span></b> subst.&nbsp;&nbsp;</div>" +
+            "<div><b><span dir=rtl lang=ti_ER>&#4632;&#4829;&#4872;&#4704;-&#4675;&#4619;&#4725;</span></b>" +
+            "&nbsp;&nbsp; </div></p>";
+
+        const history = dictionary.parseTranslation(tigrinya, "swe_tir");
+
+        expect(history.length).toBe(2);
+        expect(history[0].word).toBe("hund");
+        expect(history[0].translation).toBe("ከልቢ");
+        expect(history[1].word).toBe("ordbok");
+        expect(history[1].translation).toBe("መዝገበ-ቃላት");
     });
 
     it("should skip entries Lexin leaves untranslated", () => {

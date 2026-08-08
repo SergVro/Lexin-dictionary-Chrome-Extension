@@ -129,7 +129,7 @@ const COPY = {
     },
     options: {
         eyebrow: "Options",
-        headline: "21 dictionaries. Show only the ones you use.",
+        headline: "22 dictionaries. Show only the ones you use.",
         subhead: "Choose which languages appear in the picker, which one is the default, "
             + "and whether the extension follows light, dark or your system appearance."
     },
@@ -148,11 +148,11 @@ const COPY = {
     // The promo tiles are often drawn small, so their copy is shorter than the tiles
     // above and says one thing each.
     small: {
-        subhead: "Swedish into 21 languages, right on the page you are reading."
+        subhead: "Swedish into 22 languages, right on the page you are reading."
     },
     marquee: {
         headline: "Swedish, translated where you are reading it",
-        subhead: "Alt+double-click any word on any page. 21 dictionaries "
+        subhead: "Alt+double-click any word on any page. 22 dictionaries "
             + "from Lexin and Folkets Lexikon."
     }
 };
@@ -316,7 +316,7 @@ async function stageHistory(page) {
 /**
  * The Settings block at the foot of the Options page, cut out on its own.
  *
- * It goes on the Options tile as an inset. Twenty-one language rows stand between the
+ * It goes on the Options tile as an inset. Twenty-two language rows stand between the
  * top of that page and its Appearance control, so a single frame either shows the
  * languages the headline is about or shows the setting the subhead promises, never
  * both.
