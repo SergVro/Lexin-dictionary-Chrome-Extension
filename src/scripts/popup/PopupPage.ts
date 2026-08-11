@@ -51,6 +51,14 @@ class PopupPage {
         this.renderIcons();
         this.buildLanguagePicker();
 
+        // Claimed in the popup's first tick, before anything below waits on storage.
+        // The worker drops the word as it answers, so this is also what unparks it: a
+        // reader who dismisses the popup while it is still setting up destroys this
+        // document mid-await, and a claim made further down would never be sent at
+        // all - leaving the word for the next popup, opened from the toolbar and with
+        // nothing to do with the card, to open on. Awaited where it is needed.
+        const pending = this.messageService.takePendingLookup();
+
         await this.languageManager.waitForInitialization();
         await this.fillLanguages();
         this.currentLanguage = await this.languageManager.getCurrentLanguage();
@@ -63,7 +71,7 @@ class PopupPage {
         // Read before openOnPendingWord, which renders the empty state naming it.
         this.trigger = await this.settings.getTriggerModifier();
 
-        this.openOnPendingWord();
+        this.openOnPendingWord(await pending);
         this.refreshRecent();
 
         this.subscribeOnEvents();
@@ -222,13 +230,13 @@ class PopupPage {
      * worse, on whatever the reader had selected before pressing Shift. See
      * BackgroundWorker.openActionPopup for where the word waits in between.
      */
-    private async openOnPendingWord(): Promise<void> {
-        const pending = DomUtils.trim(await this.messageService.takePendingLookup());
-        if (!pending) {
+    private openOnPendingWord(pending: string): void {
+        const word = DomUtils.trim(pending);
+        if (!word) {
             this.translateSelectedWord();
             return;
         }
-        this.setCurrentWord(pending);
+        this.setCurrentWord(word);
         this.getTranslation();
     }
 
