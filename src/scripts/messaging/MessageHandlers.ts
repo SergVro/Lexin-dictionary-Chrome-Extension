@@ -45,7 +45,7 @@ class MessageHandlers implements IMessageHandlers{
 
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
         MessageBus.Instance.registerHandler(MessageType.openActionPopup, (args: any) => {
-            return handler(args.word);
+            return handler(args.word, args.direction);
         });
     }
 

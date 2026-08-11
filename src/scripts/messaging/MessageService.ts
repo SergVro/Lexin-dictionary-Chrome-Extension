@@ -1,4 +1,4 @@
-import { IMessageService, IHistoryItem, ITranslation } from "../common/Interfaces.js";
+import { IMessageService, IHistoryItem, IPendingLookup, ITranslation } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 import MessageBus from "./MessageBus.js";
@@ -63,24 +63,28 @@ class MessageService implements IMessageService{
     }
 
     /**
-     * The word travels with the request, and is not left for the popup to work out.
+     * The whole lookup travels with the request, and none of it is left for the popup
+     * to work out.
      *
      * The popup's other way in - the toolbar button - has nothing but the page's
-     * selection to go on, and that is the wrong source here: under the Shift trigger
-     * the card suppresses the selection outright and names its word by position, so
-     * asking the page would answer with nothing, or with whatever the reader happened
-     * to have selected before. The card already knows which word it is showing.
+     * selection and its own saved settings to go on, and neither is the right source
+     * here. Under the Shift trigger the card suppresses the selection outright and
+     * names its word by position, so asking the page would answer with nothing, or
+     * with whatever the reader happened to have selected before; and the popup's saved
+     * direction is the reader's last swap, which may point the opposite way to the
+     * card. The card already knows both.
      */
-    openActionPopup(word: string): Promise<void> {
+    openActionPopup(word: string, direction: TranslationDirection): Promise<void> {
         // Only the service worker can open the Action Popup, so this is a message
         // rather than a direct call - the Translation Card's expand button runs in a
         // content script, which has no chrome.action.
-        return MessageBus.Instance.sendMessage(MessageType.openActionPopup, {word: word});
+        return MessageBus.Instance.sendMessage(MessageType.openActionPopup,
+            {word: word, direction: direction});
     }
 
-    takePendingLookup(): Promise<string> {
+    takePendingLookup(): Promise<IPendingLookup | null> {
         return MessageBus.Instance.sendMessage(MessageType.takePendingLookup)
-            .then((word) => word ?? "");
+            .then((pending) => pending ?? null);
     }
 }
 

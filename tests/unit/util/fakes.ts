@@ -19,6 +19,7 @@ import {
     PlayAudioHandler,
     TranslateSelectionHandler,
     IMessageBus,
+    IPendingLookup,
     MessageHandler,
     IAsyncStorage,
     IAsyncSettingsStorage,
@@ -82,22 +83,22 @@ export class TestMessageService implements IMessageService {
     }
 
     openActionPopupCalls = 0;
-    /** Every word the expand button handed over, newest last. */
-    openActionPopupWords: string[] = [];
+    /** Every lookup the expand button handed over, newest last. */
+    openActionPopupLookups: IPendingLookup[] = [];
 
-    openActionPopup(word: string): Promise<void> {
+    openActionPopup(word: string, direction: TranslationDirection): Promise<void> {
         this.openActionPopupCalls++;
-        this.openActionPopupWords.push(word);
+        this.openActionPopupLookups.push({ word: word, direction: direction });
         return Promise.resolve();
     }
 
-    /** What the worker has parked for this popup. "" means "opened some other way". */
-    pendingLookup = "";
+    /** What the worker has parked for this popup. null means "opened some other way". */
+    pendingLookup: IPendingLookup | null = null;
 
-    takePendingLookup(): Promise<string> {
-        const word = this.pendingLookup;
-        this.pendingLookup = "";
-        return Promise.resolve(word);
+    takePendingLookup(): Promise<IPendingLookup | null> {
+        const pending = this.pendingLookup;
+        this.pendingLookup = null;
+        return Promise.resolve(pending);
     }
 
     playedAudioUrls: string[] = [];

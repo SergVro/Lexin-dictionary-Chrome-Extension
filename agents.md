@@ -77,12 +77,14 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
   document can load the clip free of the host page's Content Security Policy
 - See [docs/adr/0004-offscreen-audio-playback.md](docs/adr/0004-offscreen-audio-playback.md)
 
-#### `openActionPopup(word): Promise<void>` / `takePendingLookup(): string`
+#### `openActionPopup(word, direction)` / `takePendingLookup(): IPendingLookup | null`
 - The Translation Card's expand button opens the Action Popup through here, because a
   content script has no `chrome.action`
-- The card's word is parked on the worker and collected by the popup as it initialises
-  — the popup cannot ask the page for it, since the Shift trigger leaves nothing
-  selected there. Handed over once, and dropped if the popup never opened
+- The card's lookup — word *and* direction — is parked on the worker and collected by
+  the popup as it initialises. The popup can re-derive neither: the Shift trigger
+  leaves nothing selected on the page, and its own saved direction is the reader's last
+  swap, while a card always runs out of Swedish. Handed over once, and dropped if the
+  popup never opened
 
 #### `initialize(): void`
 - Registers message handlers:
@@ -101,11 +103,14 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 
 **Main Functions:**
 
-#### `openOnPendingWord(): Promise<void>`
-- Decides what the popup opens on: a word handed over by a Translation Card's expand
-  button (collected once from the worker), or the page's selection when there is none
+#### `openOnPendingWord(pending): void`
+- Decides what the popup opens on: a lookup handed over by a Translation Card's expand
+  button (claimed from the worker in the popup's first tick), or the page's selection
+  when there is none
 - The card's word cannot be re-derived from the page - under the Shift trigger the card
   suppresses the selection and names its word by position
+- Adopts the card's direction for the badge and the lookup, in memory only: the saved
+  direction is the reader's own choice, and expanding a card does not change it
 
 #### `translateSelectedWord(): void`
 - Requests selected text from active tab's content script (async)

@@ -1,5 +1,5 @@
 import { IHistoryManager, ITranslation, ITranslationManager, IMessageHandlers,
-    IAudioPlayer, IMessageBus } from "../common/Interfaces.js";
+    IAudioPlayer, IMessageBus, IPendingLookup } from "../common/Interfaces.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
 import MessageType from "../messaging/MessageType.js";
 import { TRANSLATE_SELECTION_COMMAND } from "../common/LookupTrigger.js";
@@ -13,15 +13,15 @@ class BackgroundWorker {
     private messageBus: IMessageBus;
 
     /**
-     * The word a Translation Card handed over, waiting for the popup it opened.
+     * The lookup a Translation Card handed over, waiting for the popup it opened.
      *
      * In memory rather than in storage, because it only has to outlive
      * chrome.action.openPopup(): the popup asks for it as it initialises, a moment
      * after the call the worker is already awake for. A worker evicted inside that
-     * moment loses the word and the popup falls back to the selection, which is the
-     * same outcome as opening it from the toolbar.
+     * moment loses it and the popup falls back to the selection, which is the same
+     * outcome as opening it from the toolbar.
      */
-    private pendingLookup = "";
+    private pendingLookup: IPendingLookup | null = null;
 
     constructor(historyManager : IHistoryManager, translationManager: ITranslationManager,
                 messageHandlers: IMessageHandlers, audioPlayer: IAudioPlayer,
@@ -50,39 +50,41 @@ class BackgroundWorker {
     /**
      * Opens the Action Popup on behalf of the Translation Card's expand button.
      *
-     * The card's word is parked here first, for the popup to collect once it opens.
-     * It cannot be passed to the popup directly - nothing can address a document that
-     * does not exist yet - and the popup cannot work it out for itself: under the
-     * Shift trigger there is deliberately no selection on the page to read.
+     * The card's lookup - its word and the direction it ran - is parked here first,
+     * for the popup to collect once it opens. It cannot be passed to the popup
+     * directly, since nothing can address a document that does not exist yet, and the
+     * popup cannot work it out for itself: under the Shift trigger there is
+     * deliberately no selection on the page to read, and its own saved direction is
+     * the reader's last swap rather than the card's.
      *
      * chrome.action.openPopup() is Chrome 127+, and can reject even where it exists
      * (no focused window, or the call arriving too long after the user's click). It
      * degrades to nothing rather than to a fallback: the same page in a tab would ask
      * *itself* for the selection and render "No word selected", which is worse than
-     * the card the reader already has open. The parked word is dropped along with it,
-     * so a popup opened from the toolbar later is not answered with a stale one.
+     * the card the reader already has open. The parked lookup is dropped along with
+     * it, so a popup opened from the toolbar later is not answered with a stale one.
      */
-    async openActionPopup(word: string): Promise<void> {
-        this.pendingLookup = word || "";
+    async openActionPopup(word: string, direction: TranslationDirection): Promise<void> {
+        this.pendingLookup = word ? { word: word, direction: direction } : null;
         try {
             await chrome.action.openPopup();
         } catch (error) {
-            this.pendingLookup = "";
+            this.pendingLookup = null;
             console.warn("Could not open the Action Popup", error);
         }
     }
 
     /**
-     * Hands the parked word to the popup that just opened, and forgets it.
+     * Hands the parked lookup to the popup that just opened, and forgets it.
      *
      * Once, by design: the handover belongs to the one popup the expand button opened.
      * Left in place it would answer the next popup too - opened from the toolbar, on a
      * different page - with a word the reader looked up some time ago.
      */
-    takePendingLookup(): string {
-        const word = this.pendingLookup;
-        this.pendingLookup = "";
-        return word;
+    takePendingLookup(): IPendingLookup | null {
+        const pending = this.pendingLookup;
+        this.pendingLookup = null;
+        return pending;
     }
 
     /**
@@ -123,7 +125,8 @@ class BackgroundWorker {
         this.messageHandlers.registerLoadHistoryDirectionsHandler(() => this.historyManager.getDirections());
         this.messageHandlers.registerRemoveHistoryItemHandler(
             (langDirection, word, added) => this.historyManager.removeItem(langDirection, word, added));
-        this.messageHandlers.registerOpenActionPopupHandler((word) => this.openActionPopup(word));
+        this.messageHandlers.registerOpenActionPopupHandler(
+            (word, direction) => this.openActionPopup(word, direction));
         this.messageHandlers.registerTakePendingLookupHandler(() => this.takePendingLookup());
         this.messageHandlers.registerPlayAudioHandler((url) => this.playAudio(url));
     }

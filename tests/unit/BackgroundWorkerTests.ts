@@ -76,36 +76,49 @@ describe("BackgroundWorker", () => {
             let opened = 0;
             (global as any).chrome = { action: { openPopup: () => { opened++; return Promise.resolve(); } } };
 
-            await backgroundWorker.openActionPopup("bil");
+            await backgroundWorker.openActionPopup("bil", TranslationDirection.to);
 
             expect(opened).toBe(1);
         });
 
-        it("should hand the card's word to the popup it opened", async () => {
-            // The popup cannot work the word out for itself: under the Shift trigger
-            // the card suppresses the page's selection and names its word by position,
-            // so asking the page answers with nothing at all.
+        it("should hand the card's lookup to the popup it opened", async () => {
+            // The popup cannot work either half out for itself: under the Shift
+            // trigger the card suppresses the page's selection and names its word by
+            // position, so asking the page answers with nothing at all - and the
+            // popup's own direction is the reader's last swap, not the card's.
             (global as any).chrome = { action: { openPopup: () => Promise.resolve() } };
 
-            await backgroundWorker.openActionPopup("bil");
+            await backgroundWorker.openActionPopup("bil", TranslationDirection.to);
 
-            expect(backgroundWorker.takePendingLookup()).toBe("bil");
+            expect(backgroundWorker.takePendingLookup())
+                .toEqual({ word: "bil", direction: TranslationDirection.to });
         });
 
-        it("should hand the word over once only", async () => {
-            // The handover belongs to the popup the expand button opened. Left behind,
-            // the word would open the next one - clicked from the toolbar, on another
-            // page - on a lookup the reader finished with minutes ago.
+        it("should hand over the direction the card ran, not a default", async () => {
+            // Nothing in the extension hands "from" over today - a card always runs
+            // out of Swedish. Here so that the direction is carried rather than
+            // assumed, on both sides of the handover.
             (global as any).chrome = { action: { openPopup: () => Promise.resolve() } };
 
-            await backgroundWorker.openActionPopup("bil");
+            await backgroundWorker.openActionPopup("bil", TranslationDirection.from);
+
+            expect(backgroundWorker.takePendingLookup()?.direction).toBe(TranslationDirection.from);
+        });
+
+        it("should hand the lookup over once only", async () => {
+            // The handover belongs to the popup the expand button opened. Left behind,
+            // it would open the next one - clicked from the toolbar, on another page -
+            // on a lookup the reader finished with minutes ago.
+            (global as any).chrome = { action: { openPopup: () => Promise.resolve() } };
+
+            await backgroundWorker.openActionPopup("bil", TranslationDirection.to);
             backgroundWorker.takePendingLookup();
 
-            expect(backgroundWorker.takePendingLookup()).toBe("");
+            expect(backgroundWorker.takePendingLookup()).toBeNull();
         });
 
-        it("should have no word to hand over until a card opens the popup", () => {
-            expect(backgroundWorker.takePendingLookup()).toBe("");
+        it("should have nothing to hand over until a card opens the popup", () => {
+            expect(backgroundWorker.takePendingLookup()).toBeNull();
         });
 
         it("should swallow a rejection rather than break the card", async () => {
@@ -117,22 +130,23 @@ describe("BackgroundWorker", () => {
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
             try {
-                await expect(backgroundWorker.openActionPopup("bil")).resolves.toBeUndefined();
+                await expect(backgroundWorker.openActionPopup("bil", TranslationDirection.to))
+                    .resolves.toBeUndefined();
                 expect(warn).toHaveBeenCalled();
             } finally {
                 warn.mockRestore();
             }
         });
 
-        it("should drop the word when no popup opened to collect it", async () => {
+        it("should drop the lookup when no popup opened to collect it", async () => {
             // Nothing consumes it in this case, so it would sit there until the reader
             // next opened the popup from the toolbar - and answer that one instead.
             (global as any).chrome = { action: { openPopup: () => Promise.reject(new Error("no window")) } };
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
             try {
-                await backgroundWorker.openActionPopup("bil");
-                expect(backgroundWorker.takePendingLookup()).toBe("");
+                await backgroundWorker.openActionPopup("bil", TranslationDirection.to);
+                expect(backgroundWorker.takePendingLookup()).toBeNull();
             } finally {
                 warn.mockRestore();
             }

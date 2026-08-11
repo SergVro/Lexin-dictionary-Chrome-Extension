@@ -21,6 +21,20 @@ export interface ISettingsStorage {
     [key: string]: any;
 }
 
+/**
+ * A lookup handed from a Translation Card to the Action Popup by the expand button.
+ *
+ * The direction travels with the word because the two surfaces do not agree on one by
+ * default: a card is always "this Swedish word, in my language", while the popup
+ * restores whichever way the reader last left its swap control. Without it, expanding
+ * a card while the popup is saved pointing the other way runs the reverse lookup -
+ * a different lookup from the one the reader asked to see bigger.
+ */
+export interface IPendingLookup {
+    word: string;
+    direction: TranslationDirection;
+}
+
 export interface IAsyncStorage {
     getItem(key: string): Promise<string | null>;
     setItem(key: string, value: string): Promise<void>;
@@ -57,10 +71,10 @@ export interface IMessageService {
     getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation>;
     getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
-    /** Opens the Action Popup on `word`, which the caller already knows. */
-    openActionPopup(word: string): Promise<void>;
-    /** The word a card handed over, or "" when the popup was opened some other way. */
-    takePendingLookup(): Promise<string>;
+    /** Opens the Action Popup on a lookup the caller has already run. */
+    openActionPopup(word: string, direction: TranslationDirection): Promise<void>;
+    /** What a card handed over, or null when the popup was opened some other way. */
+    takePendingLookup(): Promise<IPendingLookup | null>;
     playAudio(url: string): Promise<void>;
     /** Asks the active tab to look up whatever it has selected. */
     translateSelection(): Promise<void>;
@@ -132,12 +146,12 @@ export interface GetSelectionHandler {
 }
 
 export interface OpenActionPopupHandler {
-    (word: string): Promise<void>;
+    (word: string, direction: TranslationDirection): Promise<void>;
 }
 
-/** Hands the pending word to the popup asking for it, and forgets it. */
+/** Hands the pending lookup to the popup asking for it, and forgets it. */
 export interface TakePendingLookupHandler {
-    (): string;
+    (): IPendingLookup | null;
 }
 
 export interface PlayAudioHandler {
