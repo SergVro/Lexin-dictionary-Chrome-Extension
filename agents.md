@@ -77,12 +77,20 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
   document can load the clip free of the host page's Content Security Policy
 - See [docs/adr/0004-offscreen-audio-playback.md](docs/adr/0004-offscreen-audio-playback.md)
 
+#### `openActionPopup(word): Promise<void>` / `takePendingLookup(): string`
+- The Translation Card's expand button opens the Action Popup through here, because a
+  content script has no `chrome.action`
+- The card's word is parked on the worker and collected by the popup as it initialises
+  — the popup cannot ask the page for it, since the Shift trigger leaves nothing
+  selected there. Handed over once, and dropped if the popup never opened
+
 #### `initialize(): void`
 - Registers message handlers:
   - `getTranslation`: Handles translation requests
   - `loadHistory`: Retrieves translation history for a language
   - `clearHistory`: Clears history for a language
   - `playAudio`: Plays a pronunciation clip in the Offscreen Document
+  - `openActionPopup` / `takePendingLookup`: The card → popup handover above
 - Sets up communication bridge between content scripts and translation logic
 
 ---
@@ -92,6 +100,12 @@ The Lexin Dictionary Chrome Extension is a Swedish-to-multilingual dictionary to
 **Purpose:** Main UI popup that appears when clicking the extension icon.
 
 **Main Functions:**
+
+#### `openOnPendingWord(): Promise<void>`
+- Decides what the popup opens on: a word handed over by a Translation Card's expand
+  button (collected once from the worker), or the page's selection when there is none
+- The card's word cannot be re-derived from the page - under the Shift trigger the card
+  suppresses the selection and names its word by position
 
 #### `translateSelectedWord(): void`
 - Requests selected text from active tab's content script (async)

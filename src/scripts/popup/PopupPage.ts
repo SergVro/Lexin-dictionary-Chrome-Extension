@@ -60,10 +60,10 @@ class PopupPage {
         await this.useSupportedDirection();
         this.renderDirectionBadge();
 
-        // Read before translateSelectedWord, which renders the empty state naming it.
+        // Read before openOnPendingWord, which renders the empty state naming it.
         this.trigger = await this.settings.getTriggerModifier();
 
-        this.translateSelectedWord();
+        this.openOnPendingWord();
         this.refreshRecent();
 
         this.subscribeOnEvents();
@@ -209,6 +209,27 @@ class PopupPage {
         const saved = await this.languageManager.getTranslationDirection();
         // TranslationDirection.from = 1, TranslationDirection.to = 2
         return saved === 1 ? TranslationDirection.from : TranslationDirection.to;
+    }
+
+    /**
+     * What the popup opens on: the word handed over by a Translation Card, if a card
+     * is why it opened, and the page's selection otherwise.
+     *
+     * The selection alone was the whole answer once, and it is the wrong one for the
+     * card's expand button. Under the Shift trigger the card suppresses the page's
+     * selection and names its word by position, so there is nothing selected to find -
+     * the popup opened on "No word selected" beside a card plainly showing a word, or
+     * worse, on whatever the reader had selected before pressing Shift. See
+     * BackgroundWorker.openActionPopup for where the word waits in between.
+     */
+    private async openOnPendingWord(): Promise<void> {
+        const pending = DomUtils.trim(await this.messageService.takePendingLookup());
+        if (!pending) {
+            this.translateSelectedWord();
+            return;
+        }
+        this.setCurrentWord(pending);
+        this.getTranslation();
     }
 
     translateSelectedWord(): void {

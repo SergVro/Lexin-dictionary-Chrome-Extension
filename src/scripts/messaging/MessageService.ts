@@ -62,11 +62,25 @@ class MessageService implements IMessageService{
         return MessageBus.Instance.getCommandShortcut(command);
     }
 
-    openActionPopup(): Promise<void> {
+    /**
+     * The word travels with the request, and is not left for the popup to work out.
+     *
+     * The popup's other way in - the toolbar button - has nothing but the page's
+     * selection to go on, and that is the wrong source here: under the Shift trigger
+     * the card suppresses the selection outright and names its word by position, so
+     * asking the page would answer with nothing, or with whatever the reader happened
+     * to have selected before. The card already knows which word it is showing.
+     */
+    openActionPopup(word: string): Promise<void> {
         // Only the service worker can open the Action Popup, so this is a message
         // rather than a direct call - the Translation Card's expand button runs in a
         // content script, which has no chrome.action.
-        return MessageBus.Instance.sendMessage(MessageType.openActionPopup);
+        return MessageBus.Instance.sendMessage(MessageType.openActionPopup, {word: word});
+    }
+
+    takePendingLookup(): Promise<string> {
+        return MessageBus.Instance.sendMessage(MessageType.takePendingLookup)
+            .then((word) => word ?? "");
     }
 }
 

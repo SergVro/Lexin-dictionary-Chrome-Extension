@@ -23,7 +23,16 @@ enum MessageType {
      * selected. Sent when the reader presses the extension's keyboard shortcut, which
      * Chrome delivers to the worker and nowhere else.
      */
-    translateSelection
+    translateSelection,
+    /**
+     * The Action Popup -> the service worker: the word a Translation Card handed over
+     * when its expand button opened me, if that is why I am open.
+     *
+     * Consumed rather than read: the handover belongs to one popup, and a word left
+     * behind would open the *next* one - clicked from the toolbar, with something else
+     * entirely selected - on a word the reader looked up minutes ago.
+     */
+    takePendingLookup
 }
 
 export default MessageType;

@@ -76,9 +76,36 @@ describe("BackgroundWorker", () => {
             let opened = 0;
             (global as any).chrome = { action: { openPopup: () => { opened++; return Promise.resolve(); } } };
 
-            await backgroundWorker.openActionPopup();
+            await backgroundWorker.openActionPopup("bil");
 
             expect(opened).toBe(1);
+        });
+
+        it("should hand the card's word to the popup it opened", async () => {
+            // The popup cannot work the word out for itself: under the Shift trigger
+            // the card suppresses the page's selection and names its word by position,
+            // so asking the page answers with nothing at all.
+            (global as any).chrome = { action: { openPopup: () => Promise.resolve() } };
+
+            await backgroundWorker.openActionPopup("bil");
+
+            expect(backgroundWorker.takePendingLookup()).toBe("bil");
+        });
+
+        it("should hand the word over once only", async () => {
+            // The handover belongs to the popup the expand button opened. Left behind,
+            // the word would open the next one - clicked from the toolbar, on another
+            // page - on a lookup the reader finished with minutes ago.
+            (global as any).chrome = { action: { openPopup: () => Promise.resolve() } };
+
+            await backgroundWorker.openActionPopup("bil");
+            backgroundWorker.takePendingLookup();
+
+            expect(backgroundWorker.takePendingLookup()).toBe("");
+        });
+
+        it("should have no word to hand over until a card opens the popup", () => {
+            expect(backgroundWorker.takePendingLookup()).toBe("");
         });
 
         it("should swallow a rejection rather than break the card", async () => {
@@ -90,8 +117,22 @@ describe("BackgroundWorker", () => {
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
             try {
-                await expect(backgroundWorker.openActionPopup()).resolves.toBeUndefined();
+                await expect(backgroundWorker.openActionPopup("bil")).resolves.toBeUndefined();
                 expect(warn).toHaveBeenCalled();
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        it("should drop the word when no popup opened to collect it", async () => {
+            // Nothing consumes it in this case, so it would sit there until the reader
+            // next opened the popup from the toolbar - and answer that one instead.
+            (global as any).chrome = { action: { openPopup: () => Promise.reject(new Error("no window")) } };
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            try {
+                await backgroundWorker.openActionPopup("bil");
+                expect(backgroundWorker.takePendingLookup()).toBe("");
             } finally {
                 warn.mockRestore();
             }
@@ -125,6 +166,7 @@ describe("BackgroundWorker", () => {
         expect(fakeMessageHandlers.loadHistoryDirectionsHandler).not.toBeNull();
         expect(fakeMessageHandlers.removeHistoryItemHandler).not.toBeNull();
         expect(fakeMessageHandlers.openActionPopupHandler).not.toBeNull();
+        expect(fakeMessageHandlers.takePendingLookupHandler).not.toBeNull();
         expect(fakeMessageHandlers.playAudioHandler).not.toBeNull();
     });
 });

@@ -13,6 +13,7 @@ import {
     ClearHistoryHandler,
     GetSelectionHandler,
     OpenActionPopupHandler,
+    TakePendingLookupHandler,
     LoadHistoryDirectionsHandler,
     RemoveHistoryItemHandler,
     PlayAudioHandler,
@@ -81,10 +82,22 @@ export class TestMessageService implements IMessageService {
     }
 
     openActionPopupCalls = 0;
+    /** Every word the expand button handed over, newest last. */
+    openActionPopupWords: string[] = [];
 
-    openActionPopup(): Promise<void> {
+    openActionPopup(word: string): Promise<void> {
         this.openActionPopupCalls++;
+        this.openActionPopupWords.push(word);
         return Promise.resolve();
+    }
+
+    /** What the worker has parked for this popup. "" means "opened some other way". */
+    pendingLookup = "";
+
+    takePendingLookup(): Promise<string> {
+        const word = this.pendingLookup;
+        this.pendingLookup = "";
+        return Promise.resolve(word);
     }
 
     playedAudioUrls: string[] = [];
@@ -238,6 +251,7 @@ export class FakeMessageHandlers implements IMessageHandlers {
     clearHistoryHandler: ClearHistoryHandler | null = null;
     getSelectionHandler: GetSelectionHandler | null = null;
     openActionPopupHandler: OpenActionPopupHandler | null = null;
+    takePendingLookupHandler: TakePendingLookupHandler | null = null;
     loadHistoryDirectionsHandler: LoadHistoryDirectionsHandler | null = null;
     removeHistoryItemHandler: RemoveHistoryItemHandler | null = null;
     playAudioHandler: PlayAudioHandler | null = null;
@@ -261,6 +275,10 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
         this.openActionPopupHandler = handler;
+    }
+
+    registerTakePendingLookupHandler(handler: TakePendingLookupHandler): void {
+        this.takePendingLookupHandler = handler;
     }
 
     registerLoadHistoryDirectionsHandler(handler: LoadHistoryDirectionsHandler): void {

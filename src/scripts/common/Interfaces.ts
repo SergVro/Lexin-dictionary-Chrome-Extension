@@ -57,7 +57,10 @@ export interface IMessageService {
     getTranslation(word: string, direction?: TranslationDirection): Promise<ITranslation>;
     getSelectedText(): Promise<string>;
     createNewTab(url: string): void;
-    openActionPopup(): Promise<void>;
+    /** Opens the Action Popup on `word`, which the caller already knows. */
+    openActionPopup(word: string): Promise<void>;
+    /** The word a card handed over, or "" when the popup was opened some other way. */
+    takePendingLookup(): Promise<string>;
     playAudio(url: string): Promise<void>;
     /** Asks the active tab to look up whatever it has selected. */
     translateSelection(): Promise<void>;
@@ -129,7 +132,12 @@ export interface GetSelectionHandler {
 }
 
 export interface OpenActionPopupHandler {
-    (): Promise<void>;
+    (word: string): Promise<void>;
+}
+
+/** Hands the pending word to the popup asking for it, and forgets it. */
+export interface TakePendingLookupHandler {
+    (): string;
 }
 
 export interface PlayAudioHandler {
@@ -155,6 +163,7 @@ export interface IMessageHandlers {
     registerRemoveHistoryItemHandler(handler: RemoveHistoryItemHandler): void;
     registerGetSelectionHandler(handler: GetSelectionHandler): void;
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void;
+    registerTakePendingLookupHandler(handler: TakePendingLookupHandler): void;
     registerPlayAudioHandler(handler: PlayAudioHandler): void;
     registerPlayAudioInOffscreenDocumentHandler(handler: PlayAudioHandler): void;
     registerTranslateSelectionHandler(handler: TranslateSelectionHandler): void;

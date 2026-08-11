@@ -225,7 +225,12 @@ class ContentScript {
 
         const expandButton = this.buildIconButton(Icons.maximize(), "Open this lookup in the Lexin popup");
         expandButton.addEventListener("click", () => {
-            this.messageService.openActionPopup();
+            // "This lookup", so the word goes with it. The popup used to ask the page
+            // for its selection instead, which is not the same word under every
+            // trigger: Shift suppresses the selection and the card names its word by
+            // position, leaving the popup to open on nothing, or on whatever was
+            // selected before the reader ever pressed Shift.
+            this.messageService.openActionPopup(word);
         });
         DomUtils.append(actions, expandButton);
 
