@@ -2,28 +2,21 @@
 # Runs once, when the container is created (postCreateCommand in devcontainer.json),
 # as pwuser.
 #
-# Almost all of it is about the named volumes: Docker creates every one of them empty
-# and owned by root:root, because none of these paths exists in the image for it to
-# copy ownership from. Until they are handed over, `npm ci` fails twice - once on
-# node_modules, once on the cache directory, with the misleading "your cache folder
-# contains root-owned files, due to a bug in previous versions of npm".
+# The node_modules volume is the reason most of this exists: Docker creates it empty
+# and owned by root:root, so npm ci would fail with EACCES on the mount point itself.
+# It cannot be pre-created in the image the way the home directories are, because it
+# lives under the bind-mounted workspace, which does not exist at build time.
 #
-# Only the mount points need this, not the trees underneath them.
+# Only the mount point needs this, not the tree underneath it. The home-directory
+# volumes are handled in the Dockerfile - they have to be, because VS Code writes to
+# .vscode-server before this script gets to run.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-for volume in \
-    node_modules \
-    "$HOME/.npm" \
-    "$HOME/.claude" \
-    "$HOME/.config/gh" \
-    "$HOME/.vscode-server"
-do
-    if [ -d "$volume" ] && [ ! -w "$volume" ]; then
-        sudo chown "$(id -u):$(id -g)" "$volume"
-    fi
-done
+if [ ! -w node_modules ]; then
+    sudo chown "$(id -u):$(id -g)" node_modules
+fi
 
 # The container's own dependency tree, from the same lockfile the host uses. This is
 # what picks @typescript/typescript-linux-arm64, @esbuild/linux-arm64,

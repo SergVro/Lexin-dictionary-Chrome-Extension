@@ -32,6 +32,22 @@ RUN apt-get update \
     && echo "pwuser ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/90-pwuser \
     && chmod 0440 /etc/sudoers.d/90-pwuser
 
+# Every home directory devcontainer.json mounts a named volume over, created here so
+# that pwuser owns it. Docker seeds a fresh named volume from whatever is at the mount
+# point in the image - content *and* ownership - and creates it root-owned when there
+# is nothing there. That difference is load-bearing for .vscode-server: VS Code
+# installs its server into it before postCreateCommand ever runs, so a chown in that
+# script is too late and the connection fails with "mkdir: cannot create directory
+# '/home/pwuser/.vscode-server/bin': Permission denied".
+#
+# node_modules is not in this list and cannot be: it lives under the bind-mounted
+# workspace, which does not exist at build time. post-create.sh chowns that one.
+RUN mkdir -p /home/pwuser/.vscode-server \
+             /home/pwuser/.npm \
+             /home/pwuser/.claude \
+             /home/pwuser/.config/gh \
+    && chown -R pwuser:pwuser /home/pwuser
+
 # The image's own account (uid 1001), reused rather than adding a second user: the
 # browser directories are already world-usable, so there is nothing to re-own. The
 # base image sets no USER and runs as root, which is fine for a one-shot CI container
