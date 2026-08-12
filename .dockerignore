@@ -8,3 +8,10 @@ dist
 .idea
 .vscode
 
+# Nothing in the CI test image needs these, and .chrome-dev-profile is a few hundred
+# files of host browser state that would bust the COPY layer's cache on every dev run.
+# Does not affect the dev container build, whose context is .devcontainer/.
+.devcontainer
+.chrome-dev-profile
+playwright-report
+test-results

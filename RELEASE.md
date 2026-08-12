@@ -12,6 +12,11 @@ succeeds, and publishes a GitHub release for the tag.
 
 ## Cutting a release
 
+**From a host terminal, by hand — never from the dev container.** One command here
+pushes a tag, and that tag publishes to the store; `.claude/settings.json` denies the
+whole path to agents for that reason. See
+[ADR 0007](docs/adr/0007-develop-in-a-container-to-sandbox-the-agent.md).
+
 ```bash
 npm run release -- 2.0.1
 ```
