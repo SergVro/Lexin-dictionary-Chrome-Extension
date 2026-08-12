@@ -137,10 +137,13 @@ test.describe("Lookup trigger", () => {
             await expect(page.locator(CARD_WORD)).toHaveText("bil");
 
             await ExtensionHelpers.triggerLookup(page, "#second-word", { modifier: "Shift" });
-            const heading = await page.locator(CARD_WORD).textContent();
+            // Waited for, not read immediately - the first card is still on its way
+            // out when the second click lands, and a raw textContent() read here can
+            // catch its word ("bil") before the new card ("hund") replaces it.
+            await expect(page.locator(CARD_WORD)).toHaveText("hund");
 
-            expect(heading?.trim()).toBe("hund");
             // Whatever it is, it is one word and not a span of the page.
+            const heading = await page.locator(CARD_WORD).textContent();
             expect(heading!.trim().split(/\s+/)).toHaveLength(1);
         });
 
