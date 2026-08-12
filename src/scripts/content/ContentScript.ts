@@ -9,6 +9,7 @@ import LanguageLabel, { ILanguageLabel } from "../common/LanguageLabel.js";
 import Settings from "../common/Settings.js";
 import { DEFAULT_TRIGGER, matchesTrigger, TriggerModifier } from "../common/LookupTrigger.js";
 import { wordAtPoint } from "./WordAtPoint.js";
+import TranslationDirection from "../dictionary/TranslationDirection.js";
 import tokensCss from "../../css/tokens.css";
 import componentsCss from "../../css/components.css";
 import cardCss from "../../css/card.css";
@@ -38,6 +39,20 @@ function getCardStyleSheet(): CSSStyleSheet {
 }
 
 const HOST_CLASS = "lexinExtensionMainContainer";
+
+/**
+ * Which way a Translation Card runs its lookup: always out of Swedish.
+ *
+ * A card answers "what does this word on the page mean", and the page is Swedish -
+ * there is no reader gesture that means anything else. The Action Popup is the
+ * surface with a direction to choose, and its swap control has no bearing here.
+ *
+ * Named rather than left to getTranslation's default, because the expand button hands
+ * this to the popup along with the word: the popup restores the reader's last swap on
+ * open, so a card expanded while it points the other way would otherwise re-run the
+ * lookup backwards and show something the card never showed.
+ */
+const CARD_DIRECTION = TranslationDirection.to;
 
 /** Where a card points: the click that opened it, or the selection a command found. */
 type CardAnchor = Pick<PositionOptions, "of" | "fixed">;
@@ -225,7 +240,13 @@ class ContentScript {
 
         const expandButton = this.buildIconButton(Icons.maximize(), "Open this lookup in the Lexin popup");
         expandButton.addEventListener("click", () => {
-            this.messageService.openActionPopup();
+            // "This lookup", so the whole lookup goes with it - the word and the way
+            // the card ran it. The popup used to work both out for itself and could
+            // agree with the card on neither: it asked the page what was selected,
+            // which under Shift is nothing at all (the card names its word by
+            // position), and it ran that in the reader's last saved direction, which
+            // may point the opposite way to the card's.
+            this.messageService.openActionPopup(word, CARD_DIRECTION);
         });
         DomUtils.append(actions, expandButton);
 
@@ -321,7 +342,7 @@ class ContentScript {
         // screen rather than a nicety.
         positionContainer();
 
-        self.messageService.getTranslation(selection).then((response) => {
+        self.messageService.getTranslation(selection, CARD_DIRECTION).then((response) => {
             if (response.error) {
                 States.render(translationBlock, States.errorState(response.error));
                 requestAnimationFrame(positionContainer);

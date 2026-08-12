@@ -1,7 +1,7 @@
 import { IMessageHandlers, GetTranslationHandler, LoadHistoryHandler, ClearHistoryHandler,
     GetSelectionHandler, OpenActionPopupHandler, LoadHistoryDirectionsHandler,
     RemoveHistoryItemHandler, PlayAudioHandler,
-    TranslateSelectionHandler } from "../common/Interfaces.js";
+    TranslateSelectionHandler, TakePendingLookupHandler } from "../common/Interfaces.js";
 import MessageType from "./MessageType.js";
 import MessageBus from "./MessageBus.js";
 
@@ -44,7 +44,13 @@ class MessageHandlers implements IMessageHandlers{
     }
 
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
-        MessageBus.Instance.registerHandler(MessageType.openActionPopup, (_args) => {
+        MessageBus.Instance.registerHandler(MessageType.openActionPopup, (args: any) => {
+            return handler(args.word, args.direction);
+        });
+    }
+
+    registerTakePendingLookupHandler(handler: TakePendingLookupHandler): void {
+        MessageBus.Instance.registerHandler(MessageType.takePendingLookup, (_args) => {
             return handler();
         });
     }

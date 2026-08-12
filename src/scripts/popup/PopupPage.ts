@@ -1,7 +1,7 @@
 import LanguageManager from "../common/LanguageManager.js";
 import LanguageLabel from "../common/LanguageLabel.js";
 import TranslationDirection from "../dictionary/TranslationDirection.js";
-import { IMessageService, ITranslation } from "../common/Interfaces.js";
+import { IMessageService, IPendingLookup, ITranslation } from "../common/Interfaces.js";
 import * as DomUtils from "../util/DomUtils.js";
 import * as Icons from "../util/Icons.js";
 import * as States from "../util/States.js";
@@ -51,6 +51,14 @@ class PopupPage {
         this.renderIcons();
         this.buildLanguagePicker();
 
+        // Claimed in the popup's first tick, before anything below waits on storage.
+        // The worker drops the word as it answers, so this is also what unparks it: a
+        // reader who dismisses the popup while it is still setting up destroys this
+        // document mid-await, and a claim made further down would never be sent at
+        // all - leaving the word for the next popup, opened from the toolbar and with
+        // nothing to do with the card, to open on. Awaited where it is needed.
+        const pending = this.messageService.takePendingLookup();
+
         await this.languageManager.waitForInitialization();
         await this.fillLanguages();
         this.currentLanguage = await this.languageManager.getCurrentLanguage();
@@ -60,10 +68,10 @@ class PopupPage {
         await this.useSupportedDirection();
         this.renderDirectionBadge();
 
-        // Read before translateSelectedWord, which renders the empty state naming it.
+        // Read before openOnPendingWord, which renders the empty state naming it.
         this.trigger = await this.settings.getTriggerModifier();
 
-        this.translateSelectedWord();
+        this.openOnPendingWord(await pending);
         this.refreshRecent();
 
         this.subscribeOnEvents();
@@ -209,6 +217,38 @@ class PopupPage {
         const saved = await this.languageManager.getTranslationDirection();
         // TranslationDirection.from = 1, TranslationDirection.to = 2
         return saved === 1 ? TranslationDirection.from : TranslationDirection.to;
+    }
+
+    /**
+     * What the popup opens on: the lookup handed over by a Translation Card, if a card
+     * is why it opened, and the page's selection otherwise.
+     *
+     * The selection alone was the whole answer once, and it is the wrong one for the
+     * card's expand button. Under the Shift trigger the card suppresses the page's
+     * selection and names its word by position, so there is nothing selected to find -
+     * the popup opened on "No word selected" beside a card plainly showing a word, or
+     * worse, on whatever the reader had selected before pressing Shift. See
+     * BackgroundWorker.openActionPopup for where the lookup waits in between.
+     *
+     * The direction comes with it and is adopted, badge and all. A card always runs
+     * out of Swedish while this popup restores the reader's last swap, so keeping the
+     * saved one would re-run the card's word backwards - "Ingen träff" where the card
+     * has an entry, and a badge contradicting the card still open behind it.
+     *
+     * Adopted in memory only: the reader chose their saved direction in this popup,
+     * and expanding a card is not them changing their mind about it. The swap control
+     * persists a deliberate change, as it always has.
+     */
+    private openOnPendingWord(pending: IPendingLookup | null): void {
+        const word = pending ? DomUtils.trim(pending.word) : "";
+        if (!pending || !word) {
+            this.translateSelectedWord();
+            return;
+        }
+        this.currentDirection = pending.direction;
+        this.renderDirectionBadge();
+        this.setCurrentWord(word);
+        this.getTranslation();
     }
 
     translateSelectedWord(): void {

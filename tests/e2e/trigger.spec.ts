@@ -37,6 +37,9 @@ const CARD_HOST = ".lexinExtensionMainContainer";
  */
 const CARD_WORD = ".lexinCardWord > span:not(.lexinCardPair)";
 
+/** The card's way into the Action Popup. Named by the label a reader would read. */
+const EXPAND_BUTTON = "[aria-label='Open this lookup in the Lexin popup']";
+
 /**
  * Pick a segmented option by its stored value rather than its label.
  *
@@ -571,6 +574,76 @@ test.describe("Lookup trigger", () => {
         await page.waitForTimeout(500);
         await expect(page.locator(CARD_HOST)).toHaveCount(0);
     });
+
+    test("the card's expand button should open the popup on the card's word",
+        async ({ context, extensionId, popupPage }) => {
+            // The popup used to ask the page what was selected, which is not the word
+            // the card is showing under every trigger: Shift suppresses the selection
+            // outright and the card names its word by position. The reader got "No
+            // word selected" beside a card plainly showing a word.
+            await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");
+
+            // The real chrome.action.openPopup opens a panel Playwright cannot
+            // address. Stubbed, the word is left parked exactly as it would be for
+            // that panel - and popup.html in a tab is the same document it would host.
+            const worker = await backgroundWorker(context);
+            await worker.evaluate(() => {
+                chrome.action.openPopup = () => Promise.resolve();
+            });
+
+            const page = await context.newPage();
+            await openTestPage(page);
+            await ExtensionHelpers.triggerLookup(page, "#test-word", { modifier: "Shift" });
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+
+            await page.locator(EXPAND_BUTTON).click();
+
+            const popup = await popupPage();
+            await expect(popup.locator("#wordInput")).toHaveValue("bil");
+            // The word was looked up, not just typed into the box for the reader.
+            await expect(popup.locator("#translation")).toContainText("bil");
+
+            // Once only. A word left parked would answer the next popup the reader
+            // opens from the toolbar, wherever they have got to by then - and that
+            // one has nothing to do with the card. An extension page runs no content
+            // script, so the fallback finds no selection here and says so.
+            const second = await popupPage();
+            await expect(second.locator("#translation")).toContainText("No word selected");
+        });
+
+    test("the expand button should open the popup the way the card ran the lookup",
+        async ({ context, extensionId, popupPage }) => {
+            // A card always runs out of Swedish; the popup restores whichever way the
+            // reader last left its swap control. Where those disagree, a popup that
+            // kept its own would look the card's Swedish word up backwards - no entry
+            // where the card has one, under a badge contradicting the card still open
+            // behind it.
+            await ExtensionHelpers.setLanguage(context, extensionId, "swe_eng");
+            // 1 is "from": English → Swedish, the opposite of the card.
+            await ExtensionHelpers.setTranslationDirection(context, extensionId, 1);
+
+            const worker = await backgroundWorker(context);
+            await worker.evaluate(() => {
+                chrome.action.openPopup = () => Promise.resolve();
+            });
+
+            const page = await context.newPage();
+            await openTestPage(page);
+            await ExtensionHelpers.triggerLookup(page, "#test-word");
+            await expect(page.locator(CARD_WORD)).toHaveText("bil");
+
+            await page.locator(EXPAND_BUTTON).click();
+
+            const popup = await popupPage();
+            await expect(popup.locator("#directionBadgeText")).toHaveText("sv→eng");
+            await ExtensionHelpers.waitForTranslation(popup);
+            await expect(popup.locator("#translation")).not.toContainText("Ingen träff");
+
+            // In memory only. The reader chose their saved direction in this popup,
+            // and expanding a card is not them changing their mind about it.
+            const second = await popupPage();
+            await expect(second.locator("#directionBadgeText")).toHaveText("eng→sv");
+        });
 
     test("the copy should name the modifier the reader chose", async ({ context, extensionId, popupPage }) => {
         await ExtensionHelpers.setTriggerModifier(context, extensionId, "shift");

@@ -13,11 +13,13 @@ import {
     ClearHistoryHandler,
     GetSelectionHandler,
     OpenActionPopupHandler,
+    TakePendingLookupHandler,
     LoadHistoryDirectionsHandler,
     RemoveHistoryItemHandler,
     PlayAudioHandler,
     TranslateSelectionHandler,
     IMessageBus,
+    IPendingLookup,
     MessageHandler,
     IAsyncStorage,
     IAsyncSettingsStorage,
@@ -81,10 +83,22 @@ export class TestMessageService implements IMessageService {
     }
 
     openActionPopupCalls = 0;
+    /** Every lookup the expand button handed over, newest last. */
+    openActionPopupLookups: IPendingLookup[] = [];
 
-    openActionPopup(): Promise<void> {
+    openActionPopup(word: string, direction: TranslationDirection): Promise<void> {
         this.openActionPopupCalls++;
+        this.openActionPopupLookups.push({ word: word, direction: direction });
         return Promise.resolve();
+    }
+
+    /** What the worker has parked for this popup. null means "opened some other way". */
+    pendingLookup: IPendingLookup | null = null;
+
+    takePendingLookup(): Promise<IPendingLookup | null> {
+        const pending = this.pendingLookup;
+        this.pendingLookup = null;
+        return Promise.resolve(pending);
     }
 
     playedAudioUrls: string[] = [];
@@ -238,6 +252,7 @@ export class FakeMessageHandlers implements IMessageHandlers {
     clearHistoryHandler: ClearHistoryHandler | null = null;
     getSelectionHandler: GetSelectionHandler | null = null;
     openActionPopupHandler: OpenActionPopupHandler | null = null;
+    takePendingLookupHandler: TakePendingLookupHandler | null = null;
     loadHistoryDirectionsHandler: LoadHistoryDirectionsHandler | null = null;
     removeHistoryItemHandler: RemoveHistoryItemHandler | null = null;
     playAudioHandler: PlayAudioHandler | null = null;
@@ -261,6 +276,10 @@ export class FakeMessageHandlers implements IMessageHandlers {
 
     registerOpenActionPopupHandler(handler: OpenActionPopupHandler): void {
         this.openActionPopupHandler = handler;
+    }
+
+    registerTakePendingLookupHandler(handler: TakePendingLookupHandler): void {
+        this.takePendingLookupHandler = handler;
     }
 
     registerLoadHistoryDirectionsHandler(handler: LoadHistoryDirectionsHandler): void {
