@@ -25,8 +25,11 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
   
-  // Limit parallel workers for extension tests (each needs its own browser instance)
-  workers: 1,
+  // Each test launches its own persistent context with a fresh temp profile (see
+  // fixtures.ts), so tests don't share browser state and are safe to run across
+  // workers. CI runners are typically 2 cores; local machines vary; leaving it
+  // undefined lets Playwright pick from the available CPUs.
+  workers: process.env.CI ? 2 : undefined,
   
   // Reporter configuration
   reporter: process.env.CI

@@ -280,6 +280,11 @@ class ContentScript {
     }
 
     private showTranslation(selection: string, anchor: CardAnchor): void {
+        // A card that opened over text the reader then tried to click through - rather
+        // than a click landing cleanly outside it - never reaches dismissOnClickOut,
+        // so a new lookup clears any leftover card itself rather than trusting one is
+        // never still open.
+        this.removeCard();
         const self = this;
         const absoluteContainer = DomUtils.createElement("div");
         DomUtils.addClass(absoluteContainer, HOST_CLASS);
@@ -482,7 +487,7 @@ class ContentScript {
      * not consulted at all.
      */
     private wordDoubleClicked(evt: MouseEvent): string {
-        const atPoint = () => wordAtPoint(evt.clientX, evt.clientY);
+        const atPoint = () => wordAtPoint(evt.clientX, evt.clientY, `.${HOST_CLASS}`);
         if (this.selectionIsOurs()) {
             return atPoint();
         }

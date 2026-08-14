@@ -279,8 +279,18 @@ function collectFlowedText(element: Element, caret: ICaret,
     }
 }
 
-/** The word under a viewport coordinate, or "" if that is not text. */
-export function wordAtPoint(x: number, y: number): string {
+/**
+ * The word under a viewport coordinate, or "" if that is not text.
+ *
+ * `exclude`, when given, is a selector for the extension's own UI. A card floats
+ * over the page it annotates, and can end up covering the very text the reader
+ * meant to point at next - naming a word there would pierce the card's own shadow
+ * root and read back its dictionary content as if it were the page.
+ */
+export function wordAtPoint(x: number, y: number, exclude?: string): string {
+    if (exclude && document.elementFromPoint(x, y)?.closest(exclude)) {
+        return "";
+    }
     const caret = caretFromPoint(x, y);
     if (!caret || caret.node.nodeType !== Node.TEXT_NODE) {
         return "";

@@ -206,6 +206,12 @@ export class ExtensionHelpers {
     const modifier = options?.modifier ?? "Alt";
     const gesture = options?.gesture ?? "dblclick";
 
+    // A card from a prior lookup on this page floats near the word it named, and on
+    // a fixture packing several targets close together it can still be covering the
+    // next one. Dismissing it first - the same Escape a reader has - means this
+    // gesture always lands on the page rather than risking the card underneath it.
+    await page.keyboard.press("Escape");
+
     const box = await page.locator(selector).boundingBox();
     if (!box) {
       throw new Error(`No bounding box for ${selector} - is it visible?`);
