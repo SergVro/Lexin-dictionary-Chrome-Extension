@@ -25,16 +25,17 @@
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
 
-    // --ipc=host is Playwright's recommendation for Chromium and is not a CI-only
-    // concern: the default 64 MB /dev/shm is what makes the browser run out of memory
-    // partway through the suite. scripts/run-tests-docker.sh, docker-compose.test.yml
-    // and .github/workflows/test.yml all pass it for the same reason. On macOS "host"
-    // here is Docker Desktop's Linux VM, not the Mac, so it costs no isolation worth
-    // having. On a Linux host prefer --shm-size=1g instead.
+    // The default 64 MB /dev/shm is what makes Chromium run out of memory partway
+    // through the Playwright suite. --ipc=host (what scripts/run-tests-docker.sh,
+    // docker-compose.test.yml and .github/workflows/test.yml use) fixes that too, but
+    // it hands the container the host's IPC namespace - on a Linux host that means a
+    // passwordless-root agent can reach host shared-memory and System V IPC objects,
+    // which is exactly what this container exists to prevent. --shm-size gives
+    // Chromium the room it needs with a private namespace instead, on every host.
     //
     // No --memory: the VM has 8 GB, `workers: 1` needs far less, and a container
     // limit would only add a new way to be OOM-killed.
-    "runArgs": ["--ipc=host"],
+    "runArgs": ["--shm-size=1g"],
 
     // Reaps the Chromium processes a run leaves behind - the same job --init does in
     // scripts/run-tests-docker.sh.
@@ -65,7 +66,11 @@
         // `npm run dev` and `npm run store-assets` working on the host with no setup.
         // The cost is that the two trees are independent - change a dependency in
         // here and the host needs its own `npm ci`.
-        "source=lexin-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+        //
+        // Scoped with ${devcontainerId} (unique per workspace path) so two checkouts
+        // or worktrees, each with their own lockfile, don't share - and corrupt -
+        // the same dependency tree.
+        "source=lexin-node-modules-${devcontainerId},target=${containerWorkspaceFolder}/node_modules,type=volume",
 
         // Rebuilds do not re-download the world.
         "source=lexin-npm-cache,target=/home/pwuser/.npm,type=volume",
