@@ -1,0 +1,121 @@
+// The development environment, containerised so that an agent running arbitrary
+// commands cannot reach the host: no other checkout, no ~/.ssh, no ~/.config/gcloud,
+// no keychain, no Docker daemon. What it protects and what it does not is written
+// out in docs/adr/0007-develop-in-a-container-to-sandbox-the-agent.md - read that
+// before trusting it with anything.
+//
+// The whole loop runs in here except the ones that need a real window:
+// `npm run dev`, `npm run store-assets`, `npm run test:e2e:headed|debug|ui` and
+// `npm run release` stay on the host. See Readme.md for the split.
+{
+    "name": "Lexin extension",
+
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+
+    // The image's own account. remoteUser has to say so explicitly: without it the
+    // VS Code server would run as root and write root-owned files into the workspace.
+    "remoteUser": "pwuser",
+
+    // `gh api` / `gh pr` / `gh run` are already part of how this repo is worked on,
+    // and the base image does not carry the CLI. Git credentials are forwarded (see
+    // the note below), so this is usable rather than decorative.
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+
+    // The default 64 MB /dev/shm is what makes Chromium run out of memory partway
+    // through the Playwright suite. --ipc=host (what scripts/run-tests-docker.sh,
+    // docker-compose.test.yml and .github/workflows/test.yml use) fixes that too, but
+    // it hands the container the host's IPC namespace - on a Linux host that means a
+    // passwordless-root agent can reach host shared-memory and System V IPC objects,
+    // which is exactly what this container exists to prevent. --shm-size gives
+    // Chromium the room it needs with a private namespace instead, on every host.
+    //
+    // No --memory: the VM has 8 GB, `workers: 1` needs far less, and a container
+    // limit would only add a new way to be OOM-killed.
+    "runArgs": ["--shm-size=1g"],
+
+    // Reaps the Chromium processes a run leaves behind - the same job --init does in
+    // scripts/run-tests-docker.sh.
+    "init": true,
+
+    "forwardPorts": [3456, 9323],
+    "portsAttributes": {
+        "3456": {
+            "label": "E2E test pages (playwright.config.ts webServer)",
+            "onAutoForward": "silent"
+        },
+        "9323": {
+            "label": "Playwright HTML report (npx playwright show-report)",
+            "onAutoForward": "silent"
+        }
+    },
+    // Not forwarded: 3457 (npm run store-assets) and 6080 (a VNC desktop) - both
+    // belong to workflows that stay on the host.
+
+    "mounts": [
+        // The load-bearing one. package-lock.json carries platform-constrained
+        // optional packages - @typescript/typescript-*, @esbuild/*,
+        // @rolldown/binding-*, lightningcss-* - and the host's tree holds the darwin
+        // builds. Sharing it would break tsc, esbuild and Vitest's rolldown in here.
+        //
+        // A named volume mounted over this path shadows it inside the container only:
+        // the host's node_modules/ on disk is untouched, which is what keeps
+        // `npm run dev` and `npm run store-assets` working on the host with no setup.
+        // The cost is that the two trees are independent - change a dependency in
+        // here and the host needs its own `npm ci`.
+        //
+        // Scoped with ${devcontainerId} (unique per workspace path) so two checkouts
+        // or worktrees, each with their own lockfile, don't share - and corrupt -
+        // the same dependency tree.
+        "source=lexin-node-modules-${devcontainerId},target=${containerWorkspaceFolder}/node_modules,type=volume",
+
+        // Rebuilds do not re-download the world.
+        "source=lexin-npm-cache,target=/home/pwuser/.npm,type=volume",
+
+        // Claude Code's login and history, kept across rebuilds. A volume, and
+        // deliberately not a bind mount of the host's ~/.claude: settings there can
+        // carry hooks, and those hooks execute on the *host*. Sharing the directory
+        // would hand anything in this container a documented way to run commands on
+        // the machine the container exists to protect. The repo-local
+        // .claude/settings.json and .claude/settings.local.json are on the bind mount
+        // and travel for free.
+        "source=lexin-claude,target=/home/pwuser/.claude,type=volume",
+
+        // So `gh auth login` is once per volume rather than once per rebuild.
+        "source=lexin-gh,target=/home/pwuser/.config/gh,type=volume",
+
+        // Keeps the VS Code server and its extensions across a rebuild.
+        "source=lexin-vscode-server,target=/home/pwuser/.vscode-server,type=volume"
+    ],
+    // Not shadowed, on purpose: dist/, test-results/ and playwright-report/ stay on
+    // the bind mount. All three are platform-independent output, so a build made in
+    // here loads straight into host Chrome (chrome://extensions -> Load unpacked ->
+    // dist) and the host can open a report the container produced.
+
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "dbaeumer.vscode-eslint",
+                "ms-playwright.playwright"
+            ],
+            "settings": {
+                // eslint.config.js uses parserOptions.projectService, which wants the
+                // repo root as its working directory.
+                "eslint.workingDirectories": [{ "mode": "auto" }],
+                "typescript.tsdk": "node_modules/@typescript/native/lib"
+            }
+        }
+    }
+
+    // Git credentials are forwarded, which is the default: Dev Containers copies the
+    // host ~/.gitconfig, wires a credential helper back to the host and forwards the
+    // SSH agent. So an agent in here can push. That is a deliberate choice, and
+    // .claude/settings.json is the guard that goes with it - `npm run release` pushes
+    // a v*.*.* tag, and that tag publishes to the Chrome Web Store. See RELEASE.md.
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "//": [
+    "Committed, shared settings. .claude/settings.local.json is the untracked",
+    "personal allowlist and stays that way.",
+    "",
+    "The dev container (see docs/adr/0007) forwards git credentials, so an agent",
+    "working in it can push. The one thing that must not happen by accident is a",
+    "release: scripts/webstore/release.js commits, tags and pushes branch AND tag to",
+    "origin, and a v*.*.* tag makes .github/workflows/release.yml publish to the",
+    "Chrome Web Store. It prompts only when stdin is a TTY, and --yes skips even that.",
+    "",
+    "These rules stop the accident, not a determined agent - nothing here prevents",
+    "`git push origin HEAD:refs/tags/v3.4.0`, and only Claude Code reads this file.",
+    "Cutting a release is a host terminal, by hand: see RELEASE.md."
+  ],
+
+  "permissions": {
+    "deny": [
+      "Bash(npm run release)",
+      "Bash(npm run release:*)",
+      "Bash(node scripts/webstore/release.js:*)",
+      "Bash(node scripts/webstore/publish.js:*)",
+      "Bash(git tag:*)",
+      "Bash(git push --tags:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  }
+}

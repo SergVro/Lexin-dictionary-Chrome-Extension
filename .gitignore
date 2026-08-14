@@ -179,3 +179,6 @@ playwright/.cache/
 
 # Browser profile the dev loop keeps its settings and open tabs in (npm run dev)
 .chrome-dev-profile/
+
+# Personal Claude Code allowlist - see .claude/settings.json
+.claude/settings.local.json

@@ -778,6 +778,36 @@ npm run dev              # Build then watch
 
 ---
 
+## Working in the Dev Container
+
+`.devcontainer/` is the primary development environment — everything above runs in it,
+including the E2E suite. It exists so an agent's mistakes stop at this checkout instead
+of reaching the host machine. See
+`docs/adr/0007-develop-in-a-container-to-sandbox-the-agent.md` for what it does and does
+not protect.
+
+**Host-only — do not attempt these in the container:**
+
+| Command | Why not |
+|---|---|
+| `npm run dev` | Needs a real Chrome window; the profile and the extension ID belong to the host |
+| `npm run store-assets` | Needs a window, and a Linux container has the wrong fonts for store screenshots |
+| `npm run test:e2e:headed`, `:debug`, `:ui` | Need a display. Use the default headless run and read the trace |
+| `npm run test:e2e:docker` | Needs a Docker daemon. The container *is* the docker environment — run `npm run test:e2e` |
+| `npm run release`, `npm run release:version` | Denied in `.claude/settings.json`. Pushing a `v*.*.*` tag publishes to the Chrome Web Store; releases are cut by hand from a host terminal |
+
+**Things that are true in here and nowhere else:**
+
+- `node_modules` is a container-local volume, not the host's. If you change a
+  dependency, say so in the summary — the host has its own tree and must run `npm ci`
+  to catch up.
+- A failed E2E run may be the network. The suite makes live, unmocked calls to
+  `lexin.nada.kth.se` and `folkets-lexikon.csc.kth.se`; check that before assuming the
+  code broke.
+- `dist/` is on the bind mount, so a build made here is what the host loads into Chrome.
+
+---
+
 ## Code Style & Conventions
 
 - **TypeScript only** in `src/scripts/` — do not add plain `.js` files

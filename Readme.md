@@ -16,8 +16,10 @@ Swedish to other languages dictionary extension for Chrome. Powered by Lexin and
 
 ### Prerequisites
 
-- Node.js 16+ and npm
+- Node.js 24 and npm (the version CI runs, and the one the dev container ships)
 - Modern web browser (Chrome/Edge) for testing
+- Optionally Docker Desktop and the VS Code Dev Containers extension — see
+  [Developing in a container](#developing-in-a-container)
 
 ### Setup
 
@@ -67,6 +69,37 @@ Two things to know:
 - **`CHROME_CHANNEL=chrome npm run dev`** runs against installed Chrome instead of
   the Chromium Playwright ships. The default matches what the E2E suite tests
   against.
+
+### Developing in a container
+
+`.devcontainer/` holds a full development environment — including the Playwright E2E
+suite — so work driven by AI coding agents cannot reach the rest of the machine. In
+VS Code: **Dev Containers: Reopen in Container**. The first create runs `npm ci` and a
+build inside the container; after that everything below just works.
+
+It is worth reading
+[ADR 0007](docs/adr/0007-develop-in-a-container-to-sandbox-the-agent.md) before relying
+on it, because it is explicit about what the container does *not* protect — the working
+tree is bind-mounted read-write, outbound network is unrestricted, and git credentials
+are forwarded.
+
+| Runs in the container | Stays on the host |
+|---|---|
+| `npm run build` | `npm run dev` |
+| `npm run lint` | `npm run store-assets` |
+| `npm run typecheck` | `npm run test:e2e:headed` / `:debug` / `:ui` |
+| `npm test` | `npm run test:e2e:docker` |
+| `npm run test:e2e` | `npm run release` |
+
+The host workflows are the ones that need a real browser window, plus the release,
+which is deliberately a deliberate act — see [RELEASE.md](RELEASE.md). They keep
+working unchanged: the container's `node_modules` is a volume of its own, so the host's
+tree is untouched. `dist/` is shared both ways, so a build made in the container is what
+`chrome://extensions` → *Load unpacked* picks up.
+
+**The one rule of the split:** if a dependency changes in the container, run `npm ci` on
+the host too. The two trees come from the same `package-lock.json` but are otherwise
+independent, and nothing warns you when the host's has gone stale.
 
 ### Project Structure
 

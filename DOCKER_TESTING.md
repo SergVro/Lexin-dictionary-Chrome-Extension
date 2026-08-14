@@ -5,6 +5,12 @@ This guide explains how to run Playwright E2E tests in a Docker container, which
 - Testing in a clean, isolated environment
 - Debugging CI test failures locally
 
+> **This is not the dev container.** `.devcontainer/` is where you *write* code;
+> `Dockerfile.test` is how you *reproduce a CI run*. See
+> [Dev container vs. this image](#dev-container-vs-this-image) below, and run
+> `npm run test:e2e:docker` from a **host** terminal — there is no Docker daemon inside
+> the dev container.
+
 ## Prerequisites
 
 - Docker installed and running
@@ -91,6 +97,33 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) automatically:
 ### Network timeouts
 - Tests require internet access to reach Lexin API
 - Ensure Docker container has network access
+
+### `npm run test:e2e:docker` fails inside the dev container
+- Expected: there is no Docker daemon in there, and the socket is deliberately not
+  mounted — a container that can reach the host daemon can start a privileged one with
+  the host filesystem attached, which would undo the sandbox entirely
+- Run `npm run test:e2e` instead, which is the same suite on the same browser. Reach for
+  this image only to reproduce a CI-specific failure, from a host terminal
+
+## Dev container vs. this image
+
+Two images, built from the same base and the same pinned Playwright version, doing
+different jobs:
+
+| | `.devcontainer/Dockerfile` | `Dockerfile.test` |
+|---|---|---|
+| Purpose | Write code and run everything | Reproduce the CI run |
+| Source | Bind-mounted, live | Baked in with `COPY . .` |
+| `node_modules` | A named volume, `npm ci` on create | An image layer |
+| `CI` | Not set — so `reuseExistingServer` stays on, and runs get 0 retries and no `github` reporter | `CI=true`, passed explicitly |
+| Runs as | `pwuser`, with a workspace | root, one shot, then exits |
+
+Both `FROM mcr.microsoft.com/playwright:v1.62.0-noble`, and
+`tests/unit/PlaywrightImagePinTests.ts` fails the build if either drifts from
+`@playwright/test` in `package.json`. Bump all three together.
+
+Use the dev container to write code and run `npm run test:e2e`. Use this image, from a
+host terminal, when a run passes there and fails in CI.
 
 ## Local Development vs Docker
 
